@@ -1,14 +1,15 @@
-# spa-react
+# @spa/react
 
-React component for playing SPA (Scalable Parametric Audio) sound effects in React applications.
+React components and hooks for playing SPA (Scalable Parametric Audio) files using the Web Audio API.
 
 ## Features
 
-- Simple React component for SPA sounds
-- Hooks for programmatic playback
-- TypeScript support
-- Tiny bundle size (< 5KB)
-- No UI - pure audio functionality
+- **Complete Player Component** - Full-featured audio player with transport controls
+- **Web Audio Hooks** - Low-level hooks for custom implementations
+- **SPA File Support** - Load and play .spa files from URLs or inline XML
+- **Real-time Synthesis** - Generate audio in real-time using oscillators and noise generators
+- **Effects & Filters** - Support for ADSR envelopes, filters, and automation curves
+- **TypeScript Support** - Fully typed for excellent DX
 
 ## Installation
 

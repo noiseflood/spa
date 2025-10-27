@@ -56,11 +56,15 @@ export async function playSPA(
 /**
  * Main SPA API
  */
+import { parseSPA as parse } from './parser';
+import { renderSPA as render } from './renderer';
+import { validateSPA as validate } from './validator';
+
 export const SPA = {
-  parse: parseSPA,
-  render: renderSPA,
+  parse,
+  render,
   play: playSPA,
-  validate: validateSPA
+  validate
 } as const;
 
 // Default export

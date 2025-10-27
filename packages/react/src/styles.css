@@ -1,0 +1,403 @@
+/**
+ * Default styles for SPA React components
+ */
+
+/* SPAPlayer Component */
+.spa-player {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.spa-player-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.spa-player-time {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: #666;
+}
+
+.spa-player-extras {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.spa-player-loading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  color: #666;
+}
+
+.spa-player-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #fee;
+  border-radius: 4px;
+  color: #c00;
+}
+
+/* Transport Controls */
+.spa-transport {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.spa-transport button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spa-transport button:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #999;
+  transform: scale(1.05);
+}
+
+.spa-transport button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.spa-transport button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spa-transport svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Volume Control */
+.spa-volume {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.spa-volume-mute {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+}
+
+.spa-volume-mute:hover {
+  color: #333;
+}
+
+.spa-volume-slider {
+  width: 100px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ddd;
+  border-radius: 2px;
+  outline: none;
+}
+
+.spa-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #4CAF50;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.spa-volume-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #4CAF50;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.spa-volume-value {
+  min-width: 40px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Progress Bar */
+.spa-progress {
+  position: relative;
+  height: 40px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spa-progress-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+
+.spa-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #4CAF50;
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+
+.spa-progress.dragging .spa-progress-fill {
+  transition: none;
+}
+
+.spa-progress-handle {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  background: #4CAF50;
+  border: 2px solid white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s;
+}
+
+.spa-progress:hover .spa-progress-handle {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.spa-progress-tooltip {
+  position: absolute;
+  top: -30px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* File Uploader */
+.spa-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.spa-uploader-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  background: white;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.spa-uploader-dropzone.dragging {
+  border-color: #4CAF50;
+  background: #f0f8f0;
+}
+
+.spa-uploader-icon {
+  color: #ddd;
+}
+
+.spa-uploader-dropzone.dragging .spa-uploader-icon {
+  color: #4CAF50;
+}
+
+.spa-uploader-text {
+  text-align: center;
+  color: #666;
+}
+
+.spa-uploader-subtext {
+  margin-top: 0.5rem;
+  font-size: 14px;
+  color: #999;
+}
+
+.spa-uploader-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.spa-uploader-browse,
+.spa-uploader-url {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spa-uploader-browse:hover,
+.spa-uploader-url:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.spa-uploader-url-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.spa-uploader-url-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.spa-uploader-url-submit,
+.spa-uploader-url-cancel {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spa-uploader-url-submit {
+  background: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.spa-uploader-url-submit:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.spa-uploader-url-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spa-uploader-url-cancel {
+  background: white;
+}
+
+.spa-uploader-url-cancel:hover {
+  background: #f0f0f0;
+}
+
+/* SPA Button */
+.spa-button {
+  padding: 0.5rem 1rem;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spa-button:hover:not(:disabled) {
+  background: #45a049;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.spa-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.spa-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tempo Control */
+.tempo-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tempo-control label {
+  font-size: 14px;
+  color: #666;
+}
+
+.tempo-control input[type="range"] {
+  width: 120px;
+}
+
+.tempo-control span {
+  min-width: 60px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Loop Control */
+.loop-control label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.loop-control input[type="checkbox"] {
+  cursor: pointer;
+}
+
+/* Loading Spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #ddd;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}

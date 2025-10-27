@@ -2,6 +2,14 @@
  * SPA XML Parser - Converts SPA XML to JavaScript AST
  */
 
+// Polyfill querySelector for xmldom in Node.js
+declare global {
+  interface Element {
+    querySelector?: (selector: string) => Element | null;
+    querySelectorAll?: (selector: string) => NodeListOf<Element>;
+  }
+}
+
 import type {
   SPADocument,
   SPASound,
@@ -40,11 +48,39 @@ export function parseSPA(
   }
 
   // Parse XML
-  const parser = new DOMParser();
+  // Use xmldom in Node.js environment, native DOMParser in browser
+  let parser: DOMParser;
+  if (typeof DOMParser !== 'undefined') {
+    parser = new DOMParser();
+  } else {
+    // Node.js environment
+    const { DOMParser: XMLDOMParser } = require('@xmldom/xmldom');
+    parser = new XMLDOMParser();
+  }
   const doc = parser.parseFromString(cleanXml, 'text/xml');
 
+  // Add querySelector polyfill for xmldom
+  if (!doc.querySelector && doc.getElementsByTagName) {
+    const addQuerySelectors = (node: any) => {
+      node.querySelector = function(selector: string) {
+        return this.getElementsByTagName(selector)[0] || null;
+      };
+      node.querySelectorAll = function(selector: string) {
+        return this.getElementsByTagName(selector);
+      };
+      // Add to all elements
+      const allElements = node.getElementsByTagName('*');
+      for (let i = 0; i < allElements.length; i++) {
+        allElements[i].querySelector = node.querySelector;
+        allElements[i].querySelectorAll = node.querySelectorAll;
+      }
+    };
+    addQuerySelectors(doc);
+    addQuerySelectors(doc.documentElement);
+  }
+
   // Check for parsing errors
-  const parserError = doc.querySelector('parsererror');
+  const parserError = doc.querySelector ? doc.querySelector('parsererror') : doc.getElementsByTagName('parsererror')[0];
   if (parserError) {
     throw new Error(`XML parsing error: ${parserError.textContent}`);
   }
@@ -107,7 +143,10 @@ function parseChildren(
 ): SPASound[] {
   const sounds: SPASound[] = [];
 
-  for (const child of Array.from(parent.children)) {
+  const children = parent.children || parent.childNodes;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i] as Element;
+    if (!child.tagName) continue; // Skip text nodes
     if (child.tagName === 'defs') continue;
 
     if (child.tagName === 'tone') {

@@ -17,12 +17,26 @@ export function validateSPA(xml: string): ValidationResult {
   const warnings: ValidationWarning[] = [];
 
   try {
-    // Parse XML
-    const parser = new DOMParser();
+    // Parse XML - handle both browser and Node.js environments
+    let parser: DOMParser;
+    if (typeof DOMParser !== 'undefined') {
+      parser = new DOMParser();
+    } else {
+      // Node.js environment
+      const { DOMParser: XMLDOMParser } = require('@xmldom/xmldom');
+      parser = new XMLDOMParser();
+    }
     const doc = parser.parseFromString(xml, 'text/xml');
 
+    // Add querySelector polyfill for xmldom
+    if (!doc.querySelector && doc.getElementsByTagName) {
+      (doc as any).querySelector = function(selector: string) {
+        return this.getElementsByTagName(selector)[0] || null;
+      };
+    }
+
     // Check for parsing errors
-    const parserError = doc.querySelector('parsererror');
+    const parserError = doc.querySelector ? doc.querySelector('parsererror') : (doc as any).getElementsByTagName('parsererror')[0];
     if (parserError) {
       errors.push({
         type: 'error',
@@ -44,7 +58,8 @@ export function validateSPA(xml: string): ValidationResult {
     }
 
     // Validate version
-    if (!root.hasAttribute('version')) {
+    const hasAttr = root.hasAttribute || ((name: string) => root.getAttribute(name) !== null);
+    if (!hasAttr.call(root, 'version')) {
       errors.push({
         type: 'error',
         code: 'MISSING_VERSION',
@@ -78,7 +93,10 @@ function validateChildren(
   errors: ValidationError[],
   warnings: ValidationWarning[]
 ): void {
-  for (const child of Array.from(parent.children)) {
+  const children = parent.children || parent.childNodes || [];
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i] as Element;
+    if (!child.tagName) continue; // Skip text nodes
     if (child.tagName === 'defs') {
       validateDefs(child, errors, warnings);
     } else if (child.tagName === 'tone') {
