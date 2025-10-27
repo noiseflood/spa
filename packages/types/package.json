@@ -1,0 +1,40 @@
+{
+  "name": "@spa/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for SPA (Scalable Parametric Audio)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/spa",
+    "directory": "packages/types"
+  },
+  "keywords": [
+    "spa",
+    "audio",
+    "types",
+    "typescript",
+    "web-audio"
+  ],
+  "author": "",
+  "license": "MIT"
+}

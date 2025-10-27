@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <group>
+    <noise color="pink" dur="5.0"
+           filter="bandpass" cutoff="800" resonance="1.5"
+           amp.start="0.3" amp.end="0.6" amp.curve="smooth"/>
+    <noise color="brown" dur="5.0" amp="0.2"/>
+  </group>
+</spa>

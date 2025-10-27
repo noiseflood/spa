@@ -36,6 +36,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "@spa/types": "workspace:*"
+  },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.0",
     "@rollup/plugin-typescript": "^11.1.0",

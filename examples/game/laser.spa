@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <group>
+    <tone wave="saw" dur="0.3"
+          freq.start="1200" freq.end="200" freq.curve="exp"
+          envelope="0,0.1,0,0.2"/>
+    <noise color="white" dur="0.1" amp="0.3"
+           envelope="0,0.05,0,0.05"/>
+  </group>
+</spa>
