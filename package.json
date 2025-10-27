@@ -1,0 +1,52 @@
+{
+  "name": "spa-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SPA (Scalable Parametric Audio) - The SVG of sound effects",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "web:dev": "pnpm --filter @spa/web dev",
+    "web:build": "pnpm --filter @spa/web build",
+    "core:build": "pnpm --filter @spa/core build",
+    "core:test": "pnpm --filter @spa/core test",
+    "react:build": "pnpm --filter @spa/react build",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.26.0",
+    "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "turbo": "^1.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/spa"
+  },
+  "keywords": [
+    "spa",
+    "audio",
+    "sound",
+    "effects",
+    "procedural",
+    "synthesis",
+    "web-audio",
+    "xml",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT"
+}

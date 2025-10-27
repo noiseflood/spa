@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Production
+.next/
+out/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Vercel
+.vercel
+
+# Netlify
+.netlify
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.pem
+.cache
+.turbo
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
