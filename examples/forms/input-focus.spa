@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<!-- Input Focus: Subtle tone for form field focus -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
   <tone wave="sine" freq="500" dur="0.04"
         amp="0.2"
         envelope="0,0.01,0,0.03"/>

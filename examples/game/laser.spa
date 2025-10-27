@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<!-- Laser Shot: Sci-fi weapon discharge with noise layer -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
   <group>
     <tone wave="saw" dur="0.3"
           freq.start="1200" freq.end="200" freq.curve="exp"

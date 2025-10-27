@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<!-- Page Transition: Smooth whoosh for navigation -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
   <group>
     <tone wave="sine" dur="0.3"
           freq.start="400" freq.end="600" freq.curve="smooth"

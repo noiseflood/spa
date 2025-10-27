@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Button Click: Short sine wave for tactile button feedback -->
+<!-- Drag Start: Subtle feedback when initiating drag operation -->
 <spa xmlns="http://spa.audio/ns" version="1.0">
-  <tone wave="sine" freq="800" dur="0.05"
+  <tone wave="sine" freq="600" dur="0.05"
+        amp="0.4"
         envelope="0,0.02,0,0.03"/>
 </spa>

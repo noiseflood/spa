@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<!-- Power Up: Rising sine wave for ability activation -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
   <tone wave="sine" dur="0.5"
         freq.start="220" freq.end="880" freq.curve="smooth"
         envelope="0,0.2,0.6,0.3"/>

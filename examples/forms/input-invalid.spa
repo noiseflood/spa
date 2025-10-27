@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<!-- Invalid Input: Dissonant tones for validation error -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
   <group>
     <tone wave="triangle" freq="300" dur="0.08" envelope="0,0.03,0.3,0.05"/>
     <tone wave="triangle" freq="280" dur="0.08" envelope="0,0.03,0.3,0.05"/>
