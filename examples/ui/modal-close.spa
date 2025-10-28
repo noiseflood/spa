@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Modal Close: Descending tone for dialog dismissal -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <tone wave="sine" dur="0.12"
         freq.start="400" freq.end="200" freq.curve="smooth"
         envelope="0,0.04,0.3,0.08"/>

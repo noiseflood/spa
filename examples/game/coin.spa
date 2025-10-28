@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Coin Pickup: Classic arcade coin collection sound -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <tone wave="square" dur="0.3"
         freq.start="988" freq.end="1319" freq.curve="linear"
         envelope="0,0.1,0.2,0.1"/>

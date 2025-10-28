@@ -31,7 +31,7 @@ function App() {
     <div>
       {/* Inline SPA */}
       <SPASound autoPlay>
-        {`<spa version="1.0">
+        {`<spa xmlns="https://spa.audio/ns" version="1.0">
           <tone wave="sine" freq="800" dur="0.05"
                 envelope="0,0.02,0,0.03"/>
         </spa>`}
@@ -59,7 +59,7 @@ import { useSPA } from 'spa-react';
 
 function Button() {
   const { play, stop, isPlaying } = useSPA(`
-    <spa version="1.0">
+    <spa xmlns="https://spa.audio/ns" version="1.0">
       <tone wave="sine" freq="800" dur="0.05"
             envelope="0,0.02,0,0.03"/>
     </spa>
@@ -85,7 +85,7 @@ function GameComponent({ score }) {
     // Dynamic sound based on score
     const frequency = 400 + (score * 10);
     play(`
-      <spa version="1.0">
+      <spa xmlns="https://spa.audio/ns" version="1.0">
         <tone wave="sine" freq="${frequency}" dur="0.1"/>
       </spa>
     `);
@@ -138,7 +138,7 @@ function ClickButton({ onClick, children }) {
     <button onClick={onClick}>
       {children}
       <SPASound autoPlay>
-        {`<spa version="1.0">
+        {`<spa xmlns="https://spa.audio/ns" version="1.0">
           <tone wave="sine" freq="800" dur="0.05"
                 envelope="0,0.02,0,0.03"/>
         </spa>`}
@@ -155,7 +155,7 @@ import { useSPA } from 'spa-react';
 
 function Form() {
   const successSound = useSPA(`
-    <spa version="1.0">
+    <spa xmlns="https://spa.audio/ns" version="1.0">
       <group>
         <tone wave="sine" freq="523" dur="0.15" envelope="0,0.05,0.3,0.1"/>
         <tone wave="sine" freq="659" dur="0.3" envelope="0,0.1,0.5,0.2"/>
@@ -164,7 +164,7 @@ function Form() {
   `);
 
   const errorSound = useSPA(`
-    <spa version="1.0">
+    <spa xmlns="https://spa.audio/ns" version="1.0">
       <group>
         <tone wave="square" freq="400" dur="0.15" envelope="0,0.05,0.5,0.1"/>
         <tone wave="square" freq="350" dur="0.15" envelope="0,0.05,0.5,0.1"/>
@@ -197,21 +197,21 @@ import { useSPA } from 'spa-react';
 function Game() {
   const sounds = {
     jump: useSPA(`
-      <spa version="1.0">
+      <spa xmlns="https://spa.audio/ns" version="1.0">
         <tone wave="square" dur="0.2"
               freq.start="400" freq.end="600" freq.curve="smooth"
               envelope="0,0.05,0.3,0.1"/>
       </spa>
     `),
     coin: useSPA(`
-      <spa version="1.0">
+      <spa xmlns="https://spa.audio/ns" version="1.0">
         <tone wave="square" dur="0.3"
               freq.start="988" freq.end="1319" freq.curve="linear"
               envelope="0,0.1,0.2,0.1"/>
       </spa>
     `),
     laser: useSPA(`
-      <spa version="1.0">
+      <spa xmlns="https://spa.audio/ns" version="1.0">
         <group>
           <tone wave="saw" dur="0.3"
                 freq.start="1200" freq.end="200" freq.curve="exp"

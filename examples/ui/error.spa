@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Error Alert: Two-tone square wave for error feedback -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <group>
     <tone wave="square" freq="400" dur="0.15" envelope="0,0.05,0.5,0.1"/>
     <tone wave="square" freq="350" dur="0.15" envelope="0,0.05,0.5,0.1"/>

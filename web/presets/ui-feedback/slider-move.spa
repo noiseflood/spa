@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <!-- Slider Move: Quick, subtle pitch slide for slider interaction -->
   <tone wave="sine"
         freq.start="600"

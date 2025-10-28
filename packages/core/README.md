@@ -23,7 +23,7 @@ import { renderSPA, playSPA } from 'spa-audio';
 
 // Play a simple click sound
 await playSPA(`
-  <spa version="1.0">
+  <spa xmlns="https://spa.audio/ns" version="1.0">
     <tone wave="sine" freq="800" dur="0.05"
           envelope="0,0.02,0,0.03"/>
   </spa>
@@ -31,7 +31,7 @@ await playSPA(`
 
 // Render to AudioBuffer for reuse
 const buffer = await renderSPA(`
-  <spa version="1.0">
+  <spa xmlns="https://spa.audio/ns" version="1.0">
     <tone wave="sine" freq="440" dur="1.0"/>
   </spa>
 `);
@@ -95,7 +95,7 @@ Generate sounds parametrically:
 ```javascript
 function createNotification(frequency, duration) {
   return `
-    <spa version="1.0">
+    <spa xmlns="https://spa.audio/ns" version="1.0">
       <tone wave="sine" freq="${frequency}" dur="${duration}"
             envelope="0,0.05,0.6,0.15"/>
     </spa>
@@ -115,7 +115,7 @@ Create complex effects with groups:
 
 ```javascript
 const laserSound = `
-  <spa version="1.0">
+  <spa xmlns="https://spa.audio/ns" version="1.0">
     <group>
       <tone wave="saw" dur="0.3"
             freq.start="1000" freq.end="200" freq.curve="exp"

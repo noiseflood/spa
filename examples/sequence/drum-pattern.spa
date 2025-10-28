@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Drum Pattern: Basic kick-snare-hihat rhythm -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <sequence>
     <!-- Kick drum on beats 1 and 3 -->
     <tone wave="sine" freq="60" dur="0.1" at="0"

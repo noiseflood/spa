@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Echo: Decaying repetition effect with pitch shift -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <tone wave="sine" freq="440" dur="0.2"
         repeat="8"
         repeat.interval="0.15"

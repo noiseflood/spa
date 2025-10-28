@@ -14,7 +14,7 @@ Build the **SVG of sound effects** - a lightweight, declarative format for web a
 **Goal:** XML → JavaScript Object
 
 ```javascript
-const ast = parseSPA(`<spa version="1.0">
+const ast = parseSPA(`<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="1.0"/>
 </spa>`);
 
@@ -357,7 +357,7 @@ Create a laser sound effect in SPA format:
 
 **Expected output:**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="saw" dur="0.3"
           freq.start="1200" freq.end="200" freq.curve="exp"

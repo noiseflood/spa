@@ -90,7 +90,7 @@ function Button() {
 <button onclick="playSPAInline(this)">
   Click Me
   <script type="text/spa">
-    <spa version="1.0" xmlns="http://spa.audio/ns">
+    <spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
       <tone wave="sine" freq="800" dur="0.05" envelope="0,0.02,0,0.03"/>
     </spa>
   </script>

@@ -20,7 +20,7 @@ Welcome to the SPA (Sound Prompt Audio) documentation. SPA is a declarative lang
 ### Quick Example
 
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="500ms" amp="0.5" />
 </spa>
 ```

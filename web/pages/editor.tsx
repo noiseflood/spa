@@ -128,13 +128,13 @@ export default function Editor() {
   const updateXMLOutput = () => {
     if (layers.length === 0) {
       setXmlOutput(`<?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <!-- Add layers to create your sound -->
 </spa>`)
       return
     }
 
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<spa version="1.0">\n'
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.0">\n'
 
     // Check if any layer has an 'at' parameter to determine if we need a sequence
     const hasTimingInfo = layers.some(layer => (layer.sound as any).at && (layer.sound as any).at > 0)

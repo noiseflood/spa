@@ -36,7 +36,7 @@ export default function GettingStarted() {
                 Think of it as "SVG for audio" - declarative, Synthetic, and perfect for AI generation.
               </p>
               <div className="bg-background rounded p-4 font-mono text-sm text-accent">
-                <pre>{`<spa version="1.0">
+                <pre>{`<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="1" />
 </spa>`}</pre>
               </div>
@@ -164,7 +164,7 @@ export default function GettingStarted() {
 <script>
   // Parse SPA XML
   const spaXML = \`
-    <spa version="1.0">
+    <spa xmlns="https://spa.audio/ns" version="1.0">
       <tone wave="sine" freq="440" dur="0.5" />
     </spa>
   \`;
@@ -194,7 +194,7 @@ export default function GettingStarted() {
 
 // Inline SPA XML
 <SPAButton spa={\`
-  <spa version="1.0">
+  <spa xmlns="https://spa.audio/ns" version="1.0">
     <tone wave="sine" freq="800" dur="0.05" />
   </spa>
 \`}>
@@ -248,7 +248,7 @@ fs.writeFileSync('output.wav', wavBuffer);`}</pre>
               <div className="bg-surface rounded-lg p-6 border border-primary/10">
                 <h3 className="text-lg font-semibold mb-2">Button Click</h3>
                 <div className="bg-background rounded p-4 font-mono text-sm text-accent">
-                  <pre>{`<spa version="1.0">
+                  <pre>{`<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="800" dur="0.05"
         envelope="0,0.02,0,0.03" />
 </spa>`}</pre>
@@ -258,7 +258,7 @@ fs.writeFileSync('output.wav', wavBuffer);`}</pre>
               <div className="bg-surface rounded-lg p-6 border border-primary/10">
                 <h3 className="text-lg font-semibold mb-2">Success Chime</h3>
                 <div className="bg-background rounded p-4 font-mono text-sm text-accent">
-                  <pre>{`<spa version="1.0">
+                  <pre>{`<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="sine" freq="523" dur="0.15" />
     <tone wave="sine" freq="659" dur="0.3" />
@@ -271,7 +271,7 @@ fs.writeFileSync('output.wav', wavBuffer);`}</pre>
               <div className="bg-surface rounded-lg p-6 border border-primary/10">
                 <h3 className="text-lg font-semibold mb-2">Error Sound</h3>
                 <div className="bg-background rounded p-4 font-mono text-sm text-accent">
-                  <pre>{`<spa version="1.0">
+                  <pre>{`<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="square" freq="200" dur="0.15" amp="0.3" />
     <noise color="pink" dur="0.1" amp="0.2" />

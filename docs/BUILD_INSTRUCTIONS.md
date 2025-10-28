@@ -702,7 +702,7 @@ spa-web/
 │  │  └──────────────────────────────────────────────────┘ │ │
 │  │                                                        │ │
 │  │  ┌─ Generated SPA ─────────────────────────────────┐ │ │
-│  │  │  <spa version="1.0">                            │ │ │
+│  │  │  <spa xmlns="https://spa.audio/ns" version="1.0">                            │ │ │
 │  │  │    <tone wave="sine" freq="440" dur="1.0"       │ │ │
 │  │  │          envelope="0.01,0.2,0.3,0.5"/>          │ │ │
 │  │  │  </spa>                                          │ │ │
@@ -893,7 +893,7 @@ export default function SoundDesigner() {
 }
 
 function generateSPACode(layers: Layer[]): string {
-  let code = '<spa version="1.0">\n';
+  let code = '<spa xmlns="https://spa.audio/ns" version="1.0">\n';
   
   if (layers.length > 1) {
     code += '  <group>\n';

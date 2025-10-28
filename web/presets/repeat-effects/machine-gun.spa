@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <!-- Low frequency punch - the gunpowder explosion -->
     <tone wave="sine" freq="90" dur="0.02" amp="0.8"

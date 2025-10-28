@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Machine Gun: Rapid fire burst with noise and tone -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <group repeat="20" repeat.interval="0.05">
     <!-- Gunfire pop -->
     <tone wave="saw" freq="150" dur="0.03"

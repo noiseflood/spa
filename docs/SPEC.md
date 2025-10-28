@@ -89,7 +89,7 @@ import { renderSPA } from 'spa-audio';
 
 // Render SPA to AudioBuffer
 const buffer = await renderSPA(`
-  <spa version="1.0">
+  <spa xmlns="https://spa.audio/ns" version="1.0">
     <tone wave="sine" freq="800" dur="0.05"/>
   </spa>
 `);
@@ -545,7 +545,7 @@ Apply frequency filtering to shape timbre.
 
 **Button Click**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="800" dur="0.05" 
         envelope="0,0.02,0,0.03"/>
 </spa>
@@ -553,7 +553,7 @@ Apply frequency filtering to shape timbre.
 
 **Button Hover**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="600" dur="0.03" 
         amp="0.3"
         envelope="0,0.01,0,0.02"/>
@@ -562,7 +562,7 @@ Apply frequency filtering to shape timbre.
 
 **Toggle Switch (On)**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.08"
         freq.start="400" freq.end="600" freq.curve="smooth"
         envelope="0,0.03,0.5,0.05"/>
@@ -571,7 +571,7 @@ Apply frequency filtering to shape timbre.
 
 **Toggle Switch (Off)**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.08"
         freq.start="600" freq.end="400" freq.curve="smooth"
         envelope="0,0.03,0.5,0.05"/>
@@ -580,7 +580,7 @@ Apply frequency filtering to shape timbre.
 
 **Error Beep**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="square" freq="400" dur="0.15" envelope="0,0.05,0.5,0.1"/>
     <tone wave="square" freq="350" dur="0.15" envelope="0,0.05,0.5,0.1"/>
@@ -590,7 +590,7 @@ Apply frequency filtering to shape timbre.
 
 **Success Chime**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="sine" freq="523" dur="0.15" envelope="0,0.05,0.3,0.1"/>
     <tone wave="sine" freq="659" dur="0.3" envelope="0,0.1,0.5,0.2"/>
@@ -600,7 +600,7 @@ Apply frequency filtering to shape timbre.
 
 **Notification Alert**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="880" dur="0.2"
         amp.start="0.8" amp.end="0.3" amp.curve="exp"
         envelope="0,0.05,0.6,0.15"/>
@@ -609,7 +609,7 @@ Apply frequency filtering to shape timbre.
 
 **Modal Open**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.15"
         freq.start="200" freq.end="400" freq.curve="smooth"
         envelope="0,0.05,0.4,0.1"/>
@@ -618,7 +618,7 @@ Apply frequency filtering to shape timbre.
 
 **Modal Close**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.12"
         freq.start="400" freq.end="200" freq.curve="smooth"
         envelope="0,0.04,0.3,0.08"/>
@@ -627,7 +627,7 @@ Apply frequency filtering to shape timbre.
 
 **Loading Tick**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="1200" dur="0.03" 
         amp="0.4"
         envelope="0,0.01,0,0.02"/>
@@ -638,7 +638,7 @@ Apply frequency filtering to shape timbre.
 
 **Input Focus**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="500" dur="0.04" 
         amp="0.2"
         envelope="0,0.01,0,0.03"/>
@@ -647,7 +647,7 @@ Apply frequency filtering to shape timbre.
 
 **Valid Input**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.1"
         freq.start="440" freq.end="554" freq.curve="linear"
         envelope="0,0.03,0.4,0.07"/>
@@ -656,7 +656,7 @@ Apply frequency filtering to shape timbre.
 
 **Invalid Input**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="triangle" freq="300" dur="0.08" envelope="0,0.03,0.3,0.05"/>
     <tone wave="triangle" freq="280" dur="0.08" envelope="0,0.03,0.3,0.05"/>
@@ -668,7 +668,7 @@ Apply frequency filtering to shape timbre.
 
 **Coin Pickup**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="square" dur="0.3"
         freq.start="988" freq.end="1319" freq.curve="linear"
         envelope="0,0.1,0.2,0.1"/>
@@ -677,7 +677,7 @@ Apply frequency filtering to shape timbre.
 
 **Laser Shot**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="saw" dur="0.3"
           freq.start="1200" freq.end="200" freq.curve="exp"
@@ -689,7 +689,7 @@ Apply frequency filtering to shape timbre.
 
 **Jump**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="square" dur="0.2"
         freq.start="400" freq.end="600" freq.curve="smooth"
         envelope="0,0.05,0.3,0.1"/>
@@ -698,7 +698,7 @@ Apply frequency filtering to shape timbre.
 
 **Power Up**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.5"
         freq.start="220" freq.end="880" freq.curve="smooth"
         envelope="0,0.2,0.6,0.3"/>
@@ -709,7 +709,7 @@ Apply frequency filtering to shape timbre.
 
 **Drag Start**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="600" dur="0.05" 
         amp="0.4"
         envelope="0,0.02,0,0.03"/>
@@ -718,7 +718,7 @@ Apply frequency filtering to shape timbre.
 
 **Drop Success**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="0.12"
         freq.start="600" freq.end="800" freq.curve="smooth"
         envelope="0,0.04,0.5,0.08"/>
@@ -727,7 +727,7 @@ Apply frequency filtering to shape timbre.
 
 **Swipe**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <noise color="white" dur="0.15"
          filter="bandpass" resonance="2.0"
          cutoff.start="1000" cutoff.end="3000" cutoff.curve="linear"
@@ -738,7 +738,7 @@ Apply frequency filtering to shape timbre.
 
 **Progress Complete**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="sine" freq="523" dur="0.1" envelope="0,0.03,0.3,0.07"/>
     <tone wave="sine" freq="659" dur="0.15" envelope="0,0.05,0.4,0.1"/>
@@ -751,7 +751,7 @@ Apply frequency filtering to shape timbre.
 
 **Wind**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <noise color="pink" dur="5.0" 
            filter="bandpass" cutoff="800" resonance="1.5"
@@ -763,7 +763,7 @@ Apply frequency filtering to shape timbre.
 
 **Whoosh**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <noise color="white" dur="0.5"
          filter="bandpass" resonance="2.0"
          cutoff.start="2000" cutoff.end="200" cutoff.curve="exp"
@@ -774,7 +774,7 @@ Apply frequency filtering to shape timbre.
 
 **Page Transition**
 ```xml
-<spa version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="sine" dur="0.3"
           freq.start="400" freq.end="600" freq.curve="smooth"

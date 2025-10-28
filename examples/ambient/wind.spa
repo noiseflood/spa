@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Wind: Layered noise for atmospheric ambience -->
-<spa version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
   <group>
     <noise color="pink" dur="5.0"
            filter="bandpass" cutoff="800" resonance="1.5"

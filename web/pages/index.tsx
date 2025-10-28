@@ -185,7 +185,7 @@ export default function Home() {
             </h2>
             <div className="max-w-2xl mx-auto bg-surface rounded-xl p-8 border border-primary/20">
               <pre className="text-accent font-mono text-sm sm:text-base text-left overflow-x-auto">
-                <code>{`<spa version="1.0">
+                <code>{`<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="0.5" />
 </spa>`}</code>
               </pre>
