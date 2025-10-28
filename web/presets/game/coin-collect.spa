@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spa xmlns="https://spa.audio/ns" version="1.0">
   <sequence>
-    <tone wave="square" freq="657.77" dur="0.0833" amp="0.4066" envelope="0,0.01,0.5,0.04"/>
+    <tone wave="square" freq="657.77" dur="0.0833" at="0" amp="0.4066" envelope="0,0.01,0.5,0.04"/>
     <tone wave="square" freq="1318.51" dur="0.2662" at="0.0667" amp="0.4" envelope="0.01,0.0267,0.7,0.6165"/>
   </sequence>
 </spa>

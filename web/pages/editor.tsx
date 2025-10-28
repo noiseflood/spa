@@ -8,6 +8,7 @@ import {
   type ToneElement,
   type NoiseElement,
   type GroupElement,
+  type SequenceElement,
   type AutomationCurve
 } from '@spa-audio/core'
 import { getPresetCategories, loadPreset as loadPresetFile, getPresetPath } from '../utils/presetLoader'
@@ -304,6 +305,16 @@ export default function Editor() {
               sound: normalizeSound(groupSound)
             })
           })
+        } else if (sound.type === 'sequence') {
+          const sequence = sound as SequenceElement
+          sequence.elements?.forEach((timedSound: any) => {
+            // Add the 'at' timing to the sound object for the editor
+            const soundWithTiming = { ...timedSound.sound, at: timedSound.at }
+            editorLayers.push({
+              id: layerId++,
+              sound: normalizeSound(soundWithTiming)
+            })
+          })
         } else {
           editorLayers.push({
             id: layerId++,
@@ -424,6 +435,16 @@ export default function Editor() {
               editorLayers.push({
                 id: layerId++,
                 sound: normalizeSound(groupSound)
+              })
+            })
+          } else if (sound.type === 'sequence') {
+            const sequence = sound as SequenceElement
+            sequence.elements?.forEach((timedSound: any) => {
+              // Add the 'at' timing to the sound object for the editor
+              const soundWithTiming = { ...timedSound.sound, at: timedSound.at }
+              editorLayers.push({
+                id: layerId++,
+                sound: normalizeSound(soundWithTiming)
               })
             })
           } else {

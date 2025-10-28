@@ -86,37 +86,6 @@ export function validateSPA(xml: string): ValidationResult {
 }
 
 /**
- * Validate child elements
- */
-function validateChildren(
-  parent: Element,
-  errors: ValidationError[],
-  warnings: ValidationWarning[]
-): void {
-  const children = parent.children || parent.childNodes || [];
-  for (let i = 0; i < children.length; i++) {
-    const child = children[i] as Element;
-    if (!child.tagName) continue; // Skip text nodes
-    if (child.tagName === 'defs') {
-      validateDefs(child, errors, warnings);
-    } else if (child.tagName === 'tone') {
-      validateTone(child, errors, warnings);
-    } else if (child.tagName === 'noise') {
-      validateNoise(child, errors, warnings);
-    } else if (child.tagName === 'group') {
-      validateGroup(child, errors, warnings);
-    } else if (child.tagName !== 'parsererror') {
-      warnings.push({
-        type: 'warning',
-        code: 'UNKNOWN_ELEMENT',
-        message: `Unknown element: ${child.tagName}`,
-        element: child.tagName
-      });
-    }
-  }
-}
-
-/**
  * Validate defs element
  */
 function validateDefs(
@@ -272,6 +241,88 @@ function validateGroup(
 
   // Validate nested elements
   validateChildren(el, errors, warnings);
+}
+
+/**
+ * Validate sequence element
+ */
+function validateSequence(
+  el: Element,
+  errors: ValidationError[],
+  warnings: ValidationWarning[]
+): void {
+  const children = Array.from(el.children).filter(
+    child => child.tagName === 'tone' || child.tagName === 'noise' || child.tagName === 'group'
+  );
+
+  if (children.length === 0) {
+    warnings.push({
+      type: 'warning',
+      code: 'EMPTY_SEQUENCE',
+      message: 'Sequence element contains no sound elements',
+      element: 'sequence'
+    });
+  }
+
+  // Check that all children have 'at' attribute
+  for (const child of children) {
+    if (!child.hasAttribute('at')) {
+      errors.push({
+        type: 'error',
+        code: 'MISSING_ATTRIBUTE',
+        message: `Child element in sequence missing required 'at' attribute`,
+        element: child.tagName,
+        attribute: 'at'
+      });
+    } else {
+      const at = parseFloat(child.getAttribute('at')!);
+      if (isNaN(at) || at < 0) {
+        errors.push({
+          type: 'error',
+          code: 'INVALID_VALUE',
+          message: `Invalid 'at' value: must be a non-negative number`,
+          element: child.tagName,
+          attribute: 'at'
+        });
+      }
+    }
+  }
+
+  // Validate nested elements
+  validateChildren(el, errors, warnings);
+}
+
+/**
+ * Validate child elements
+ */
+function validateChildren(
+  parent: Element,
+  errors: ValidationError[],
+  warnings: ValidationWarning[]
+): void {
+  const children = parent.children || parent.childNodes || [];
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i] as Element;
+    if (!child.tagName) continue; // Skip text nodes
+    if (child.tagName === 'defs') {
+      validateDefs(child, errors, warnings);
+    } else if (child.tagName === 'tone') {
+      validateTone(child, errors, warnings);
+    } else if (child.tagName === 'noise') {
+      validateNoise(child, errors, warnings);
+    } else if (child.tagName === 'group') {
+      validateGroup(child, errors, warnings);
+    } else if (child.tagName === 'sequence') {
+      validateSequence(child, errors, warnings);
+    } else if (child.tagName !== 'parsererror') {
+      warnings.push({
+        type: 'warning',
+        code: 'UNKNOWN_ELEMENT',
+        message: `Unknown element: ${child.tagName}`,
+        element: child.tagName
+      });
+    }
+  }
 }
 
 /**

@@ -13,6 +13,7 @@ export type {
   ToneElement,
   NoiseElement,
   GroupElement,
+  SequenceElement,
   ADSREnvelope,
   AutomationCurve,
   FilterConfig,
