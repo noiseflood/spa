@@ -8,8 +8,7 @@ import {
   type ToneElement,
   type NoiseElement,
   type GroupElement,
-  type AutomationCurve,
-  type FilterConfig
+  type AutomationCurve
 } from '@spa-audio/core'
 import { getPresetCategories, loadPreset as loadPresetFile, getPresetPath } from '../utils/presetLoader'
 
@@ -114,7 +113,7 @@ export default function Editor() {
     }
   }
 
-  const updateLayer = (id: number, updates: Partial<EditorLayer>) => {
+  const _updateLayer = (id: number, updates: Partial<EditorLayer>) => {
     setLayers(layers.map(l =>
       l.id === id ? { ...l, ...updates } : l
     ))
