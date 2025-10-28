@@ -3,8 +3,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { parseSPA } from '@spa.audio/core';
-import type { SPADocument, ParseOptions } from '@spa.audio/types';
+import { parseSPA } from '@spa-audio/core';
+import type { SPADocument, ParseOptions } from '@spa-audio/types';
 
 export interface SPALoaderState {
   document: SPADocument | null;

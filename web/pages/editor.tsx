@@ -10,7 +10,7 @@ import {
   type GroupElement,
   type AutomationCurve,
   type FilterConfig
-} from '@spa.audio/core'
+} from '@spa-audio/core'
 import { getPresetCategories, loadPreset as loadPresetFile, getPresetPath } from '../utils/presetLoader'
 
 // Editor-specific types for UI state

@@ -1,5 +1,5 @@
 {
-  "name": "@spa.audio/react",
+  "name": "@spa-audio/react",
   "version": "1.0.0",
   "type": "module",
   "description": "React component for SPA (Synthetic Parametric Audio) - procedural sound effects in React apps",
@@ -24,8 +24,8 @@
     "react": ">=16.8.0"
   },
   "dependencies": {
-    "@spa.audio/core": "workspace:*",
-    "@spa.audio/types": "workspace:*"
+    "@spa-audio/core": "workspace:*",
+    "@spa-audio/types": "workspace:*"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.0",

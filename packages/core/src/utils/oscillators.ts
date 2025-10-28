@@ -2,7 +2,7 @@
  * Oscillator utilities for waveform generation
  */
 
-import type { WaveformType } from '@spa.audio/types';
+import type { WaveformType } from '@spa-audio/types';
 
 /**
  * Generate a waveform

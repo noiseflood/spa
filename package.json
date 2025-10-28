@@ -13,9 +13,9 @@
     "web": "pnpm --filter spa-web dev",
     "web:dev": "pnpm --filter spa-web dev",
     "web:build": "pnpm --filter spa-web build",
-    "core:build": "pnpm --filter @spa.audio/core build",
-    "core:test": "pnpm --filter @spa.audio/core test",
-    "react:build": "pnpm --filter @spa.audio/react build",
+    "core:build": "pnpm --filter @spa-audio/core build",
+    "core:test": "pnpm --filter @spa-audio/core test",
+    "react:build": "pnpm --filter @spa-audio/react build",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"

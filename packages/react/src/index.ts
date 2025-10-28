@@ -1,5 +1,5 @@
 /**
- * @spa.audio/react - React integration for SPA (Synthetic Parametric Audio)
+ * @spa-audio/react - React integration for SPA (Synthetic Parametric Audio)
  */
 
 // Hooks
@@ -64,9 +64,9 @@ export type {
 } from './components/FileUploader';
 
 // Re-export core functionality
-export { parseSPA } from '@spa.audio/core';
+export { parseSPA } from '@spa-audio/core';
 
-// Re-export types from @spa.audio/types
+// Re-export types from @spa-audio/types
 export type {
   SPADocument,
   SPASound,
@@ -79,4 +79,4 @@ export type {
   WaveformType,
   NoiseColor,
   FilterType
-} from '@spa.audio/types';
+} from '@spa-audio/types';

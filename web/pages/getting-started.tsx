@@ -159,7 +159,7 @@ export default function GettingStarted() {
                   <h3 className="text-lg font-semibold mb-4">Using SPA in the Browser</h3>
                   <div className="bg-background rounded p-4 font-mono text-sm text-accent overflow-x-auto">
                     <pre>{`<!-- Include the SPA library -->
-<script src="https://unpkg.com/@spa.audio/core"></script>
+<script src="https://unpkg.com/@spa-audio/core"></script>
 
 <script>
   // Parse SPA XML
@@ -182,10 +182,10 @@ export default function GettingStarted() {
                   <h3 className="text-lg font-semibold mb-4">Using SPA in React</h3>
                   <div className="space-y-4">
                     <div className="bg-background rounded p-4 font-mono text-sm text-accent overflow-x-auto">
-                      <pre>{`npm install @spa.audio/react`}</pre>
+                      <pre>{`npm install @spa-audio/react`}</pre>
                     </div>
                     <div className="bg-background rounded p-4 font-mono text-sm text-accent overflow-x-auto">
-                      <pre>{`import { SPAButton, SPAPlayer } from '@spa.audio/react';
+                      <pre>{`import { SPAButton, SPAPlayer } from '@spa-audio/react';
 
 // Simple button with sound
 <SPAButton src="/sounds/click.spa">
@@ -213,10 +213,10 @@ export default function GettingStarted() {
                   <h3 className="text-lg font-semibold mb-4">Using SPA in Node.js</h3>
                   <div className="space-y-4">
                     <div className="bg-background rounded p-4 font-mono text-sm text-accent overflow-x-auto">
-                      <pre>{`npm install @spa.audio/core`}</pre>
+                      <pre>{`npm install @spa-audio/core`}</pre>
                     </div>
                     <div className="bg-background rounded p-4 font-mono text-sm text-accent overflow-x-auto">
-                      <pre>{`import { parseSPA, renderToWAV } from '@spa.audio/core';
+                      <pre>{`import { parseSPA, renderToWAV } from '@spa-audio/core';
 import fs from 'fs';
 
 // Read SPA file

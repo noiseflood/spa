@@ -8,8 +8,8 @@ import {
   SPAButton,
   useSPAPlayer,
   parseSPA
-} from '@spa.audio/react';
-import '@spa.audio/react/src/styles.css';
+} from '@spa-audio/react';
+import '@spa-audio/react/src/styles.css';
 
 // Example inline SPA definitions for UI sounds
 const buttonClickSPA = `<?xml version="1.0" encoding="UTF-8"?>

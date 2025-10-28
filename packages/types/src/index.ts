@@ -1,5 +1,5 @@
 /**
- * @spa.audio/types - Shared TypeScript types for SPA (Synthetic Parametric Audio)
+ * @spa-audio/types - Shared TypeScript types for SPA (Synthetic Parametric Audio)
  */
 
 // ============================================================================

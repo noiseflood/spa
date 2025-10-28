@@ -2,7 +2,7 @@
  * Parameter automation utilities
  */
 
-import type { AutomationCurve, CurveType } from '@spa.audio/types';
+import type { AutomationCurve, CurveType } from '@spa-audio/types';
 
 /**
  * Apply automation curve to a buffer

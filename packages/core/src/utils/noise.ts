@@ -2,7 +2,7 @@
  * Noise generation utilities
  */
 
-import type { NoiseColor } from '@spa.audio/types';
+import type { NoiseColor } from '@spa-audio/types';
 
 /**
  * Generate noise

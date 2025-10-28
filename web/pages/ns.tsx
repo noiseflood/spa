@@ -50,9 +50,9 @@ export default function Namespace() {
         
         <h2>Packages</h2>
         <ul>
-          <li><code>@spa.audio/core</code> - Core parser and renderer</li>
-          <li><code>@spa.audio/react</code> - React integration</li>
-          <li><code>@spa.audio/types</code> - TypeScript definitions</li>
+          <li><code>@spa-audio/core</code> - Core parser and renderer</li>
+          <li><code>@spa-audio/react</code> - React integration</li>
+          <li><code>@spa-audio/types</code> - TypeScript definitions</li>
         </ul>
         
         <h2>License</h2>

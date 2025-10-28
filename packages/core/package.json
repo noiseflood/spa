@@ -1,5 +1,5 @@
 {
-  "name": "@spa.audio/core",
+  "name": "@spa-audio/core",
   "version": "1.0.0",
   "type": "module",
   "description": "Core JavaScript library for parsing and rendering SPA (Synthetic Parametric Audio) - procedural sound effects for the web",
@@ -38,7 +38,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@spa.audio/types": "workspace:*"
+    "@spa-audio/types": "workspace:*"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.0",
