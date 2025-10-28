@@ -196,7 +196,7 @@ export default function Editor() {
         xml += ` pan="${tone.pan}"`
       }
 
-      if (tone.filter) {
+      if (tone.filter && typeof tone.filter === 'object') {
         xml += ` filter="${tone.filter.type}" cutoff="${tone.filter.cutoff}"`
         if (tone.filter.resonance !== undefined && tone.filter.resonance !== 1) {
           xml += ` resonance="${tone.filter.resonance}"`
