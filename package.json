@@ -2,7 +2,7 @@
   "name": "spa-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "SPA (Scalable Parametric Audio) - The SVG of sound effects",
+  "description": "SPA (Synthetic Parametric Audio) - The SVG of sound effects",
   "scripts": {
     "dev": "pnpm --parallel -r dev",
     "build": "pnpm -r build",

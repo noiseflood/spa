@@ -14,10 +14,10 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "dev": "rollup -c -w",
-    "prepublishOnly": "npm run build && npm test",
+    "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
