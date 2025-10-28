@@ -1,5 +1,5 @@
 /**
- * @spa/core - Core library for parsing and rendering SPA (Scalable Parametric Audio)
+ * @spa.audio/core - Core library for parsing and rendering SPA (Scalable Parametric Audio)
  */
 
 export { parseSPA } from './parser';
@@ -21,14 +21,14 @@ export type {
   ParseOptions,
   ParseResult,
   ValidationResult
-} from '@spa/types';
+} from '@spa.audio/types';
 
 /**
  * Play SPA directly through the default audio output
  */
 export async function playSPA(
   xml: string,
-  options?: import('@spa/types').RenderOptions
+  options?: import('@spa.audio/types').RenderOptions
 ): Promise<void> {
   const { renderSPA } = await import('./renderer');
   const buffer = await renderSPA(xml, options);

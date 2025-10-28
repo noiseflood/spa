@@ -2,7 +2,7 @@
  * Filter utilities
  */
 
-import type { FilterConfig, FilterType } from '@spa/types';
+import type { FilterConfig, FilterType } from '@spa.audio/types';
 
 /**
  * Apply filter to buffer (simplified implementation)

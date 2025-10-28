@@ -14,7 +14,7 @@ import type {
   WaveformType,
   NoiseColor,
   FilterType
-} from '@spa/types';
+} from '@spa.audio/types';
 
 export interface EngineOptions {
   tempo?: number;          // BPM for tempo-relative timing

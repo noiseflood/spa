@@ -5,8 +5,8 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { SPAAudioEngine } from '../engine/SPAAudioEngine';
 import { useWebAudio } from '../hooks/useWebAudio';
-import { parseSPA } from '@spa/core';
-import type { SPADocument } from '@spa/types';
+import { parseSPA } from '@spa.audio/core';
+import type { SPADocument } from '@spa.audio/types';
 
 export interface SPAButtonProps {
   src?: string;           // URL to SPA file

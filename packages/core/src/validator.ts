@@ -7,7 +7,7 @@ import type {
   ValidationResult,
   ValidationError,
   ValidationWarning
-} from '@spa/types';
+} from '@spa.audio/types';
 
 /**
  * Validate SPA XML string

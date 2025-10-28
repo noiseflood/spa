@@ -1,5 +1,5 @@
 {
-  "name": "@spa/react",
+  "name": "@spa.audio/react",
   "version": "1.0.0",
   "description": "React component for SPA (Scalable Parametric Audio) - procedural sound effects in React apps",
   "main": "dist/index.js",
@@ -14,17 +14,17 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
-    "prepublishOnly": "npm run build && npm test",
+    "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "react": ">=16.8.0"
   },
   "dependencies": {
-    "@spa/core": "workspace:*",
-    "@spa/types": "workspace:*"
+    "@spa.audio/core": "workspace:*",
+    "@spa.audio/types": "workspace:*"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.0",

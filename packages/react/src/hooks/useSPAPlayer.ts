@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { SPAAudioEngine, EngineOptions } from '../engine/SPAAudioEngine';
 import { useWebAudio } from './useWebAudio';
 import { useSPALoader } from './useSPALoader';
-import type { SPADocument } from '@spa/types';
+import type { SPADocument } from '@spa.audio/types';
 
 export interface PlayerState {
   isPlaying: boolean;

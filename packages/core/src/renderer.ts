@@ -15,7 +15,7 @@ import type {
   ADSREnvelope,
   AutomationCurve,
   RepeatConfig
-} from '@spa/types';
+} from '@spa.audio/types';
 
 import { parseSPA } from './parser';
 import { generateWaveform } from './utils/oscillators';

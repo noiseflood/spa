@@ -27,7 +27,7 @@ import type {
   NoiseColor,
   FilterType,
   CurveType
-} from '@spa/types';
+} from '@spa.audio/types';
 
 /**
  * Parse SPA XML string into a document object

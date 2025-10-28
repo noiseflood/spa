@@ -5,7 +5,7 @@ import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 export default [
   // ES Module build
   {
-    input: 'src/index.tsx',
+    input: 'src/index.ts',
     output: {
       file: 'dist/index.esm.js',
       format: 'es',
@@ -25,7 +25,7 @@ export default [
   },
   // CommonJS build
   {
-    input: 'src/index.tsx',
+    input: 'src/index.ts',
     output: {
       file: 'dist/index.js',
       format: 'cjs',

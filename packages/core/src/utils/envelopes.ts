@@ -2,7 +2,7 @@
  * ADSR Envelope utilities
  */
 
-import type { ADSREnvelope } from '@spa/types';
+import type { ADSREnvelope } from '@spa.audio/types';
 
 /**
  * Apply ADSR envelope to a buffer
