@@ -14,7 +14,7 @@ export default function Home() {
   useEffect(() => {
     async function loadPresets() {
       try {
-        const response = await fetch('/api/presets')
+        const response = await fetch('/presets.json')
         const files: string[] = await response.json()
         // Convert paths to objects with path and simple name
         const presetObjects = files.map(path => ({
@@ -51,8 +51,8 @@ export default function Home() {
     setIsPlaying(true)
 
     try {
-      // Fetch and play the SPA file (API expects .spa extension)
-      const response = await fetch(`/api/presets/${currentPreset.path}.spa`)
+      // Fetch and play the SPA file from static presets
+      const response = await fetch(`/presets/${currentPreset.path}.spa`)
       if (!response.ok) {
         throw new Error(`Failed to fetch preset: ${response.statusText}`)
       }

@@ -56,6 +56,11 @@ Thumbs.db
 *.pem
 .cache
 
+# Generated public files
+web/public/presets/
+web/public/presets.json
+web/public/ns.json
+
 # TypeScript
 next-env.d.ts
 
