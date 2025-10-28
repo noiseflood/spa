@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
-import { renderSPA } from '@spa/core'
+import { playSPA } from '@spa/core'
 
 export default function Home() {
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([])
@@ -51,32 +51,15 @@ export default function Home() {
     setIsPlaying(true)
 
     try {
-      // Fetch and play the SPA file using the full path
-      const response = await fetch(`/api/presets/${currentPreset.path}`)
+      // Fetch and play the SPA file (API expects .spa extension)
+      const response = await fetch(`/api/presets/${currentPreset.path}.spa`)
       if (!response.ok) {
         throw new Error(`Failed to fetch preset: ${response.statusText}`)
       }
       const spaContent = await response.text()
 
-      // Render the SPA to an audio buffer
-      const buffer = await renderSPA(spaContent)
-
-      // Play the audio
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-      const ctx = new AudioContext()
-
-      const source = ctx.createBufferSource()
-      source.buffer = buffer
-      source.connect(ctx.destination)
-      source.start(0)
-
-      // Wait for playback to finish
-      await new Promise<void>((resolve) => {
-        source.onended = () => {
-          ctx.close()
-          resolve()
-        }
-      })
+      // Play the SPA using the playSPA function
+      await playSPA(spaContent)
     } catch (error) {
       console.error('Error playing SPA:', error)
       setIsPlaying(false)
