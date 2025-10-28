@@ -1079,7 +1079,9 @@ function ToneParameters({ layer, updateLayerSound }: {
 }) {
   const tone = layer.sound as ToneElement
 
+  const isFreqModulated = typeof tone.freq === 'object' && tone.freq !== null && 'start' in tone.freq
   const freq = typeof tone.freq === 'number' ? tone.freq : 440
+  const freqMod = isFreqModulated ? (tone.freq as AutomationCurve) : { start: 440, end: 880, curve: 'linear' as const }
   const amp = typeof tone.amp === 'number' ? tone.amp : 1
   const env = typeof tone.envelope === 'object' ? tone.envelope : { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }
   const filter = typeof tone.filter === 'object' ? tone.filter : undefined
@@ -1123,40 +1125,127 @@ function ToneParameters({ layer, updateLayerSound }: {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => {
+                if (isFreqModulated) {
+                  // Switch to simple freq
+                  updateLayerSound(layer.id, { freq: freqMod.start } as Partial<ToneElement>)
+                } else {
+                  // Switch to freq modulation
+                  updateLayerSound(layer.id, { freq: { start: freq, end: freq * 2, curve: 'linear' } } as Partial<ToneElement>)
+                }
+              }}
+              className={`ml-2 px-2 py-1 text-xs rounded transition-all ${
+                isFreqModulated
+                  ? 'bg-secondary text-white'
+                  : 'bg-gray-800 border border-gray-700 text-gray-400 hover:border-primary/50'
+              }`}
+              title="Toggle frequency modulation"
+            >
+              {isFreqModulated ? '↗' : '→'}
+            </button>
           </div>
-          <div className="flex gap-6 w-full">
-            <Knob
-              label="Freq"
-              value={freq}
-              onChange={(v) => updateLayerSound(layer.id, { freq: v } as Partial<ToneElement>)}
-              min={20}
-              max={2000}
-              displayValue={`${Math.round(freq)}Hz`}
-            />
-            <Knob
-              label="Amp"
-              value={amp}
-              onChange={(v) => updateLayerSound(layer.id, { amp: v } as Partial<ToneElement>)}
-              min={0}
-              max={1}
-            />
-            <Knob
-              label="Dur"
-              value={tone.dur || 0.5}
-              onChange={(v) => updateLayerSound(layer.id, { dur: v } as Partial<ToneElement>)}
-              min={0.01}
-              max={5}
-              displayValue={`${(tone.dur || 0.5).toFixed(2)}s`}
-            />
-            <Knob
-              label="Start"
-              value={(tone as any).at || 0}
-              onChange={(v) => updateLayerSound(layer.id, { at: v } as any)}
-              min={0}
-              max={10}
-              displayValue={`${((tone as any).at || 0).toFixed(2)}s`}
-            />
-          </div>
+
+          {!isFreqModulated ? (
+            <div className="flex gap-6 w-full">
+              <Knob
+                label="Freq"
+                value={freq}
+                onChange={(v) => updateLayerSound(layer.id, { freq: v } as Partial<ToneElement>)}
+                min={20}
+                max={2000}
+                displayValue={`${Math.round(freq)}Hz`}
+              />
+              <Knob
+                label="Amp"
+                value={amp}
+                onChange={(v) => updateLayerSound(layer.id, { amp: v } as Partial<ToneElement>)}
+                min={0}
+                max={1}
+              />
+              <Knob
+                label="Dur"
+                value={tone.dur || 0.5}
+                onChange={(v) => updateLayerSound(layer.id, { dur: v } as Partial<ToneElement>)}
+                min={0.01}
+                max={5}
+                displayValue={`${(tone.dur || 0.5).toFixed(2)}s`}
+              />
+              <Knob
+                label="Start"
+                value={(tone as any).at || 0}
+                onChange={(v) => updateLayerSound(layer.id, { at: v } as any)}
+                min={0}
+                max={10}
+                displayValue={`${((tone as any).at || 0).toFixed(2)}s`}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2 mb-2">
+                {['linear', 'exp', 'log', 'smooth', 'step'].map(curve => (
+                  <button
+                    key={curve}
+                    onClick={() => updateLayerSound(layer.id, {
+                      freq: { ...freqMod, curve: curve as any }
+                    } as Partial<ToneElement>)}
+                    className={`px-2 py-1 text-xs uppercase tracking-wide rounded transition-all ${
+                      freqMod.curve === curve
+                        ? 'bg-secondary text-white shadow-lg shadow-secondary/50'
+                        : 'bg-gray-800 border border-gray-700 hover:border-secondary/50 text-gray-300'
+                    }`}
+                  >
+                    {curve}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-6 w-full">
+                <Knob
+                  label="F.Start"
+                  value={freqMod.start}
+                  onChange={(v) => updateLayerSound(layer.id, {
+                    freq: { ...freqMod, start: v }
+                  } as Partial<ToneElement>)}
+                  min={20}
+                  max={2000}
+                  displayValue={`${Math.round(freqMod.start)}Hz`}
+                />
+                <Knob
+                  label="F.End"
+                  value={freqMod.end}
+                  onChange={(v) => updateLayerSound(layer.id, {
+                    freq: { ...freqMod, end: v }
+                  } as Partial<ToneElement>)}
+                  min={20}
+                  max={2000}
+                  displayValue={`${Math.round(freqMod.end)}Hz`}
+                />
+                <Knob
+                  label="Amp"
+                  value={amp}
+                  onChange={(v) => updateLayerSound(layer.id, { amp: v } as Partial<ToneElement>)}
+                  min={0}
+                  max={1}
+                />
+                <Knob
+                  label="Dur"
+                  value={tone.dur || 0.5}
+                  onChange={(v) => updateLayerSound(layer.id, { dur: v } as Partial<ToneElement>)}
+                  min={0.01}
+                  max={5}
+                  displayValue={`${(tone.dur || 0.5).toFixed(2)}s`}
+                />
+                <Knob
+                  label="Start"
+                  value={(tone as any).at || 0}
+                  onChange={(v) => updateLayerSound(layer.id, { at: v } as any)}
+                  min={0}
+                  max={10}
+                  displayValue={`${((tone as any).at || 0).toFixed(2)}s`}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Filter */}
