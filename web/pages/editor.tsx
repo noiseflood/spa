@@ -203,7 +203,7 @@ export default function Editor() {
         }
       }
 
-      if (tone.envelope) {
+      if (tone.envelope && typeof tone.envelope === 'object') {
         const env = tone.envelope
         xml += ` envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
       }
