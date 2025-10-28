@@ -20,7 +20,7 @@ export function getPresetCategories(): PresetCategories {
  */
 export async function loadPreset(path: string): Promise<string> {
   try {
-    const response = await fetch(`/presets/${path}.spa`);
+    const response = await fetch(`/presets/${path}`);
     if (!response.ok) {
       throw new Error(`Failed to load preset: ${path}`);
     }
