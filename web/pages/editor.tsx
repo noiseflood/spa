@@ -232,14 +232,14 @@ export default function Editor() {
         xml += ` pan="${noise.pan}"`
       }
 
-      if (noise.filter) {
+      if (noise.filter && typeof noise.filter === 'object') {
         xml += ` filter="${noise.filter.type}" cutoff="${noise.filter.cutoff}"`
         if (noise.filter.resonance !== undefined && noise.filter.resonance !== 1) {
           xml += ` resonance="${noise.filter.resonance}"`
         }
       }
 
-      if (noise.envelope) {
+      if (noise.envelope && typeof noise.envelope === 'object') {
         const env = noise.envelope
         xml += ` envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
       }
