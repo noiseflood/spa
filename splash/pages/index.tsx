@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
+import { renderSPA } from '@spa/core'
 
 export default function Home() {
-  const [presets, setPresets] = useState<string[]>([])
-  const [currentPreset, setCurrentPreset] = useState('')
+  const [presets, setPresets] = useState<{ path: string; name: string }[]>([])
+  const [currentPreset, setCurrentPreset] = useState<{ path: string; name: string } | null>(null)
   const [displayedName, setDisplayedName] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -14,10 +15,15 @@ export default function Home() {
     async function loadPresets() {
       try {
         const response = await fetch('/api/presets')
-        const files = await response.json()
-        setPresets(files)
-        if (files.length > 0) {
-          setCurrentPreset(files[0])
+        const files: string[] = await response.json()
+        // Convert paths to objects with path and simple name
+        const presetObjects = files.map(path => ({
+          path,
+          name: path.split('/').pop() || path
+        }))
+        setPresets(presetObjects)
+        if (presetObjects.length > 0) {
+          setCurrentPreset(presetObjects[0])
         }
       } catch (error) {
         console.error('Error loading presets:', error)
@@ -31,9 +37,9 @@ export default function Home() {
     if (!currentPreset) return
 
     let timeout: NodeJS.Timeout
-    if (displayedName.length < currentPreset.length) {
+    if (displayedName.length < currentPreset.name.length) {
       timeout = setTimeout(() => {
-        setDisplayedName(currentPreset.slice(0, displayedName.length + 1))
+        setDisplayedName(currentPreset.name.slice(0, displayedName.length + 1))
       }, 50)
     }
     return () => clearTimeout(timeout)
@@ -45,29 +51,36 @@ export default function Home() {
     setIsPlaying(true)
 
     try {
-      // Fetch and play the SPA file
-      const response = await fetch(`/presets/${currentPreset}.spa`)
+      // Fetch and play the SPA file using the full path
+      const response = await fetch(`/api/presets/${currentPreset.path}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch preset: ${response.statusText}`)
+      }
       const spaContent = await response.text()
 
-      // Use Web Audio API directly
-      const { renderSPA } = await import('@spa/core')
+      // Render the SPA to an audio buffer
       const buffer = await renderSPA(spaContent)
 
+      // Play the audio
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext
       const ctx = new AudioContext()
+
       const source = ctx.createBufferSource()
       source.buffer = buffer
       source.connect(ctx.destination)
       source.start(0)
 
+      // Wait for playback to finish
       await new Promise<void>((resolve) => {
         source.onended = () => {
-          resolve()
           ctx.close()
+          resolve()
         }
       })
     } catch (error) {
       console.error('Error playing SPA:', error)
+      setIsPlaying(false)
+      return
     }
 
     setIsPlaying(false)
@@ -80,7 +93,7 @@ export default function Home() {
           clearInterval(deleteInterval)
 
           // Pick new random preset
-          const available = presets.filter(p => p !== currentPreset)
+          const available = presets.filter(p => p.path !== currentPreset.path)
           const newPreset = available[Math.floor(Math.random() * available.length)]
           setCurrentPreset(newPreset)
           setIsTyping(false)
@@ -108,9 +121,9 @@ export default function Home() {
               className="cursor-pointer transition-transform hover:scale-105 active:scale-95 inline-block mb-4"
               title="Click to play sound"
             >
-              <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black bg-gradient-primary bg-clip-text text-transparent animate-glow tracking-tighter select-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-primary bg-clip-text text-transparent animate-glow tracking-tighter select-none">
                 &lt;spa name=&quot;{displayedName}
-                <span className="animate-pulse">{displayedName.length < currentPreset.length ? '|' : ''}</span>
+                <span className="animate-pulse">{displayedName.length < (currentPreset?.name.length || 0) ? '|' : ''}</span>
                 &quot; /&gt;
               </h1>
             </div>

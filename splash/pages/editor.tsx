@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Head from 'next/head'
 import {
@@ -138,12 +138,25 @@ export default function Editor() {
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<spa version="1.0">\n'
 
+    // Check if any layer has an 'at' parameter to determine if we need a sequence
+    const hasTimingInfo = layers.some(layer => (layer.sound as any).at && (layer.sound as any).at > 0)
+
     if (layers.length > 1) {
-      xml += '  <group>\n'
-      layers.forEach(layer => {
-        xml += '    ' + soundToXML(layer.sound) + '\n'
-      })
-      xml += '  </group>\n'
+      if (hasTimingInfo) {
+        // Use sequence for timed layers
+        xml += '  <sequence>\n'
+        layers.forEach(layer => {
+          xml += '    ' + soundToXML(layer.sound) + '\n'
+        })
+        xml += '  </sequence>\n'
+      } else {
+        // Use group for simultaneous layers
+        xml += '  <group>\n'
+        layers.forEach(layer => {
+          xml += '    ' + soundToXML(layer.sound) + '\n'
+        })
+        xml += '  </group>\n'
+      }
     } else {
       xml += '  ' + soundToXML(layers[0].sound) + '\n'
     }
@@ -167,6 +180,11 @@ export default function Editor() {
       }
 
       xml += ` dur="${tone.dur}"`
+
+      // Add 'at' attribute if present
+      if ((tone as any).at !== undefined && (tone as any).at !== 0) {
+        xml += ` at="${(tone as any).at}"`
+      }
 
       if (typeof tone.amp === 'object' && 'start' in tone.amp) {
         const amp = tone.amp as AutomationCurve
@@ -202,6 +220,11 @@ export default function Editor() {
     } else if (sound.type === 'noise') {
       const noise = sound as NoiseElement
       xml += `noise color="${noise.color}" dur="${noise.dur}"`
+
+      // Add 'at' attribute if present
+      if ((noise as any).at !== undefined && (noise as any).at !== 0) {
+        xml += ` at="${(noise as any).at}"`
+      }
 
       if (noise.amp !== undefined && noise.amp !== 1) {
         xml += ` amp="${noise.amp}"`
@@ -631,54 +654,186 @@ export default function Editor() {
             )}
           </div>
 
-          {/* XML Output Panel */}
-          <div className="bg-surface border-t border-primary/10">
-            <button
-              onClick={() => setXmlExpanded(!xmlExpanded)}
-              className="w-full px-4 py-2 flex items-center justify-between hover:bg-primary/5 transition-colors"
-            >
-              <span className="text-primary font-semibold text-sm">XML Output</span>
-              <svg
-                className={`w-4 h-4 transition-transform ${xmlExpanded ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            </button>
-            {xmlExpanded && (
-              <textarea
-                value={xmlOutput}
-                readOnly
-                className="w-full bg-background text-accent p-4 font-mono text-xs resize-none border-t border-primary/10"
-                rows={10}
-              />
-            )}
+          {/* Waveform Visualization */}
+          <div className="bg-surface border-t border-primary/10 p-4">
+            <h3 className="text-primary font-semibold text-sm mb-2">Waveform</h3>
+            <div className="h-40 bg-background rounded-lg overflow-hidden relative">
+              {layers.length > 0 ? (
+                <svg width="100%" height="160" viewBox="0 0 1000 160" preserveAspectRatio="none" className="w-full h-full">
+                  {(() => {
+                    // Calculate total timeline
+                    const maxTime = Math.max(1, ...layers.map(l => {
+                      const s = l.sound
+                      const at = (s as any).at || 0
+                      const dur = (s.type === 'tone' || s.type === 'noise') ? s.dur : 1
+                      return at + dur
+                    }))
+
+                    return layers.map((layer) => {
+                      const isActive = layer.id === currentLayerId
+                      const sound = layer.sound
+                      const startTime = (sound as any).at || 0
+                      const duration = (sound.type === 'tone' || sound.type === 'noise') ? sound.dur : 1
+
+                      // Position on timeline
+                      const startX = (startTime / maxTime) * 1000
+                      const endX = ((startTime + duration) / maxTime) * 1000
+                      const width = endX - startX
+                      const samples = Math.max(50, Math.floor(width / 5))
+
+                      // Generate waveform
+                      const points: string[] = []
+                      const centerY = 80
+
+                      for (let i = 0; i <= samples; i++) {
+                        const x = startX + (i / samples) * width
+                        const progress = i / samples
+                        let y = centerY
+
+                        // Calculate amplitude with envelope
+                        let amplitude = 35
+                        if (sound.type === 'tone' || sound.type === 'noise') {
+                          const envelope = sound.envelope
+                          const env = typeof envelope === 'object' ? envelope : { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }
+                          const amp = typeof sound.amp === 'number' ? sound.amp : 1
+
+                          // ADSR envelope
+                          const attackEnd = env.attack / duration
+                          const decayEnd = (env.attack + env.decay) / duration
+                          const releaseStart = 1 - (env.release / duration)
+
+                          let envValue = 1
+                          if (progress < attackEnd) {
+                            envValue = progress / attackEnd
+                          } else if (progress < decayEnd) {
+                            const decayProg = (progress - attackEnd) / (decayEnd - attackEnd)
+                            envValue = 1 - (1 - env.sustain) * decayProg
+                          } else if (progress < releaseStart) {
+                            envValue = env.sustain
+                          } else {
+                            const releaseProg = (progress - releaseStart) / (1 - releaseStart)
+                            envValue = env.sustain * (1 - releaseProg)
+                          }
+
+                          amplitude *= envValue * amp
+                        }
+
+                        // Generate wave shape
+                        if (sound.type === 'tone') {
+                          const tone = sound as ToneElement
+                          const freq = typeof tone.freq === 'number' ? tone.freq : 440
+                          const cycles = (freq / 100) * progress * duration
+
+                          if (tone.wave === 'sine') {
+                            y = centerY + Math.sin(cycles * Math.PI * 2) * amplitude
+                          } else if (tone.wave === 'square') {
+                            y = centerY + (Math.sin(cycles * Math.PI * 2) > 0 ? amplitude : -amplitude)
+                          } else if (tone.wave === 'saw') {
+                            y = centerY + ((cycles % 1) * 2 - 1) * amplitude
+                          } else if (tone.wave === 'triangle') {
+                            const t = (cycles % 1) * 4
+                            y = centerY + (t < 1 ? t : t < 3 ? 2 - t : t - 4) * amplitude
+                          }
+                        } else if (sound.type === 'noise') {
+                          y = centerY + (Math.random() * 2 - 1) * amplitude
+                        }
+
+                        points.push(`${i === 0 ? 'M' : 'L'} ${x} ${y}`)
+                      }
+
+                      const pathData = points.join(' ')
+
+                      return (
+                        <g key={layer.id} onClick={() => setCurrentLayerId(layer.id)} style={{ cursor: 'pointer' }}>
+                          {isActive && (
+                            <path
+                              d={`${pathData} L ${endX} ${centerY} L ${startX} ${centerY} Z`}
+                              fill="rgba(124, 58, 237, 0.15)"
+                            />
+                          )}
+                          <path
+                            d={pathData}
+                            stroke={isActive ? 'rgb(124, 58, 237)' : 'rgba(124, 58, 237, 0.4)'}
+                            strokeWidth={isActive ? 2 : 1}
+                            fill="none"
+                          />
+                        </g>
+                      )
+                    })
+                  })()}
+                  <line x1="0" y1="80" x2="1000" y2="80" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                </svg>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-gray-500 text-sm">Add layers to see waveform</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* XML Output Panel with bottom padding for play button */}
+          <div className="bg-surface border-t border-primary/10 pb-28">
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-primary font-semibold text-sm">SPA Code</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(xmlOutput)
+                  }}
+                  className="px-3 py-1.5 bg-primary hover:bg-primary/80 rounded text-xs font-medium transition-colors"
+                >
+                  Copy Code
+                </button>
+              </div>
+              <div className="relative">
+                <pre className="bg-background text-accent p-3 rounded-lg font-mono text-xs overflow-x-auto border border-primary/10">
+                  {xmlExpanded ? xmlOutput : xmlOutput.split('\n').slice(0, 4).join('\n') + '\n  ...'}
+                </pre>
+                <button
+                  onClick={() => setXmlExpanded(!xmlExpanded)}
+                  className="absolute bottom-2 right-2 px-2 py-1 bg-surface hover:bg-primary/20 rounded text-xs text-primary border border-primary/30 transition-colors"
+                >
+                  {xmlExpanded ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Fixed Play Button */}
+      {/* Fixed Play Button - Sticky at bottom */}
       <button
         onClick={playSound}
         disabled={layers.length === 0}
-        className={`fixed bottom-6 right-6 w-16 h-16 rounded-full shadow-lg transition-all flex items-center justify-center ${
+        className={`fixed bottom-0 right-0 left-0 md:left-auto md:bottom-6 md:right-6 md:rounded-lg shadow-2xl transition-all z-50 ${
           isPlaying
             ? 'bg-red-600 hover:bg-red-700'
             : 'bg-green-600 hover:bg-green-700'
-        } disabled:bg-gray-600 disabled:cursor-not-allowed`}
-        title="Play/Stop (Spacebar)"
+        } disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-4`}
       >
-        {isPlaying ? (
-          <svg className="w-7 h-7" viewBox="0 0 24 24" fill="white">
-            <path d="M6 6h12v12H6z"/>
-          </svg>
-        ) : (
-          <svg className="w-7 h-7 ml-1" viewBox="0 0 24 24" fill="white">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-        )}
+        <div className="flex items-center gap-3">
+          {isPlaying ? (
+            <>
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="white">
+                <path d="M6 6h12v12H6z"/>
+              </svg>
+              <div className="text-left">
+                <div className="text-white font-bold text-lg">STOP</div>
+                <div className="text-white/70 text-xs">Spacebar</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="white">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              <div className="text-left">
+                <div className="text-white font-bold text-lg">PLAY</div>
+                <div className="text-white/70 text-xs">Spacebar</div>
+              </div>
+            </>
+          )}
+        </div>
       </button>
 
       {/* Import Modal */}
@@ -753,7 +908,7 @@ function ToneParameters({ layer, updateLayerSound }: {
       <div className="bg-surface p-3 rounded-lg">
         <h3 className="text-accent font-medium text-sm mb-2">Waveform</h3>
         <div className="grid grid-cols-2 gap-2">
-          {['sine', 'square', 'sawtooth', 'triangle'].map(wave => (
+          {['sine', 'square', 'saw', 'triangle'].map(wave => (
             <button
               key={wave}
               onClick={() => updateLayerSound(layer.id, { wave } as Partial<ToneElement>)}
@@ -763,7 +918,7 @@ function ToneParameters({ layer, updateLayerSound }: {
                   : 'bg-background border border-primary/20 hover:bg-primary/10'
               }`}
             >
-              {wave}
+              {wave === 'saw' ? 'sawtooth' : wave}
             </button>
           ))}
         </div>
@@ -808,6 +963,33 @@ function ToneParameters({ layer, updateLayerSound }: {
             className="w-full"
             min="0.01"
             max="5"
+            step="0.01"
+          />
+        </div>
+      </div>
+
+      {/* Start Time (at) */}
+      <div className="bg-surface p-3 rounded-lg">
+        <h3 className="text-accent font-medium text-sm mb-2">Start Time</h3>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">At (seconds)</span>
+            <input
+              type="number"
+              value={(tone as any).at || 0}
+              onChange={(e) => updateLayerSound(layer.id, { at: parseFloat(e.target.value) || 0 } as any)}
+              className="w-20 px-2 py-1 text-xs bg-background rounded border border-primary/20 text-right"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <input
+            type="range"
+            value={(tone as any).at || 0}
+            onChange={(e) => updateLayerSound(layer.id, { at: parseFloat(e.target.value) } as any)}
+            className="w-full"
+            min="0"
+            max="10"
             step="0.01"
           />
         </div>
@@ -1073,6 +1255,33 @@ function NoiseParameters({ layer, updateLayerSound }: {
             className="w-full"
             min="0.01"
             max="5"
+            step="0.01"
+          />
+        </div>
+      </div>
+
+      {/* Start Time (at) */}
+      <div className="bg-surface p-3 rounded-lg">
+        <h3 className="text-accent font-medium text-sm mb-2">Start Time</h3>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">At (seconds)</span>
+            <input
+              type="number"
+              value={(noise as any).at || 0}
+              onChange={(e) => updateLayerSound(layer.id, { at: parseFloat(e.target.value) || 0 } as any)}
+              className="w-20 px-2 py-1 text-xs bg-background rounded border border-primary/20 text-right"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <input
+            type="range"
+            value={(noise as any).at || 0}
+            onChange={(e) => updateLayerSound(layer.id, { at: parseFloat(e.target.value) } as any)}
+            className="w-full"
+            min="0"
+            max="10"
             step="0.01"
           />
         </div>

@@ -2,9 +2,9 @@
   "name": "@spa/core",
   "version": "1.0.0",
   "description": "Core JavaScript library for parsing and rendering SPA (Scalable Parametric Audio) - procedural sound effects for the web",
-  "main": "dist/spa.js",
+  "main": "dist/spa.cjs.js",
   "module": "dist/spa.esm.js",
-  "types": "dist/spa.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/",
     "src/",
