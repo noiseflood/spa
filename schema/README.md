@@ -4,7 +4,7 @@ This directory contains JSON Schema definitions for validating SPA (Sound Prompt
 
 ## Files
 
-- `spa-v1.0.schema.json` - JSON Schema for SPA v1.0 specification (to be created)
+- `spa-v1.schema.json` - JSON Schema for SPA v1 specification
 
 ## Usage
 
@@ -14,7 +14,7 @@ You can use the JSON Schema to validate SPA files programmatically:
 
 ```javascript
 import Ajv from 'ajv';
-import schema from './spa-v1.0.schema.json';
+import schema from './spa-v1.schema.json';
 
 const ajv = new Ajv();
 const validate = ajv.compile(schema);
@@ -51,7 +51,7 @@ Many editors can use JSON Schema for:
 - Inline documentation
 - Type checking
 
-Configure your editor to use `spa-v1.0.schema.json` when editing `.spa` files.
+Configure your editor to use `spa-v1.schema.json` when editing `.spa` files.
 
 ## Schema Versions
 

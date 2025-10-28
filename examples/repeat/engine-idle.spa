@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.1" encoding="UTF-8"?>
 <!-- Engine Idle: Looping mechanical rhythm -->
-<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <group repeat="100" repeat.interval="0.08">
     <!-- Engine cylinder fire -->
     <tone wave="triangle" freq="80" dur="0.05"

@@ -90,7 +90,7 @@ function Button() {
 <button onclick="playSPAInline(this)">
   Click Me
   <script type="text/spa">
-    <spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
+    <spa xmlns="https://spa.audio/ns" version="1.1">
       <tone wave="sine" freq="800" dur="0.05" envelope="0,0.02,0,0.03"/>
     </spa>
   </script>
@@ -135,9 +135,9 @@ Complex sounds use groups to layer multiple elements:
 
 All examples follow this structure:
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.1" encoding="UTF-8"?>
 <!-- Description: What this sound represents -->
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <!-- Sound elements here -->
 </spa>
 ```

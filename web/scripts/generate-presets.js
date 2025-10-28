@@ -60,7 +60,7 @@ fs.writeFileSync(presetsJsonPath, JSON.stringify(spaFiles, null, 2));
 console.log(`Generated presets.json with ${spaFiles.length} presets`);
 
 // Copy schema file
-const schemaPath = path.join(__dirname, '../../schema/spa-v1.0.schema.json');
+const schemaPath = path.join(__dirname, '../../schema/spa-v1.schema.json');
 const publicSchemaPath = path.join(__dirname, '../public/ns.json');
 fs.copyFileSync(schemaPath, publicSchemaPath);
 

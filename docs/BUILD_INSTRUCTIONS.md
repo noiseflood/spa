@@ -45,7 +45,7 @@ spa-spec/
 ├── SPEC.md                   (copy from SPA_SPEC_v1.0.md)
 ├── QUICKSTART.md             (copy from SPA_QUICKSTART.md)
 ├── schema/
-│   └── spa-v1.0.schema.json  (JSON Schema for validation)
+│   └── spa-v1.schema.json  (JSON Schema for validation)
 ├── examples/
 │   ├── ui/
 │   │   ├── button-click.spa

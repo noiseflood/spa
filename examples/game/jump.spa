@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.1" encoding="UTF-8"?>
 <!-- Jump: Quick ascending tone for character jump -->
-<spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="square" dur="0.2"
         freq.start="400" freq.end="600" freq.curve="smooth"
         envelope="0,0.05,0.3,0.1"/>

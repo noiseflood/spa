@@ -65,6 +65,18 @@ export function validateSPA(xml: string): ValidationResult {
         code: 'MISSING_VERSION',
         message: 'Missing version attribute on <spa> element'
       });
+    } else {
+      const version = root.getAttribute('version');
+      if (version) {
+        const majorVersion = version.split('.')[0];
+        if (majorVersion !== '1') {
+          errors.push({
+            type: 'error',
+            code: 'UNSUPPORTED_VERSION',
+            message: `Unsupported SPA version: ${version}. This validator supports v1.x`
+          });
+        }
+      }
     }
 
     // Validate children

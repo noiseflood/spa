@@ -97,6 +97,12 @@ export function parseSPA(
     throw new Error('Missing version attribute on <spa> element');
   }
 
+  // Validate major version only
+  const majorVersion = version.split('.')[0];
+  if (majorVersion !== '1') {
+    throw new Error(`Unsupported SPA version: ${version}. This parser supports v1.x`);
+  }
+
   // Parse definitions if present
   const defs = parseDefinitions(root);
 

@@ -27,7 +27,7 @@ export default function Namespace() {
         
         <h2>Schema</h2>
         <p>
-          <a href="https://github.com/yourusername/spa/blob/main/schema/spa-v1.0.schema.json">
+          <a href="https://github.com/yourusername/spa/blob/main/schema/spa-v1.schema.json">
             JSON Schema Definition →
           </a>
         </p>

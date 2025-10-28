@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.1" encoding="UTF-8"?>
 <!-- Button Click: Short sine wave for tactile button feedback -->
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="800" dur="0.05"
         envelope="0,0.02,0,0.03"/>
 </spa>

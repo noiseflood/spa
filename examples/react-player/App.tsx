@@ -13,13 +13,13 @@ import '@spa-audio/react/src/styles.css';
 
 // Example inline SPA definitions for UI sounds
 const buttonClickSPA = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="800" dur="0.05"
         envelope="0,0.02,0,0.03"/>
 </spa>`;
 
 const successSPA = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="sine" freq="523.25" dur="0.1" amp="0.6"/>
     <tone wave="sine" freq="659.25" dur="0.1" amp="0.4"/>
@@ -28,7 +28,7 @@ const successSPA = `<?xml version="1.0" encoding="UTF-8"?>
 </spa>`;
 
 const errorSPA = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="square" freq="200" dur="0.1" amp="0.3"/>
     <noise color="pink" dur="0.05" amp="0.2"/>
@@ -148,7 +148,7 @@ function App() {
                 placeholder={`Enter your SPA XML here, for example:
 
 <?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="1" amp="0.5"/>
 </spa>`}
                 rows={15}

@@ -14,7 +14,7 @@ describe('SPA Core Integration', () => {
   describe('Parser', () => {
     it('should parse a simple tone element', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="1.0" amp="0.5"/>
 </spa>`;
 
@@ -27,7 +27,7 @@ describe('SPA Core Integration', () => {
 
     it('should parse a group with multiple elements', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <group>
     <tone wave="sine" freq="440" dur="1.0"/>
     <noise color="white" dur="0.5"/>
@@ -43,7 +43,7 @@ describe('SPA Core Integration', () => {
 
     it('should parse automation parameters', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" dur="1.0"
         freq.start="200" freq.end="800" freq.curve="exp"/>
 </spa>`;
@@ -53,7 +53,7 @@ describe('SPA Core Integration', () => {
       expect(tone.freq).toEqual({
         start: 200,
         end: 800,
-        curve: 'exp'
+        curve: 'exp',
       });
     });
   });
@@ -94,7 +94,7 @@ describe('SPA Core Integration', () => {
   describe('Validator', () => {
     it('should validate a correct SPA document', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="1.0"/>
 </spa>`;
 
@@ -105,7 +105,7 @@ describe('SPA Core Integration', () => {
 
     it('should catch invalid wave type', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="invalid" freq="440" dur="1.0"/>
 </spa>`;
 
@@ -116,7 +116,7 @@ describe('SPA Core Integration', () => {
 
     it('should catch missing required attributes', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="http://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine"/>
 </spa>`;
 

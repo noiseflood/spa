@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://spa.audio/schema/spa-v1.0.schema.json",
-  "title": "SPA (Synthetic Parametric Audio) v1.0",
+  "$id": "https://spa.audio/schema/spa-v1.schema.json",
+  "title": "SPA (Synthetic Parametric Audio) v1",
   "description": "JSON Schema for validating SPA audio format XML documents",
   "type": "object",
   "required": ["spa"],
@@ -92,7 +92,7 @@
       "properties": {
         "wave": {
           "type": "string",
-          "enum": ["sine", "square", "triangle", "saw"],
+          "enum": ["sine", "square", "triangle", "saw", "pulse"],
           "description": "Waveform type"
         },
         "freq": {
