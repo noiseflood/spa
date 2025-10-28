@@ -1,7 +1,8 @@
 {
   "name": "@spa.audio/react",
   "version": "1.0.0",
-  "description": "React component for SPA (Scalable Parametric Audio) - procedural sound effects in React apps",
+  "type": "module",
+  "description": "React component for SPA (Synthetic Parametric Audio) - procedural sound effects in React apps",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
