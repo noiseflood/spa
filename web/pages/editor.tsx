@@ -296,10 +296,10 @@ export default function Editor() {
       const editorLayers: EditorLayer[] = []
       let layerId = 0
 
-      doc.sounds.forEach(sound => {
+      doc.sounds.forEach((sound: SPASound) => {
         if (sound.type === 'group') {
           const group = sound as GroupElement
-          group.sounds?.forEach(groupSound => {
+          group.sounds?.forEach((groupSound: SPASound) => {
             editorLayers.push({
               id: layerId++,
               sound: normalizeSound(groupSound)
@@ -341,10 +341,10 @@ export default function Editor() {
         const editorLayers: EditorLayer[] = []
         let layerId = 0
 
-        doc.sounds.forEach(sound => {
+        doc.sounds.forEach((sound: SPASound) => {
           if (sound.type === 'group') {
             const group = sound as GroupElement
-            group.sounds?.forEach(groupSound => {
+            group.sounds?.forEach((groupSound: SPASound) => {
               editorLayers.push({
                 id: layerId++,
                 sound: normalizeSound(groupSound)
@@ -418,10 +418,10 @@ export default function Editor() {
         const editorLayers: EditorLayer[] = []
         let layerId = 0
 
-        doc.sounds.forEach(sound => {
+        doc.sounds.forEach((sound: SPASound) => {
           if (sound.type === 'group') {
             const group = sound as GroupElement
-            group.sounds?.forEach(groupSound => {
+            group.sounds?.forEach((groupSound: SPASound) => {
               editorLayers.push({
                 id: layerId++,
                 sound: normalizeSound(groupSound)
