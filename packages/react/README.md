@@ -1,4 +1,4 @@
-# @spa/react
+# @spa.audio/react
 
 React components and hooks for playing SPA (Scalable Parametric Audio) files using the Web Audio API.
 

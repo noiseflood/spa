@@ -12,10 +12,10 @@ This is a monorepo managed with pnpm workspaces containing all SPA packages:
 ```
 spa/
 ├── packages/
-│   ├── core/              # @spa/core - Core JS library (parser + renderer)
-│   └── react/             # @spa/react - React component integration
+│   ├── core/              # @spa.audio/core - Core JS library (parser + renderer)
+│   └── react/             # @spa.audio/react - React component integration
 ├── apps/
-│   └── web/               # @spa/web - Website with visual designer
+│   └── web/               # @spa.audio/web - Website with visual designer
 ├── docs/                  # Documentation
 │   ├── SPEC.md           # Technical specification
 │   ├── QUICKSTART.md     # 5-minute tutorial
@@ -59,7 +59,7 @@ pnpm core:test  # Run core library tests
 
 ## 📦 Packages
 
-### @spa/core
+### @spa.audio/core
 Core JavaScript library for parsing and rendering SPA files.
 - **Zero dependencies** - Uses native Web Audio API
 - **< 20KB gzipped**
@@ -67,7 +67,7 @@ Core JavaScript library for parsing and rendering SPA files.
 - Renders sounds in < 10ms
 
 ```javascript
-import { renderSPA, playSPA } from '@spa/core';
+import { renderSPA, playSPA } from '@spa.audio/core';
 
 // Play a simple click sound
 await playSPA(`
@@ -78,11 +78,11 @@ await playSPA(`
 `);
 ```
 
-### @spa/react
+### @spa.audio/react
 React component for easy SPA integration.
 
 ```jsx
-import { SPASound } from '@spa/react';
+import { SPASound } from '@spa.audio/react';
 
 function Button() {
   return (
@@ -98,7 +98,7 @@ function Button() {
 }
 ```
 
-### @spa/web
+### @spa.audio/web
 Visual designer and documentation website.
 - **Visual Sound Designer** - Build sounds with a GUI
 - **Live Playground** - Write and test SPA code
@@ -213,9 +213,9 @@ pnpm typecheck    # Type check all packages
 
 ### Package-Specific Commands
 ```bash
-pnpm --filter @spa/core test     # Test core library
-pnpm --filter @spa/web dev       # Run website locally
-pnpm --filter @spa/react build   # Build React component
+pnpm --filter @spa.audio/core test     # Test core library
+pnpm --filter @spa.audio/web dev       # Run website locally
+pnpm --filter @spa.audio/react build   # Build React component
 ```
 
 ## 📈 Roadmap
@@ -249,7 +249,7 @@ MIT
 ## 🔗 Links
 
 - [Website](https://spa.audio) (coming soon)
-- [NPM Package](https://www.npmjs.com/package/@spa/core) (coming soon)
+- [NPM Package](https://www.npmjs.com/package/@spa.audio/core) (coming soon)
 - [Discord Community](https://discord.gg/spa-audio) (coming soon)
 
 ---

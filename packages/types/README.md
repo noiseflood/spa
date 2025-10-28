@@ -1,11 +1,11 @@
-# @spa/types
+# @spa.audio/types
 
 Shared TypeScript type definitions for SPA (Scalable Parametric Audio).
 
 ## Installation
 
 ```bash
-npm install @spa/types
+npm install @spa.audio/types
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ import type {
   ToneElement,
   NoiseElement,
   ADSREnvelope
-} from '@spa/types';
+} from '@spa.audio/types';
 
 // Use the types
 const tone: ToneElement = {

@@ -21,8 +21,8 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@spa/core": ["packages/core/src"],
-      "@spa/react": ["packages/react/src"]
+      "@spa.audio/core": ["packages/core/src"],
+      "@spa.audio/react": ["packages/react/src"]
     }
   },
   "exclude": ["node_modules", "dist", "build", ".next"]

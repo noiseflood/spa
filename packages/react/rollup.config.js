@@ -11,7 +11,7 @@ export default [
       format: 'es',
       sourcemap: true,
     },
-    external: ['react', 'react-dom', '@spa/core', '@spa/types'],
+    external: ['react', 'react-dom', '@spa.audio/core', '@spa.audio/types'],
     plugins: [
       peerDepsExternal(),
       resolve(),
@@ -31,7 +31,7 @@ export default [
       format: 'cjs',
       sourcemap: true,
     },
-    external: ['react', 'react-dom', '@spa/core', '@spa/types'],
+    external: ['react', 'react-dom', '@spa.audio/core', '@spa.audio/types'],
     plugins: [
       peerDepsExternal(),
       resolve(),
