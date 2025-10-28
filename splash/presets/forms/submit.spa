@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Form Submit: Confident, forward-moving sound -->
+  <group>
+    <tone wave="square"
+          freq.start="400"
+          freq.end="800"
+          freq.curve="exponential"
+          dur="0.2"
+          amp="0.4"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.005,0.02,0.7,0.08"/>
+    <noise color="white"
+           dur="0.15"
+           amp="0.1"
+           filter="highpass"
+           cutoff="3000"
+           envelope="0.01,0.03,0.3,0.08"/>
+  </group>
+</spa>

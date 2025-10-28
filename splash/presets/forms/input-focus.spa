@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Input Focus: Subtle click indicating field activation -->
+  <tone wave="sine"
+        freq="1200"
+        dur="0.04"
+        amp="0.2"
+        envelope="0.001,0.005,0.6,0.02"/>
+</spa>

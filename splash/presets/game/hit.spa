@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Hit: Impact/damage sound -->
+  <group>
+    <noise color="white"
+           dur="0.08"
+           amp="0.6"
+           filter="bandpass"
+           cutoff="500"
+           resonance="2"
+           envelope="0.001,0.002,0.5,0.03"/>
+    <tone wave="sawtooth"
+          freq="150"
+          dur="0.12"
+          amp="0.4"
+          filter="lowpass"
+          cutoff="400"
+          envelope="0.001,0.005,0.4,0.06"/>
+  </group>
+</spa>

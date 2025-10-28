@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Sonar Ping: Submarine sonar with echo effect -->
+  <tone wave="sine"
+        freq="1500"
+        dur="0.1"
+        amp="0.6"
+        envelope="0.001,0.005,0.8,0.08"
+        repeat="3"
+        repeat.interval="0.8"
+        repeat.decay="0.4"/>
+</spa>

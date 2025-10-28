@@ -1,7 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spa version="1.0">
-  <tone wave="saw" freq="150" dur="0.03"
-        amp="0.6"
-        repeat="20" repeat.interval="0.05"
-        envelope="0,0.01,0.2,0.02"/>
+  <group>
+    <!-- Low frequency punch - the gunpowder explosion -->
+    <tone wave="sine" freq="90" dur="0.02" amp="0.8"
+          envelope="0,0.005,0.1,0.015"
+          repeat="25" repeat.interval="0.06"/>
+    
+    <!-- Mid-frequency crack - the sharp report -->
+    <tone wave="square" freq="550" dur="0.015" amp="0.5"
+          envelope="0,0.003,0.05,0.012"
+          repeat="25" repeat.interval="0.06"/>
+    
+    <!-- High metallic clang - the mechanical action -->
+    <tone wave="saw" freq="2800" dur="0.008" amp="0.3"
+          envelope="0,0.002,0.1,0.006"
+          repeat="25" repeat.interval="0.06"/>
+    
+    <!-- Muzzle blast - white noise burst -->
+    <noise color="white" dur="0.012" amp="0.4"
+           envelope="0,0.002,0.05,0.01"
+           repeat="25" repeat.interval="0.06"/>
+    
+    <!-- Brown noise tail - gives it body/rumble -->
+    <noise color="brown" dur="0.018" amp="0.15"
+           envelope="0,0.008,0.3,0.01"
+           repeat="25" repeat.interval="0.06"/>
+  </group>
 </spa>

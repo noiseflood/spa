@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Powerup: Ascending, energetic sound -->
+  <group>
+    <tone wave="square"
+          freq.start="261.63"
+          freq.end="523.25"
+          freq.curve="exponential"
+          dur="0.3"
+          amp="0.4"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <tone wave="sine"
+          freq.start="523.25"
+          freq.end="1046.5"
+          freq.curve="exponential"
+          dur="0.3"
+          amp="0.3"
+          envelope="0.02,0.05,0.6,0.12"/>
+    <noise color="white"
+           dur="0.25"
+           amp="0.1"
+           filter="highpass"
+           cutoff="4000"
+           envelope="0.01,0.05,0.3,0.15"/>
+  </group>
+</spa>

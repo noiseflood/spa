@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Pickup: Quick, pleasant collection sound -->
+  <group>
+    <tone wave="sine"
+          freq="880"
+          dur="0.08"
+          amp="0.4"
+          envelope="0.002,0.01,0.6,0.04"/>
+    <tone wave="sine"
+          freq="1318.51"
+          dur="0.12"
+          amp="0.3"
+          envelope="0.01,0.02,0.5,0.06"/>
+  </group>
+</spa>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- 8-bit Jump: Classic Mario-style jump -->
+  <tone wave="square"
+        freq.start="400"
+        freq.end="800"
+        freq.curve="exponential"
+        dur="0.15"
+        amp="0.5"
+        envelope="0.001,0.001,0.95,0.01"/>
+</spa>

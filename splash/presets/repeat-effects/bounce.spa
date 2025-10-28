@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Bounce: Ball bouncing with decreasing energy -->
+  <group>
+    <tone wave="sine"
+          freq="400"
+          dur="0.08"
+          amp="0.5"
+          envelope="0.001,0.005,0.3,0.04"
+          repeat="5"
+          repeat.interval="0.15"
+          repeat.decay="0.3"
+          repeat.pitchShift="-2"/>
+    <noise color="white"
+           dur="0.05"
+           amp="0.2"
+           filter="lowpass"
+           cutoff="500"
+           envelope="0.001,0.002,0.2,0.02"
+           repeat="5"
+           repeat.interval="0.15"
+           repeat.decay="0.4"/>
+  </group>
+</spa>

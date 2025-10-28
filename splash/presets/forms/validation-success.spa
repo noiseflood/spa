@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Validation Success: Pleasant confirmation -->
+  <group>
+    <tone wave="sine"
+          freq="659.25"
+          dur="0.1"
+          amp="0.3"
+          envelope="0.005,0.01,0.7,0.04"/>
+    <tone wave="sine"
+          freq="880"
+          dur="0.15"
+          amp="0.4"
+          envelope="0.02,0.02,0.6,0.06"/>
+  </group>
+</spa>

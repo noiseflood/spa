@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Arcade Blip: Short UI beep from arcade machines -->
+  <tone wave="square"
+        freq="500"
+        dur="0.05"
+        amp="0.4"
+        envelope="0.001,0.001,0.95,0.001"/>
+</spa>

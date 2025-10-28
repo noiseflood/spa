@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Tooltip Show: Very subtle, high-pitched ting -->
+  <tone wave="sine"
+        freq="2500"
+        dur="0.08"
+        amp="0.15"
+        envelope="0.001,0.005,0.3,0.04"/>
+</spa>

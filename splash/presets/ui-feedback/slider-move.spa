@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Slider Move: Quick, subtle pitch slide for slider interaction -->
+  <tone wave="sine"
+        freq.start="600"
+        freq.end="800"
+        freq.curve="linear"
+        dur="0.05"
+        amp="0.3"
+        envelope="0.001,0.01,0.8,0.02"/>
+</spa>

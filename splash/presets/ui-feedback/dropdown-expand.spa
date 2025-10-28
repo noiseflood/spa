@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Dropdown Expand: Quick unfurling sound -->
+  <group>
+    <tone wave="triangle"
+          freq="1000"
+          dur="0.08"
+          amp="0.3"
+          envelope="0.002,0.01,0.5,0.03"/>
+    <tone wave="sine"
+          freq.start="2000"
+          freq.end="800"
+          freq.curve="exponential"
+          dur="0.12"
+          amp="0.2"
+          envelope="0.005,0.02,0.4,0.05"/>
+  </group>
+</spa>

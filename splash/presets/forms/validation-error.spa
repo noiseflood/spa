@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Validation Error: Harsh buzz indicating error -->
+  <group>
+    <tone wave="sawtooth"
+          freq="200"
+          dur="0.15"
+          amp="0.3"
+          filter="lowpass"
+          cutoff="600"
+          envelope="0.001,0.01,0.7,0.05"/>
+    <noise color="pink"
+           dur="0.1"
+           amp="0.2"
+           filter="bandpass"
+           cutoff="400"
+           resonance="3"
+           envelope="0.001,0.01,0.5,0.04"/>
+  </group>
+</spa>

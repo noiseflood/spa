@@ -9,16 +9,28 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Invalid path' });
   }
 
-  const filePath = path.join(process.cwd(), 'presets', ...pathArray);
+  // In Next.js, when running from splash directory, we need to use the correct base path
+  const basePath = process.cwd().endsWith('splash')
+    ? process.cwd()
+    : path.join(process.cwd(), 'splash');
+
+  const filePath = path.join(basePath, 'presets', ...pathArray);
+  const presetsDir = path.join(basePath, 'presets');
 
   // Security check to prevent directory traversal
-  if (!filePath.startsWith(path.join(process.cwd(), 'presets'))) {
+  if (!filePath.startsWith(presetsDir)) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
   // Check if file exists and is a .spa file
   if (!filePath.endsWith('.spa') || !fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Preset not found' });
+    console.error('Preset not found:', {
+      requestedPath: pathArray.join('/'),
+      filePath,
+      exists: fs.existsSync(filePath),
+      cwd: process.cwd()
+    });
+    return res.status(404).json({ error: 'Preset not found', details: { requestedPath: pathArray.join('/'), filePath } });
   }
 
   try {

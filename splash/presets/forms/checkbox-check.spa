@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Checkbox Check: Quick tick sound -->
+  <group>
+    <tone wave="square"
+          freq="1500"
+          dur="0.03"
+          amp="0.3"
+          filter="lowpass"
+          cutoff="3000"
+          envelope="0.001,0.002,0.8,0.01"/>
+    <noise color="white"
+           dur="0.02"
+           amp="0.15"
+           filter="highpass"
+           cutoff="5000"
+           envelope="0.001,0.002,0.5,0.01"/>
+  </group>
+</spa>

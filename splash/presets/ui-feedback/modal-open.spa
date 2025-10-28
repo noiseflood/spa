@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Modal Open: Ascending, airy sound suggesting expansion -->
+  <group>
+    <tone wave="sine"
+          freq.start="200"
+          freq.end="600"
+          freq.curve="exponential"
+          dur="0.3"
+          amp="0.5"
+          envelope="0.02,0.08,0.7,0.15"/>
+    <tone wave="sine"
+          freq.start="300"
+          freq.end="900"
+          freq.curve="exponential"
+          dur="0.3"
+          amp="0.3"
+          envelope="0.03,0.08,0.7,0.15"/>
+    <noise color="pink"
+           dur="0.2"
+           amp="0.1"
+           filter="bandpass"
+           cutoff="1000"
+           resonance="2"
+           envelope="0.01,0.05,0.3,0.1"/>
+  </group>
+</spa>

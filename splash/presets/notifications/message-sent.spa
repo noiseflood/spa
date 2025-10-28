@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Message Sent: Quick whoosh with confirmation tone -->
+  <group>
+    <noise color="white"
+           dur="0.12"
+           amp="0.2"
+           filter="bandpass"
+           cutoff="1500"
+           resonance="3"
+           envelope="0.002,0.02,0.3,0.06"/>
+    <tone wave="sine"
+          freq.start="400"
+          freq.end="800"
+          freq.curve="exponential"
+          dur="0.15"
+          amp="0.3"
+          envelope="0.01,0.03,0.5,0.08"/>
+  </group>
+</spa>

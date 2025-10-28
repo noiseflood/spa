@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Land: Thud sound for landing after jump -->
+  <group>
+    <tone wave="triangle"
+          freq="80"
+          dur="0.15"
+          amp="0.5"
+          envelope="0.001,0.005,0.3,0.08"/>
+    <noise color="brown"
+           dur="0.1"
+           amp="0.3"
+           filter="lowpass"
+           cutoff="200"
+           envelope="0.001,0.005,0.2,0.05"/>
+  </group>
+</spa>

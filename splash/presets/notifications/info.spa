@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Info: Neutral, informative chime -->
+  <group>
+    <tone wave="sine"
+          freq="523.25"
+          dur="0.15"
+          amp="0.5"
+          envelope="0.01,0.02,0.7,0.08"/>
+    <tone wave="sine"
+          freq="659.25"
+          dur="0.15"
+          amp="0.4"
+          envelope="0.02,0.03,0.6,0.08"/>
+    <tone wave="sine"
+          freq="783.99"
+          dur="0.2"
+          amp="0.3"
+          envelope="0.03,0.04,0.5,0.1"/>
+  </group>
+</spa>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <!-- Radio Select: Distinct selection beep -->
+  <tone wave="square"
+        freq="800"
+        dur="0.08"
+        amp="0.35"
+        filter="lowpass"
+        cutoff="1600"
+        envelope="0.002,0.01,0.7,0.03"/>
+</spa>

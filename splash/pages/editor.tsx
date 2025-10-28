@@ -60,7 +60,13 @@ export default function Editor() {
           decay: 0.1,
           sustain: 0.7,
           release: 0.2
-        }
+        },
+        // Always initialize repeat parameters to prevent controlled/uncontrolled input warnings
+        repeat: 1,
+        repeatInterval: 0,
+        repeatDelay: 0,
+        repeatDecay: 0,
+        repeatPitchShift: 0
       } as ToneElement
     } else {
       return {
@@ -73,7 +79,12 @@ export default function Editor() {
           decay: 0.1,
           sustain: 0.7,
           release: 0.2
-        }
+        },
+        // Always initialize repeat parameters to prevent controlled/uncontrolled input warnings
+        repeat: 1,
+        repeatInterval: 0,
+        repeatDelay: 0,
+        repeatDecay: 0
       } as NoiseElement
     }
   }
@@ -192,17 +203,18 @@ export default function Editor() {
       // Handle envelope
       if (tone.envelope) {
         const env = tone.envelope
-        xml += `\n        envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+        xml += ` envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
       }
 
       // Handle repeat
-      if (tone.repeat !== undefined && tone.repeatInterval !== undefined) {
-        xml += `\n        repeat="${tone.repeat}" repeat.interval="${tone.repeatInterval}"`
-        if (tone.repeatDelay) xml += ` repeat.delay="${tone.repeatDelay}"`
-        if (tone.repeatDecay) xml += ` repeat.decay="${tone.repeatDecay}"`
-        if (tone.repeatPitchShift) xml += ` repeat.pitchShift="${tone.repeatPitchShift}"`
+      if (tone.repeat !== undefined && tone.repeat !== 1 && tone.repeatInterval !== undefined && tone.repeatInterval !== 0) {
+        xml += ` repeat="${tone.repeat}" repeat.interval="${tone.repeatInterval}"`
+        if (tone.repeatDelay && tone.repeatDelay !== 0) xml += ` repeat.delay="${tone.repeatDelay}"`
+        if (tone.repeatDecay && tone.repeatDecay !== 0) xml += ` repeat.decay="${tone.repeatDecay}"`
+        if (tone.repeatPitchShift && tone.repeatPitchShift !== 0) xml += ` repeat.pitchShift="${tone.repeatPitchShift}"`
       }
 
+      xml += '/>'
     } else if (sound.type === 'noise') {
       const noise = sound as NoiseElement
       xml += `noise color="${noise.color}" dur="${noise.dur}"`
@@ -226,19 +238,23 @@ export default function Editor() {
       // Handle envelope
       if (noise.envelope) {
         const env = noise.envelope
-        xml += `\n         envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+        xml += ` envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
       }
 
       // Handle repeat
-      if (noise.repeat !== undefined && noise.repeatInterval !== undefined) {
-        xml += `\n         repeat="${noise.repeat}" repeat.interval="${noise.repeatInterval}"`
-        if (noise.repeatDelay) xml += ` repeat.delay="${noise.repeatDelay}"`
-        if (noise.repeatDecay) xml += ` repeat.decay="${noise.repeatDecay}"`
-        if (noise.repeatPitchShift) xml += ` repeat.pitchShift="${noise.repeatPitchShift}"`
+      if (noise.repeat !== undefined && noise.repeat !== 1 && noise.repeatInterval !== undefined && noise.repeatInterval !== 0) {
+        xml += ` repeat="${noise.repeat}" repeat.interval="${noise.repeatInterval}"`
+        if (noise.repeatDelay && noise.repeatDelay !== 0) xml += ` repeat.delay="${noise.repeatDelay}"`
+        if (noise.repeatDecay && noise.repeatDecay !== 0) xml += ` repeat.decay="${noise.repeatDecay}"`
       }
+
+      xml += '/>'
+    } else {
+      // Should not happen if we're properly flattening groups
+      console.error('Unexpected sound type in soundToXML:', sound.type)
+      xml = '<!-- Unknown sound type -->'
     }
 
-    xml += '/>'
     return xml
   }
 
@@ -251,11 +267,13 @@ export default function Editor() {
     setIsPlaying(true)
 
     try {
+      console.log('Playing XML:', xmlOutput)
       // Use the SPA package's playSPA function
       currentPlaybackRef.current = playSPA(xmlOutput)
       await currentPlaybackRef.current
     } catch (error) {
       console.error('Error playing sound:', error)
+      console.error('XML that caused error:', xmlOutput)
     } finally {
       setIsPlaying(false)
       currentPlaybackRef.current = null
@@ -272,17 +290,34 @@ export default function Editor() {
   const importFromText = () => {
     try {
       const doc = parseSPA(importText)
-      const editorLayers: EditorLayer[] = doc.sounds.map((sound, index) => ({
-        id: index,
-        sound
-      }))
+
+      // Flatten groups into individual layers
+      const editorLayers: EditorLayer[] = []
+      let layerId = 0
+
+      doc.sounds.forEach(sound => {
+        if (sound.type === 'group') {
+          const group = sound as GroupElement
+          group.sounds?.forEach(groupSound => {
+            editorLayers.push({
+              id: layerId++,
+              sound: normalizeSound(groupSound)
+            })
+          })
+        } else {
+          editorLayers.push({
+            id: layerId++,
+            sound: normalizeSound(sound)
+          })
+        }
+      })
 
       if (editorLayers.length > 0) {
         if (isPlaying) {
           stopSound()
         }
         setLayers(editorLayers)
-        layerIdCounterRef.current = editorLayers.length
+        layerIdCounterRef.current = layerId
         setCurrentLayerId(editorLayers[0].id)
         setShowImportModal(false)
         setImportText('')
@@ -301,10 +336,27 @@ export default function Editor() {
       const content = e.target?.result as string
       try {
         const doc = parseSPA(content)
-        const editorLayers: EditorLayer[] = doc.sounds.map((sound, index) => ({
-          id: index,
-          sound
-        }))
+
+        // Flatten groups into individual layers
+        const editorLayers: EditorLayer[] = []
+        let layerId = 0
+
+        doc.sounds.forEach(sound => {
+          if (sound.type === 'group') {
+            const group = sound as GroupElement
+            group.sounds?.forEach(groupSound => {
+              editorLayers.push({
+                id: layerId++,
+                sound: normalizeSound(groupSound)
+              })
+            })
+          } else {
+            editorLayers.push({
+              id: layerId++,
+              sound: normalizeSound(sound)
+            })
+          }
+        })
 
         if (editorLayers.length > 0) {
           if (isPlaying) {
@@ -323,29 +375,88 @@ export default function Editor() {
     event.target.value = ''
   }
 
+  // Normalize sound to ensure all properties are defined for controlled inputs
+  const normalizeSound = (sound: SPASound): SPASound => {
+    if (sound.type === 'tone') {
+      return {
+        ...sound,
+        // Only set repeat defaults if they're actually being used
+        repeat: sound.repeat ?? (sound.repeatInterval ? 1 : undefined),
+        repeatInterval: sound.repeatInterval,
+        repeatDelay: sound.repeatDelay,
+        repeatDecay: sound.repeatDecay,
+        repeatPitchShift: sound.repeatPitchShift
+      } as ToneElement
+    } else if (sound.type === 'noise') {
+      return {
+        ...sound,
+        // Only set repeat defaults if they're actually being used
+        repeat: sound.repeat ?? (sound.repeatInterval ? 1 : undefined),
+        repeatInterval: sound.repeatInterval,
+        repeatDelay: sound.repeatDelay,
+        repeatDecay: sound.repeatDecay
+      } as NoiseElement
+    } else if (sound.type === 'group') {
+      const group = sound as GroupElement
+      return {
+        ...group,
+        sounds: group.sounds?.map(normalizeSound) || []
+        // Don't normalize repeat for groups since we flatten them
+      } as GroupElement
+    }
+    return sound
+  }
+
   const loadPreset = async (category: string, preset: string) => {
     if (isPlaying) {
       stopSound()
     }
 
     const presetPath = getPresetPath(category, preset)
+    console.log(`Loading preset: category="${category}", preset="${preset}", path="${presetPath}"`)
+
     if (presetPath) {
       try {
         const spaContent = await loadPresetFile(presetPath)
+        console.log(`Loaded preset content (${spaContent.length} chars)`)
         const doc = parseSPA(spaContent)
-        const editorLayers: EditorLayer[] = doc.sounds.map((sound, index) => ({
-          id: index,
-          sound
-        }))
+
+        // Flatten groups into individual layers
+        const editorLayers: EditorLayer[] = []
+        let layerId = 0
+
+        doc.sounds.forEach(sound => {
+          if (sound.type === 'group') {
+            // Expand group into individual layers
+            const group = sound as GroupElement
+            group.sounds?.forEach(groupSound => {
+              editorLayers.push({
+                id: layerId++,
+                sound: normalizeSound(groupSound)
+              })
+            })
+          } else {
+            // Add non-group sounds as-is
+            editorLayers.push({
+              id: layerId++,
+              sound: normalizeSound(sound)
+            })
+          }
+        })
 
         if (editorLayers.length > 0) {
-          layerIdCounterRef.current = editorLayers.length
+          layerIdCounterRef.current = layerId
           setLayers(editorLayers)
           setCurrentLayerId(editorLayers[0].id)
+          console.log(`Successfully loaded preset with ${editorLayers.length} layer(s)`)
         }
       } catch (error) {
         console.error(`Failed to load preset ${preset}:`, error)
+        alert(`Failed to load preset: ${error}`)
       }
+    } else {
+      console.error(`No path found for preset: ${category}/${preset}`)
+      alert(`Preset not found: ${preset}`)
     }
   }
 
@@ -644,88 +755,182 @@ export default function Editor() {
                       </div>
 
                       <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Filter</h3>
+                        <div className="space-y-3">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Type</span>
+                            <select
+                              value={(currentLayer.sound as ToneElement).filter?.type || 'none'}
+                              onChange={(e) => {
+                                const tone = currentLayer.sound as ToneElement
+                                if (e.target.value === 'none') {
+                                  updateLayerSound(currentLayer.id, { filter: undefined } as Partial<ToneElement>)
+                                } else {
+                                  updateLayerSound(currentLayer.id, {
+                                    filter: {
+                                      type: e.target.value as 'lowpass' | 'highpass' | 'bandpass',
+                                      cutoff: tone.filter?.cutoff || 1000,
+                                      resonance: tone.filter?.resonance || 1
+                                    }
+                                  } as Partial<ToneElement>)
+                                }
+                              }}
+                              className="px-2 py-1 bg-background rounded border border-primary/20"
+                            >
+                              <option value="none">None</option>
+                              <option value="lowpass">Lowpass</option>
+                              <option value="highpass">Highpass</option>
+                              <option value="bandpass">Bandpass</option>
+                            </select>
+                          </label>
+                          {(currentLayer.sound as ToneElement).filter && (
+                            <>
+                              <div className="space-y-2">
+                                <label className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-400">Cutoff (Hz)</span>
+                                  <span className="text-sm text-white">{Math.round((currentLayer.sound as ToneElement).filter?.cutoff || 1000)}</span>
+                                </label>
+                                <input
+                                  type="range"
+                                  value={(currentLayer.sound as ToneElement).filter?.cutoff || 1000}
+                                  onChange={(e) => {
+                                    const tone = currentLayer.sound as ToneElement
+                                    updateLayerSound(currentLayer.id, {
+                                      filter: {
+                                        ...tone.filter!,
+                                        cutoff: parseFloat(e.target.value)
+                                      }
+                                    } as Partial<ToneElement>)
+                                  }}
+                                  className="w-full"
+                                  min="20"
+                                  max="20000"
+                                  step="10"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-400">Resonance</span>
+                                  <span className="text-sm text-white">{((currentLayer.sound as ToneElement).filter?.resonance || 1).toFixed(1)}</span>
+                                </label>
+                                <input
+                                  type="range"
+                                  value={(currentLayer.sound as ToneElement).filter?.resonance || 1}
+                                  onChange={(e) => {
+                                    const tone = currentLayer.sound as ToneElement
+                                    updateLayerSound(currentLayer.id, {
+                                      filter: {
+                                        ...tone.filter!,
+                                        resonance: parseFloat(e.target.value)
+                                      }
+                                    } as Partial<ToneElement>)
+                                  }}
+                                  className="w-full"
+                                  min="0.1"
+                                  max="30"
+                                  step="0.1"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
                         <h3 className="text-accent font-medium">Envelope (ADSR)</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Attack</span>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Attack (s)</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as ToneElement).envelope?.attack || 0.01).toFixed(3)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as ToneElement).envelope?.attack || 0.01}
                               onChange={(e) => {
                                 const tone = currentLayer.sound as ToneElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    attack: parseFloat(e.target.value) || 0.01
+                                    attack: parseFloat(e.target.value)
                                   }
                                 } as Partial<ToneElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
-                              max="1"
-                              step="0.01"
+                              max="2"
+                              step="0.001"
                             />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Decay</span>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Decay (s)</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as ToneElement).envelope?.decay || 0.1).toFixed(3)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as ToneElement).envelope?.decay || 0.1}
                               onChange={(e) => {
                                 const tone = currentLayer.sound as ToneElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    decay: parseFloat(e.target.value) || 0.1
+                                    decay: parseFloat(e.target.value)
                                   }
                                 } as Partial<ToneElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
-                              max="1"
-                              step="0.01"
+                              max="2"
+                              step="0.001"
                             />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Sustain</span>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Sustain Level</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as ToneElement).envelope?.sustain || 0.7).toFixed(2)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as ToneElement).envelope?.sustain || 0.7}
                               onChange={(e) => {
                                 const tone = currentLayer.sound as ToneElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    sustain: parseFloat(e.target.value) || 0.7
+                                    sustain: parseFloat(e.target.value)
                                   }
                                 } as Partial<ToneElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
                               max="1"
                               step="0.01"
                             />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Release</span>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Release (s)</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as ToneElement).envelope?.release || 0.2).toFixed(3)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as ToneElement).envelope?.release || 0.2}
                               onChange={(e) => {
                                 const tone = currentLayer.sound as ToneElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    release: parseFloat(e.target.value) || 0.2
+                                    release: parseFloat(e.target.value)
                                   }
                                 } as Partial<ToneElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
-                              max="1"
-                              step="0.01"
+                              max="2"
+                              step="0.001"
                             />
-                          </label>
+                          </div>
                         </div>
                       </div>
 
@@ -736,7 +941,7 @@ export default function Editor() {
                             <span className="text-sm text-gray-400">Count</span>
                             <input
                               type="number"
-                              value={(currentLayer.sound as ToneElement).repeat || 1}
+                              value={(currentLayer.sound as ToneElement).repeat ?? 1}
                               onChange={(e) => updateLayerSound(currentLayer.id, { repeat: parseInt(e.target.value) || 1 } as Partial<ToneElement>)}
                               className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
                               min="1"
@@ -747,7 +952,7 @@ export default function Editor() {
                             <span className="text-sm text-gray-400">Interval (s)</span>
                             <input
                               type="number"
-                              value={(currentLayer.sound as ToneElement).repeatInterval || 0}
+                              value={(currentLayer.sound as ToneElement).repeatInterval ?? 0}
                               onChange={(e) => updateLayerSound(currentLayer.id, { repeatInterval: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
                               className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
                               min="0"
@@ -759,8 +964,8 @@ export default function Editor() {
                             <span className="text-sm text-gray-400">Delay (s)</span>
                             <input
                               type="number"
-                              value={(currentLayer.sound as ToneElement).repeatDelay || 0}
-                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDelay: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              value={(currentLayer.sound as ToneElement).repeatDelay ?? 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDelay: parseFloat(e.target.value) ?? 0 } as Partial<ToneElement>)}
                               className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
                               min="0"
                               max="10"
@@ -771,8 +976,8 @@ export default function Editor() {
                             <span className="text-sm text-gray-400">Decay</span>
                             <input
                               type="number"
-                              value={(currentLayer.sound as ToneElement).repeatDecay || 0}
-                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDecay: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              value={(currentLayer.sound as ToneElement).repeatDecay ?? 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDecay: parseFloat(e.target.value) ?? 0 } as Partial<ToneElement>)}
                               className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
                               min="0"
                               max="1"
@@ -783,8 +988,8 @@ export default function Editor() {
                             <span className="text-sm text-gray-400">Pitch Shift</span>
                             <input
                               type="number"
-                              value={(currentLayer.sound as ToneElement).repeatPitchShift || 0}
-                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatPitchShift: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              value={(currentLayer.sound as ToneElement).repeatPitchShift ?? 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatPitchShift: parseFloat(e.target.value) ?? 0 } as Partial<ToneElement>)}
                               className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
                               min="-12"
                               max="12"
@@ -871,88 +1076,182 @@ export default function Editor() {
                       </div>
 
                       <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Filter</h3>
+                        <div className="space-y-3">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Type</span>
+                            <select
+                              value={(currentLayer.sound as NoiseElement).filter?.type || 'none'}
+                              onChange={(e) => {
+                                const noise = currentLayer.sound as NoiseElement
+                                if (e.target.value === 'none') {
+                                  updateLayerSound(currentLayer.id, { filter: undefined } as Partial<NoiseElement>)
+                                } else {
+                                  updateLayerSound(currentLayer.id, {
+                                    filter: {
+                                      type: e.target.value as 'lowpass' | 'highpass' | 'bandpass',
+                                      cutoff: noise.filter?.cutoff || 1000,
+                                      resonance: noise.filter?.resonance || 1
+                                    }
+                                  } as Partial<NoiseElement>)
+                                }
+                              }}
+                              className="px-2 py-1 bg-background rounded border border-primary/20"
+                            >
+                              <option value="none">None</option>
+                              <option value="lowpass">Lowpass</option>
+                              <option value="highpass">Highpass</option>
+                              <option value="bandpass">Bandpass</option>
+                            </select>
+                          </label>
+                          {(currentLayer.sound as NoiseElement).filter && (
+                            <>
+                              <div className="space-y-2">
+                                <label className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-400">Cutoff (Hz)</span>
+                                  <span className="text-sm text-white">{Math.round((currentLayer.sound as NoiseElement).filter?.cutoff || 1000)}</span>
+                                </label>
+                                <input
+                                  type="range"
+                                  value={(currentLayer.sound as NoiseElement).filter?.cutoff || 1000}
+                                  onChange={(e) => {
+                                    const noise = currentLayer.sound as NoiseElement
+                                    updateLayerSound(currentLayer.id, {
+                                      filter: {
+                                        ...noise.filter!,
+                                        cutoff: parseFloat(e.target.value)
+                                      }
+                                    } as Partial<NoiseElement>)
+                                  }}
+                                  className="w-full"
+                                  min="20"
+                                  max="20000"
+                                  step="10"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-400">Resonance</span>
+                                  <span className="text-sm text-white">{((currentLayer.sound as NoiseElement).filter?.resonance || 1).toFixed(1)}</span>
+                                </label>
+                                <input
+                                  type="range"
+                                  value={(currentLayer.sound as NoiseElement).filter?.resonance || 1}
+                                  onChange={(e) => {
+                                    const noise = currentLayer.sound as NoiseElement
+                                    updateLayerSound(currentLayer.id, {
+                                      filter: {
+                                        ...noise.filter!,
+                                        resonance: parseFloat(e.target.value)
+                                      }
+                                    } as Partial<NoiseElement>)
+                                  }}
+                                  className="w-full"
+                                  min="0.1"
+                                  max="30"
+                                  step="0.1"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
                         <h3 className="text-accent font-medium">Envelope (ADSR)</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Attack</span>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Attack (s)</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as NoiseElement).envelope?.attack || 0.01).toFixed(3)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as NoiseElement).envelope?.attack || 0.01}
                               onChange={(e) => {
                                 const noise = currentLayer.sound as NoiseElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    attack: parseFloat(e.target.value) || 0.01
+                                    attack: parseFloat(e.target.value)
                                   }
                                 } as Partial<NoiseElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
-                              max="1"
-                              step="0.01"
+                              max="2"
+                              step="0.001"
                             />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Decay</span>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Decay (s)</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as NoiseElement).envelope?.decay || 0.1).toFixed(3)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as NoiseElement).envelope?.decay || 0.1}
                               onChange={(e) => {
                                 const noise = currentLayer.sound as NoiseElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    decay: parseFloat(e.target.value) || 0.1
+                                    decay: parseFloat(e.target.value)
                                   }
                                 } as Partial<NoiseElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
-                              max="1"
-                              step="0.01"
+                              max="2"
+                              step="0.001"
                             />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Sustain</span>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Sustain Level</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as NoiseElement).envelope?.sustain || 0.7).toFixed(2)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as NoiseElement).envelope?.sustain || 0.7}
                               onChange={(e) => {
                                 const noise = currentLayer.sound as NoiseElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    sustain: parseFloat(e.target.value) || 0.7
+                                    sustain: parseFloat(e.target.value)
                                   }
                                 } as Partial<NoiseElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
                               max="1"
                               step="0.01"
                             />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="text-sm text-gray-400">Release</span>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Release (s)</span>
+                              <span className="text-sm text-white">{((currentLayer.sound as NoiseElement).envelope?.release || 0.2).toFixed(3)}</span>
+                            </label>
                             <input
-                              type="number"
+                              type="range"
                               value={(currentLayer.sound as NoiseElement).envelope?.release || 0.2}
                               onChange={(e) => {
                                 const noise = currentLayer.sound as NoiseElement
                                 updateLayerSound(currentLayer.id, {
                                   envelope: {
                                     ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
-                                    release: parseFloat(e.target.value) || 0.2
+                                    release: parseFloat(e.target.value)
                                   }
                                 } as Partial<NoiseElement>)
                               }}
-                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              className="w-full"
                               min="0"
-                              max="1"
-                              step="0.01"
+                              max="2"
+                              step="0.001"
                             />
-                          </label>
+                          </div>
                         </div>
                       </div>
 
