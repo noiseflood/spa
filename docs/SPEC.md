@@ -200,9 +200,9 @@ Generates periodic waveforms.
 <tone wave="saw" freq="220" dur="2.0"
       amp="0.5" pan="-0.7"/>
 
-<!-- Heartbeat rhythm with infinite repeat -->
+<!-- Heartbeat rhythm with repeat -->
 <tone wave="sine" freq="60" dur="0.1"
-      repeat="infinite" repeat.interval="0.8"
+      repeat="8" repeat.interval="0.8"
       envelope="0.01,0.05,0.3,0.1"/>
 
 <!-- Echo effect with decay and pitch shift -->

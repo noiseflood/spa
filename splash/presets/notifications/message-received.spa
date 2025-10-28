@@ -2,19 +2,15 @@
 <spa version="1.0">
   <!-- Message Received: Friendly two-tone notification -->
   <sequence>
-    <timedTone time="0">
-      <tone wave="sine"
-            freq="880"
-            dur="0.1"
-            amp="0.4"
-            envelope="0.005,0.01,0.8,0.04"/>
-    </timedTone>
-    <timedTone time="0.12">
-      <tone wave="sine"
-            freq="1174.66"
-            dur="0.15"
-            amp="0.5"
-            envelope="0.005,0.02,0.7,0.08"/>
-    </timedTone>
+    <tone at="0" wave="sine"
+          freq="880"
+          dur="0.1"
+          amp="0.4"
+          envelope="0.005,0.01,0.8,0.04"/>
+    <tone at="0.12" wave="sine"
+          freq="1174.66"
+          dur="0.15"
+          amp="0.5"
+          envelope="0.005,0.02,0.7,0.08"/>
   </sequence>
 </spa>

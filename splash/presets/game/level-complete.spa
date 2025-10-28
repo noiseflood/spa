@@ -2,56 +2,46 @@
 <spa version="1.0">
   <!-- Level Complete: Victory fanfare -->
   <sequence>
-    <timedTone time="0">
-      <tone wave="square"
-            freq="392"
-            dur="0.15"
-            amp="0.5"
-            filter="lowpass"
-            cutoff="2000"
-            envelope="0.005,0.02,0.8,0.05"/>
-    </timedTone>
-    <timedTone time="0.15">
-      <tone wave="square"
-            freq="523.25"
-            dur="0.15"
-            amp="0.5"
-            filter="lowpass"
-            cutoff="2000"
-            envelope="0.005,0.02,0.8,0.05"/>
-    </timedTone>
-    <timedTone time="0.3">
-      <tone wave="square"
-            freq="659.25"
-            dur="0.15"
-            amp="0.5"
-            filter="lowpass"
-            cutoff="2000"
-            envelope="0.005,0.02,0.8,0.05"/>
-    </timedTone>
-    <timedTone time="0.45">
-      <tone wave="square"
-            freq="783.99"
+    <tone at="0" wave="square"
+          freq="392"
+          dur="0.15"
+          amp="0.5"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.005,0.02,0.8,0.05"/>
+    <tone at="0.15" wave="square"
+          freq="523.25"
+          dur="0.15"
+          amp="0.5"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.005,0.02,0.8,0.05"/>
+    <tone at="0.3" wave="square"
+          freq="659.25"
+          dur="0.15"
+          amp="0.5"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.005,0.02,0.8,0.05"/>
+    <tone at="0.45" wave="square"
+          freq="783.99"
+          dur="0.4"
+          amp="0.6"
+          filter="lowpass"
+          cutoff="2500"
+          envelope="0.01,0.03,0.7,0.2"/>
+    <group at="0.45">
+      <tone wave="sine"
+            freq="391.99"
             dur="0.4"
-            amp="0.6"
-            filter="lowpass"
-            cutoff="2500"
+            amp="0.3"
             envelope="0.01,0.03,0.7,0.2"/>
-    </timedTone>
-    <timedGroup time="0.45">
-      <group>
-        <tone wave="sine"
-              freq="391.99"
-              dur="0.4"
-              amp="0.3"
-              envelope="0.01,0.03,0.7,0.2"/>
-        <noise color="white"
-               dur="0.3"
-               amp="0.15"
-               filter="highpass"
-               cutoff="5000"
-               envelope="0.02,0.05,0.3,0.2"/>
-      </group>
-    </timedGroup>
+      <noise color="white"
+             dur="0.3"
+             amp="0.15"
+             filter="highpass"
+             cutoff="5000"
+             envelope="0.02,0.05,0.3,0.2"/>
+    </group>
   </sequence>
 </spa>

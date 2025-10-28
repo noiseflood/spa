@@ -47,8 +47,11 @@ export async function renderSPA(
     renderSound(sound, doc.defs, sampleRate)
   );
 
-  // Find max length
-  const maxLength = Math.max(...renderedSounds.map(s => s.length));
+  // Find max length (avoid spread operator for large arrays)
+  let maxLength = 0;
+  for (const sound of renderedSounds) {
+    if (sound.length > maxLength) maxLength = sound.length;
+  }
 
   // Mix all sounds
   const mixedMono = new Float32Array(maxLength);
@@ -65,7 +68,13 @@ export async function renderSPA(
 
   // Normalize if requested
   if (normalize) {
-    const peak = Math.max(...Array.from(mixedMono).map(Math.abs));
+    // Find peak without using spread operator (which can cause stack overflow on large arrays)
+    let peak = 0;
+    for (let i = 0; i < mixedMono.length; i++) {
+      const abs = Math.abs(mixedMono[i]);
+      if (abs > peak) peak = abs;
+    }
+
     if (peak > 1.0) {
       for (let i = 0; i < mixedMono.length; i++) {
         mixedMono[i] /= peak;
@@ -247,8 +256,11 @@ function renderGroup(
     renderSound(sound, defs, sampleRate)
   );
 
-  // Find max length
-  const maxLength = Math.max(...renderedSounds.map(s => s.length));
+  // Find max length (avoid spread operator for large arrays)
+  let maxLength = 0;
+  for (const sound of renderedSounds) {
+    if (sound.length > maxLength) maxLength = sound.length;
+  }
 
   // Mix all sounds in the group
   const mixed = new Float32Array(maxLength);
@@ -421,8 +433,8 @@ function applyRepeat(
   element: ToneElement | NoiseElement | GroupElement,
   sampleRate: number
 ): Float32Array {
-  // Check if repeat is configured
-  if (!element.repeat || !element.repeatInterval) {
+  // Check if repeat is configured properly
+  if (!element.repeat || element.repeat <= 1 || !element.repeatInterval || element.repeatInterval <= 0) {
     return buffer;
   }
 
@@ -430,10 +442,17 @@ function applyRepeat(
   const intervalSamples = Math.floor(element.repeatInterval * sampleRate);
   const delaySamples = element.repeatDelay ? Math.floor(element.repeatDelay * sampleRate) : 0;
   const decay = element.repeatDecay || 0;
-  const pitchShift = element.repeatPitchShift || 0;
+  const pitchShift = (element as ToneElement).repeatPitchShift || 0;
 
   // Calculate total length
   const totalLength = delaySamples + buffer.length + (repeatCount - 1) * (buffer.length + intervalSamples);
+
+  // Safety check: prevent extremely large buffers
+  if (totalLength > sampleRate * 60 || totalLength < 0 || !isFinite(totalLength)) {
+    console.warn('Repeat would create too large or invalid buffer, skipping repeat');
+    return buffer;
+  }
+
   const result = new Float32Array(totalLength);
 
   // Copy original with initial delay

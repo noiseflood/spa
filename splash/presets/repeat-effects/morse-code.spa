@@ -1,38 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spa version="1.0">
-  <!-- Morse Code: SOS pattern (...- - -...) -->
+  <!-- Morse Code: SOS pattern (dot dot dot dash dash dash dot dot dot) -->
   <sequence>
     <!-- S: three short -->
-    <timedTone time="0">
-      <tone wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
-    <timedTone time="0.16">
-      <tone wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
-    <timedTone time="0.32">
-      <tone wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
+    <tone at="0" wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
+    <tone at="0.16" wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
+    <tone at="0.32" wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
 
     <!-- O: three long -->
-    <timedTone time="0.56">
-      <tone wave="sine" freq="800" dur="0.24" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
-    <timedTone time="0.88">
-      <tone wave="sine" freq="800" dur="0.24" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
-    <timedTone time="1.20">
-      <tone wave="sine" freq="800" dur="0.24" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
+    <tone at="0.56" wave="sine" freq="800" dur="0.24" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
+    <tone at="0.88" wave="sine" freq="800" dur="0.24" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
+    <tone at="1.20" wave="sine" freq="800" dur="0.24" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
 
     <!-- S: three short -->
-    <timedTone time="1.60">
-      <tone wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
-    <timedTone time="1.76">
-      <tone wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
-    <timedTone time="1.92">
-      <tone wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
-    </timedTone>
+    <tone at="1.60" wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
+    <tone at="1.76" wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
+    <tone at="1.92" wave="sine" freq="800" dur="0.08" amp="0.5" envelope="0.001,0.001,0.95,0.001"/>
   </sequence>
 </spa>

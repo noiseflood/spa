@@ -2,19 +2,15 @@
 <spa version="1.0">
   <!-- 8-bit Coin: Classic arcade coin collection sound -->
   <sequence>
-    <timedTone time="0">
-      <tone wave="square"
-            freq="988"
-            dur="0.05"
-            amp="0.4"
-            envelope="0.001,0.001,0.9,0.01"/>
-    </timedTone>
-    <timedTone time="0.05">
-      <tone wave="square"
-            freq="1318.51"
-            dur="0.15"
-            amp="0.5"
-            envelope="0.001,0.001,0.9,0.05"/>
-    </timedTone>
+    <tone at="0" wave="square"
+          freq="988"
+          dur="0.05"
+          amp="0.4"
+          envelope="0.001,0.001,0.9,0.01"/>
+    <tone at="0.05" wave="square"
+          freq="1318.51"
+          dur="0.15"
+          amp="0.5"
+          envelope="0.001,0.001,0.9,0.05"/>
   </sequence>
 </spa>

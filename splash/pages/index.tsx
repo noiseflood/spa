@@ -1,7 +1,96 @@
 import Link from 'next/link'
 import Head from 'next/head'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
+  const [presets, setPresets] = useState<string[]>([])
+  const [currentPreset, setCurrentPreset] = useState('')
+  const [displayedName, setDisplayedName] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  // Load all preset files on mount
+  useEffect(() => {
+    async function loadPresets() {
+      try {
+        const response = await fetch('/api/presets')
+        const files = await response.json()
+        setPresets(files)
+        if (files.length > 0) {
+          setCurrentPreset(files[0])
+        }
+      } catch (error) {
+        console.error('Error loading presets:', error)
+      }
+    }
+    loadPresets()
+  }, [])
+
+  // Typing animation
+  useEffect(() => {
+    if (!currentPreset) return
+
+    let timeout: NodeJS.Timeout
+    if (displayedName.length < currentPreset.length) {
+      timeout = setTimeout(() => {
+        setDisplayedName(currentPreset.slice(0, displayedName.length + 1))
+      }, 50)
+    }
+    return () => clearTimeout(timeout)
+  }, [displayedName, currentPreset])
+
+  const handleClick = async () => {
+    if (isPlaying || isTyping || !currentPreset) return
+
+    setIsPlaying(true)
+
+    try {
+      // Fetch and play the SPA file
+      const response = await fetch(`/presets/${currentPreset}.spa`)
+      const spaContent = await response.text()
+
+      // Use Web Audio API directly
+      const { renderSPA } = await import('@spa/core')
+      const buffer = await renderSPA(spaContent)
+
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+      const ctx = new AudioContext()
+      const source = ctx.createBufferSource()
+      source.buffer = buffer
+      source.connect(ctx.destination)
+      source.start(0)
+
+      await new Promise<void>((resolve) => {
+        source.onended = () => {
+          resolve()
+          ctx.close()
+        }
+      })
+    } catch (error) {
+      console.error('Error playing SPA:', error)
+    }
+
+    setIsPlaying(false)
+
+    // Start deleting animation
+    setIsTyping(true)
+    const deleteInterval = setInterval(() => {
+      setDisplayedName(prev => {
+        if (prev.length === 0) {
+          clearInterval(deleteInterval)
+
+          // Pick new random preset
+          const available = presets.filter(p => p !== currentPreset)
+          const newPreset = available[Math.floor(Math.random() * available.length)]
+          setCurrentPreset(newPreset)
+          setIsTyping(false)
+          return ''
+        }
+        return prev.slice(0, -1)
+      })
+    }, 30)
+  }
+
   return (
     <>
       <Head>
@@ -14,9 +103,17 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
           <header className="text-center py-16 lg:py-24">
-            <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black bg-gradient-primary bg-clip-text text-transparent animate-glow mb-4 tracking-tighter">
-              &lt;spa /&gt;
-            </h1>
+            <div
+              onClick={handleClick}
+              className="cursor-pointer transition-transform hover:scale-105 active:scale-95 inline-block mb-4"
+              title="Click to play sound"
+            >
+              <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black bg-gradient-primary bg-clip-text text-transparent animate-glow tracking-tighter select-none">
+                &lt;spa name=&quot;{displayedName}
+                <span className="animate-pulse">{displayedName.length < currentPreset.length ? '|' : ''}</span>
+                &quot; /&gt;
+              </h1>
+            </div>
             <p className="text-2xl text-gray-400 font-light mb-8">
               The SVG of Sound Effects
             </p>

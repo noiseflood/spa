@@ -2,49 +2,39 @@
 <spa version="1.0">
   <!-- Achievement: Triumphant, celebratory fanfare -->
   <sequence>
-    <timedTone time="0">
-      <tone wave="square"
-            freq="523.25"
-            dur="0.1"
-            amp="0.4"
-            filter="lowpass"
-            cutoff="2000"
-            envelope="0.002,0.01,0.9,0.02"/>
-    </timedTone>
-    <timedTone time="0.1">
-      <tone wave="square"
-            freq="659.25"
-            dur="0.1"
-            amp="0.4"
-            filter="lowpass"
-            cutoff="2000"
-            envelope="0.002,0.01,0.9,0.02"/>
-    </timedTone>
-    <timedTone time="0.2">
-      <tone wave="square"
-            freq="783.99"
-            dur="0.1"
-            amp="0.4"
-            filter="lowpass"
-            cutoff="2000"
-            envelope="0.002,0.01,0.9,0.02"/>
-    </timedTone>
-    <timedTone time="0.3">
-      <tone wave="square"
-            freq="1046.5"
-            dur="0.3"
-            amp="0.5"
-            filter="lowpass"
-            cutoff="2500"
-            envelope="0.005,0.02,0.8,0.15"/>
-    </timedTone>
-    <timedNoise time="0.3">
-      <noise color="white"
-             dur="0.2"
-             amp="0.1"
-             filter="highpass"
-             cutoff="3000"
-             envelope="0.01,0.05,0.2,0.1"/>
-    </timedNoise>
+    <tone at="0" wave="square"
+          freq="523.25"
+          dur="0.1"
+          amp="0.4"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.002,0.01,0.9,0.02"/>
+    <tone at="0.1" wave="square"
+          freq="659.25"
+          dur="0.1"
+          amp="0.4"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.002,0.01,0.9,0.02"/>
+    <tone at="0.2" wave="square"
+          freq="783.99"
+          dur="0.1"
+          amp="0.4"
+          filter="lowpass"
+          cutoff="2000"
+          envelope="0.002,0.01,0.9,0.02"/>
+    <tone at="0.3" wave="square"
+          freq="1046.5"
+          dur="0.3"
+          amp="0.5"
+          filter="lowpass"
+          cutoff="2500"
+          envelope="0.005,0.02,0.8,0.15"/>
+    <noise at="0.3" color="white"
+           dur="0.2"
+           amp="0.1"
+           filter="highpass"
+           cutoff="3000"
+           envelope="0.01,0.05,0.2,0.1"/>
   </sequence>
 </spa>

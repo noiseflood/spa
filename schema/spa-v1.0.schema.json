@@ -236,6 +236,11 @@
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Optional identifier"
         },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time in seconds when this element starts (for use in sequences)"
+        },
         "repeat": {
           "oneOf": [
             {
@@ -401,6 +406,11 @@
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Optional identifier"
         },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time in seconds when this element starts (for use in sequences)"
+        },
         "repeat": {
           "oneOf": [
             {
@@ -452,6 +462,11 @@
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Optional identifier"
+        },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time in seconds when this element starts (for use in sequences)"
         },
         "elements": {
           "type": "array",
@@ -523,14 +538,10 @@
           "description": "Sequenced sound elements with timing",
           "minItems": 1,
           "items": {
-            "allOf": [
-              {
-                "oneOf": [
-                  { "$ref": "#/definitions/timedTone" },
-                  { "$ref": "#/definitions/timedNoise" },
-                  { "$ref": "#/definitions/timedGroup" }
-                ]
-              }
+            "oneOf": [
+              { "$ref": "#/definitions/tone" },
+              { "$ref": "#/definitions/noise" },
+              { "$ref": "#/definitions/group" }
             ]
           }
         },
@@ -547,54 +558,6 @@
         }
       },
       "required": ["elements"]
-    },
-    "timedTone": {
-      "allOf": [
-        { "$ref": "#/definitions/tone" },
-        {
-          "type": "object",
-          "required": ["at"],
-          "properties": {
-            "at": {
-              "type": "number",
-              "minimum": 0,
-              "description": "Time in seconds when this element starts"
-            }
-          }
-        }
-      ]
-    },
-    "timedNoise": {
-      "allOf": [
-        { "$ref": "#/definitions/noise" },
-        {
-          "type": "object",
-          "required": ["at"],
-          "properties": {
-            "at": {
-              "type": "number",
-              "minimum": 0,
-              "description": "Time in seconds when this element starts"
-            }
-          }
-        }
-      ]
-    },
-    "timedGroup": {
-      "allOf": [
-        { "$ref": "#/definitions/group" },
-        {
-          "type": "object",
-          "required": ["at"],
-          "properties": {
-            "at": {
-              "type": "number",
-              "minimum": 0,
-              "description": "Time in seconds when this element starts"
-            }
-          }
-        }
-      ]
     },
     "curveType": {
       "type": "string",

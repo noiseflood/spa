@@ -2,32 +2,26 @@
 <spa version="1.0">
   <!-- 8-bit Death: Classic game over sound -->
   <sequence>
-    <timedTone time="0">
-      <tone wave="square"
-            freq.start="400"
-            freq.end="300"
-            freq.curve="linear"
-            dur="0.1"
-            amp="0.5"
-            envelope="0.001,0.001,0.95,0.01"/>
-    </timedTone>
-    <timedTone time="0.1">
-      <tone wave="square"
-            freq.start="300"
-            freq.end="200"
-            freq.curve="linear"
-            dur="0.15"
-            amp="0.5"
-            envelope="0.001,0.001,0.95,0.01"/>
-    </timedTone>
-    <timedTone time="0.25">
-      <tone wave="square"
-            freq.start="200"
-            freq.end="100"
-            freq.curve="linear"
-            dur="0.2"
-            amp="0.5"
-            envelope="0.001,0.001,0.95,0.05"/>
-    </timedTone>
+    <tone at="0" wave="square"
+          freq.start="400"
+          freq.end="300"
+          freq.curve="linear"
+          dur="0.1"
+          amp="0.5"
+          envelope="0.001,0.001,0.95,0.01"/>
+    <tone at="0.1" wave="square"
+          freq.start="300"
+          freq.end="200"
+          freq.curve="linear"
+          dur="0.15"
+          amp="0.5"
+          envelope="0.001,0.001,0.95,0.01"/>
+    <tone at="0.25" wave="square"
+          freq.start="200"
+          freq.end="100"
+          freq.curve="linear"
+          dur="0.2"
+          amp="0.5"
+          envelope="0.001,0.001,0.95,0.05"/>
   </sequence>
 </spa>
