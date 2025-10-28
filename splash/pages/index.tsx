@@ -98,10 +98,11 @@ export default function Home() {
       <div className="min-h-screen bg-background text-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <header className="font-mono flex flex-col text-center items-center justify-center pt-[40vh] pb-[20vh]">
+          <header className="font-mono flex flex-col text-center items-center justify-between h-[70vh]">
+            <div className="h-full" />
             <div
               onClick={handleClick}
-              className="cursor-pointer transition-transform hover:scale-105 active:scale-95 inline-block mb-4"
+              className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95"
               title="Click to play sound"
             >
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-primary bg-clip-text text-transparent animate-glow tracking-tighter select-none">
@@ -110,41 +111,43 @@ export default function Home() {
                 &quot; ... /&gt;
               </h1>
             </div>
-            <p className="text-2xl text-gray-400 font-light mb-8">
-              The SVG of Sound Effects
-            </p>
-
-            {/* <div className="max-w-3xl mx-auto mb-12">
-              <p className="text-lg text-gray-200 mb-4">
-                Empowering AI to generate procedural audio through simple, declarative XML.
-                Just as SVG revolutionized vector graphics on the web, SPA brings the same
-                simplicity and power to sound design.
+            <div className="h-full">
+              <p className="text-2xl text-gray-400 font-light mb-8">
+                The SVG of Sound Effects
               </p>
-              <p className="text-gray-400">
-                Create rich, dynamic sound effects with human-readable code that AI models
-                can understand, generate, and manipulate as easily as they do with text.
-              </p>
-            </div> */}
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/editor"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-primary text-white font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-                </svg>
-                Create a Sound
-              </Link>
-              <Link
-                href="/getting-started"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-surface border-2 border-primary text-gray-200 font-semibold text-lg rounded-lg hover:bg-primary hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                </svg>
-                Get Started
-              </Link>
+              {/* <div className="max-w-3xl mx-auto mb-12">
+                <p className="text-lg text-gray-200 mb-4">
+                  Empowering AI to generate procedural audio through simple, declarative XML.
+                  Just as SVG revolutionized vector graphics on the web, SPA brings the same
+                  simplicity and power to sound design.
+                </p>
+                <p className="text-gray-400">
+                  Create rich, dynamic sound effects with human-readable code that AI models
+                  can understand, generate, and manipulate as easily as they do with text.
+                </p>
+              </div> */}
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/editor"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-primary text-white font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                  </svg>
+                  Create a Sound
+                </Link>
+                <Link
+                  href="/getting-started"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-surface border-2 border-primary text-gray-200 font-semibold text-lg rounded-lg hover:bg-primary hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                  </svg>
+                  Get Started
+                </Link>
+              </div>
             </div>
           </header>
 
@@ -223,7 +226,7 @@ export default function Home() {
               SPA - Scalable Parametric Audio | Open Source | MIT License
             </p>
             <div className="flex gap-8 justify-center">
-              <a href="https://github.com/yourusername/spa" className="text-primary hover:text-secondary transition-colors">
+              <a href="https://github.com/noiseflood/spa" className="text-primary hover:text-secondary transition-colors">
                 GitHub
               </a>
               <Link href="/docs" className="text-primary hover:text-secondary transition-colors">

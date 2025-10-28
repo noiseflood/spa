@@ -1097,11 +1097,11 @@ function ToneParameters({ layer, updateLayerSound }: {
             />
             <Knob
               label="Dur"
-              value={tone.dur}
+              value={tone.dur || 0.5}
               onChange={(v) => updateLayerSound(layer.id, { dur: v } as Partial<ToneElement>)}
               min={0.01}
               max={5}
-              displayValue={`${tone.dur.toFixed(2)}s`}
+              displayValue={`${(tone.dur || 0.5).toFixed(2)}s`}
             />
             <Knob
               label="Start"
@@ -1321,11 +1321,11 @@ function NoiseParameters({ layer, updateLayerSound }: {
           />
           <Knob
             label="Dur"
-            value={noise.dur}
+            value={noise.dur || 0.5}
             onChange={(v) => updateLayerSound(layer.id, { dur: v } as Partial<NoiseElement>)}
             min={0.01}
             max={5}
-            displayValue={`${noise.dur.toFixed(2)}s`}
+            displayValue={`${(noise.dur || 0.5).toFixed(2)}s`}
           />
           <Knob
             label="Start"
