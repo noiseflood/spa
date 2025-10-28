@@ -122,7 +122,7 @@ export default function Editor() {
 
   const updateLayerSound = (id: number, soundUpdates: Partial<SPASound>) => {
     setLayers(layers.map(l =>
-      l.id === id ? { ...l, sound: { ...l.sound, ...soundUpdates } } : l
+      l.id === id ? { ...l, sound: { ...l.sound, ...soundUpdates } as SPASound } : l
     ))
   }
 
