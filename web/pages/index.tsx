@@ -2,6 +2,8 @@ import Link from 'next/link'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { playSPA } from '@spa-audio/core'
+import { useSound } from '../contexts/SoundContext'
+import MuteButton from '../components/MuteButton'
 
 export default function Home() {
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([])
@@ -9,6 +11,7 @@ export default function Home() {
   const [displayedName, setDisplayedName] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const { playSound } = useSound()
 
   // Load all preset files on mount
   useEffect(() => {
@@ -95,6 +98,8 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
+      <MuteButton />
+
       <div className="min-h-screen bg-background text-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
@@ -131,6 +136,8 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/editor"
+                  onMouseEnter={() => playSound('ui-feedback/hover')}
+                  onClick={() => playSound('ui-feedback/button-click')}
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-primary text-white font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -140,6 +147,8 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/getting-started"
+                  onMouseEnter={() => playSound('ui-feedback/hover')}
+                  onClick={() => playSound('ui-feedback/button-click')}
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-surface border-2 border-primary text-gray-200 font-semibold text-lg rounded-lg hover:bg-primary hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -153,7 +162,10 @@ export default function Home() {
 
           {/* Features Section */}
           <section className="grid md:grid-cols-3 gap-8 py-16">
-            <div className="bg-surface p-8 rounded-xl border border-primary/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-200">
+            <div
+              onMouseEnter={() => playSound('ui-feedback/hover')}
+              className="bg-surface p-8 rounded-xl border border-primary/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+            >
               <div className="text-4xl mb-4">🎵</div>
               <h3 className="text-xl font-semibold text-primary mb-2">Declarative Audio</h3>
               <p className="text-gray-400">
@@ -161,7 +173,10 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="bg-surface p-8 rounded-xl border border-primary/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-200">
+            <div
+              onMouseEnter={() => playSound('ui-feedback/hover')}
+              className="bg-surface p-8 rounded-xl border border-primary/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+            >
               <div className="text-4xl mb-4">🤖</div>
               <h3 className="text-xl font-semibold text-primary mb-2">AI-Friendly</h3>
               <p className="text-gray-400">
@@ -169,7 +184,10 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="bg-surface p-8 rounded-xl border border-primary/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-200">
+            <div
+              onMouseEnter={() => playSound('ui-feedback/hover')}
+              className="bg-surface p-8 rounded-xl border border-primary/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+            >
               <div className="text-4xl mb-4">⚡</div>
               <h3 className="text-xl font-semibold text-primary mb-2">Web-Native</h3>
               <p className="text-gray-400">
@@ -201,19 +219,31 @@ export default function Home() {
               Perfect For
             </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-surface p-6 rounded-lg border-l-4 border-primary">
+              <div
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="bg-surface p-6 rounded-lg border-l-4 border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+              >
                 <strong className="text-primary block mb-2">UI Sound Effects</strong>
                 <p className="text-gray-400 text-sm">Button clicks, notifications, transitions</p>
               </div>
-              <div className="bg-surface p-6 rounded-lg border-l-4 border-primary">
+              <div
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="bg-surface p-6 rounded-lg border-l-4 border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+              >
                 <strong className="text-primary block mb-2">Game Audio</strong>
                 <p className="text-gray-400 text-sm">Procedural sound effects, dynamic music</p>
               </div>
-              <div className="bg-surface p-6 rounded-lg border-l-4 border-primary">
+              <div
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="bg-surface p-6 rounded-lg border-l-4 border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+              >
                 <strong className="text-primary block mb-2">AI Applications</strong>
                 <p className="text-gray-400 text-sm">Generate context-aware audio on the fly</p>
               </div>
-              <div className="bg-surface p-6 rounded-lg border-l-4 border-primary">
+              <div
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="bg-surface p-6 rounded-lg border-l-4 border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+              >
                 <strong className="text-primary block mb-2">Education</strong>
                 <p className="text-gray-400 text-sm">Teach audio synthesis concepts visually</p>
               </div>
@@ -226,13 +256,25 @@ export default function Home() {
               SPA - Synthetic Parametric Audio | Open Source | MIT License
             </p>
             <div className="flex gap-8 justify-center">
-              <a href="https://github.com/noiseflood/spa" className="text-primary hover:text-secondary transition-colors">
+              <a
+                href="https://github.com/noiseflood/spa"
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="text-primary hover:text-secondary transition-colors"
+              >
                 GitHub
               </a>
-              <Link href="/docs" className="text-primary hover:text-secondary transition-colors">
+              <Link
+                href="/docs"
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="text-primary hover:text-secondary transition-colors"
+              >
                 Documentation
               </Link>
-              <Link href="/examples" className="text-primary hover:text-secondary transition-colors">
+              <Link
+                href="/examples"
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="text-primary hover:text-secondary transition-colors"
+              >
                 Examples
               </Link>
             </div>

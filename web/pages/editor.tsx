@@ -12,6 +12,7 @@ import {
   type AutomationCurve
 } from '@spa-audio/core'
 import { getPresetCategories, loadPreset as loadPresetFile, getPresetPath } from '../utils/presetLoader'
+import { useSound } from '../contexts/SoundContext'
 
 // Editor-specific types for UI state
 interface EditorLayer {
@@ -23,6 +24,7 @@ export default function Editor() {
   const [layers, setLayers] = useState<EditorLayer[]>([])
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const { playSound: playSoundEffect } = useSound()
   const [xmlOutput, setXmlOutput] = useState('')
   const [showImportModal, setShowImportModal] = useState(false)
   const [showAddLayerMenu, setShowAddLayerMenu] = useState(false)
@@ -500,7 +502,12 @@ export default function Editor() {
       <header className="bg-surface border-b border-primary/20 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-sm text-gray-400 hover:text-white">
+            <Link
+              href="/"
+              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+              onClick={() => playSoundEffect('ui-feedback/button-click')}
+              className="text-sm text-gray-400 hover:text-white"
+            >
               ← Back
             </Link>
             <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
@@ -509,13 +516,19 @@ export default function Editor() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowImportModal(true)}
+              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+              onClick={() => {
+                playSoundEffect('ui-feedback/button-click')
+                setShowImportModal(true)
+              }}
               className="px-3 py-1.5 text-sm bg-surface border border-primary/30 hover:bg-primary/10 rounded transition-colors"
             >
               Import
             </button>
             <button
+              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
               onClick={() => {
+                playSoundEffect('ui-feedback/button-click')
                 const blob = new Blob([xmlOutput], { type: 'text/xml' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
@@ -540,7 +553,11 @@ export default function Editor() {
             <div className="sticky top-0 bg-surface p-3 border-b border-primary/10 flex items-center justify-between">
               <h2 className="text-primary font-semibold">Presets</h2>
               <button
-                onClick={() => setShowPresets(false)}
+                onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                onClick={() => {
+                  playSoundEffect('ui-feedback/button-click')
+                  setShowPresets(false)
+                }}
                 className="text-gray-400 hover:text-white"
               >
                 ✕
@@ -550,7 +567,11 @@ export default function Editor() {
               {Object.entries(presetCategories).map(([category, presets]) => (
                 <div key={category} className="mb-3">
                   <button
-                    onClick={() => setExpandedCategory(expandedCategory === category ? null : category)}
+                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                    onClick={() => {
+                      playSoundEffect('ui-feedback/tab-switch')
+                      setExpandedCategory(expandedCategory === category ? null : category)
+                    }}
                     className="w-full flex items-center justify-between p-2 bg-background rounded hover:bg-primary/10 transition-colors"
                   >
                     <span className="text-sm font-medium text-primary">{category}</span>
@@ -568,7 +589,11 @@ export default function Editor() {
                       {Object.keys(presets).map((presetName) => (
                         <button
                           key={presetName}
-                          onClick={() => loadPreset(category, presetName)}
+                          onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                          onClick={() => {
+                            playSoundEffect('ui-feedback/button-click')
+                            loadPreset(category, presetName)
+                          }}
                           className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-primary/20 hover:text-white rounded transition-colors truncate"
                         >
                           {presetName}
