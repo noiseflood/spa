@@ -140,6 +140,13 @@ Inline sounds directly in your HTML/JS
 ### 4. AI-Friendly
 LLMs can generate SPA syntax easily
 
+```
+Here is a comprehensive guide to composing audio in SPA: 
+<paste (docs/SPA_LLM_PROMPT.md)>
+
+Can you compose a sound effect that sounds like a tidal wave?
+```
+
 ## 📚 Documentation
 
 - [Technical Specification](docs/SPEC.md) - Complete format reference
