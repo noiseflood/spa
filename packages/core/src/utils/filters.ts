@@ -5,22 +5,15 @@
 import type { FilterConfig, FilterType } from '@spa-audio/types';
 
 /**
- * Apply filter to buffer (simplified implementation)
- * Real implementation would use biquad filters
+ * Apply filter to buffer using biquad filters
  */
 export function applyFilter(
   buffer: Float32Array,
   filter: FilterConfig,
   sampleRate: number
 ): Float32Array {
-  // For now, return unmodified buffer
-  // Real implementation would apply biquad filtering
-  return buffer;
-
-  // TODO: Implement actual filtering using biquad coefficients
-  // const filtered = new Float32Array(buffer.length);
-  // const coeffs = calculateBiquadCoefficients(filter, sampleRate);
-  // return applyBiquad(buffer, coeffs);
+  const coeffs = calculateBiquadCoefficients(filter, sampleRate);
+  return applyBiquad(buffer, coeffs);
 }
 
 /**
