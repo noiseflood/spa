@@ -98,7 +98,7 @@ export default function Home() {
       <div className="min-h-screen bg-background text-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <header className="text-center py-16 lg:py-24">
+          <header className="font-mono flex flex-col text-center items-center justify-center pt-[40vh] pb-[20vh]">
             <div
               onClick={handleClick}
               className="cursor-pointer transition-transform hover:scale-105 active:scale-95 inline-block mb-4"
@@ -107,14 +107,14 @@ export default function Home() {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-primary bg-clip-text text-transparent animate-glow tracking-tighter select-none">
                 &lt;spa name=&quot;{displayedName}
                 <span className="animate-pulse">{displayedName.length < (currentPreset?.name.length || 0) ? '|' : ''}</span>
-                &quot; /&gt;
+                &quot; ... /&gt;
               </h1>
             </div>
             <p className="text-2xl text-gray-400 font-light mb-8">
               The SVG of Sound Effects
             </p>
 
-            <div className="max-w-3xl mx-auto mb-12">
+            {/* <div className="max-w-3xl mx-auto mb-12">
               <p className="text-lg text-gray-200 mb-4">
                 Empowering AI to generate procedural audio through simple, declarative XML.
                 Just as SVG revolutionized vector graphics on the web, SPA brings the same
@@ -124,7 +124,7 @@ export default function Home() {
                 Create rich, dynamic sound effects with human-readable code that AI models
                 can understand, generate, and manipulate as easily as they do with text.
               </p>
-            </div>
+            </div> */}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
