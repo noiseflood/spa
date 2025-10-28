@@ -8,10 +8,13 @@ import type {
   ToneElement,
   NoiseElement,
   GroupElement,
+  SequenceElement,
+  TimedSound,
   RenderOptions,
   RenderResult,
   ADSREnvelope,
-  AutomationCurve
+  AutomationCurve,
+  RepeatConfig
 } from '@spa/types';
 
 import { parseSPA } from './parser';
@@ -107,15 +110,18 @@ export async function renderToBuffer(
 function renderSound(
   sound: SPASound,
   defs: any,
-  sampleRate: number
+  sampleRate: number,
+  startOffset: number = 0
 ): Float32Array {
   switch (sound.type) {
     case 'tone':
-      return renderTone(sound, defs, sampleRate);
+      return renderTone(sound, defs, sampleRate, startOffset);
     case 'noise':
-      return renderNoise(sound, defs, sampleRate);
+      return renderNoise(sound, defs, sampleRate, startOffset);
     case 'group':
-      return renderGroup(sound, defs, sampleRate);
+      return renderGroup(sound, defs, sampleRate, startOffset);
+    case 'sequence':
+      return renderSequence(sound, defs, sampleRate);
     default:
       throw new Error(`Unknown sound type: ${(sound as any).type}`);
   }
@@ -127,7 +133,8 @@ function renderSound(
 function renderTone(
   tone: ToneElement,
   defs: any,
-  sampleRate: number
+  sampleRate: number,
+  startOffset: number = 0
 ): Float32Array {
   let buffer: Float32Array;
 
@@ -175,6 +182,9 @@ function renderTone(
     }
   }
 
+  // Apply repeat if configured
+  buffer = applyRepeat(buffer, tone, sampleRate);
+
   return buffer;
 }
 
@@ -184,7 +194,8 @@ function renderTone(
 function renderNoise(
   noise: NoiseElement,
   defs: any,
-  sampleRate: number
+  sampleRate: number,
+  startOffset: number = 0
 ): Float32Array {
   let buffer = generateNoise(noise.color, noise.dur, sampleRate);
 
@@ -217,6 +228,9 @@ function renderNoise(
     }
   }
 
+  // Apply repeat if configured
+  buffer = applyRepeat(buffer, noise, sampleRate);
+
   return buffer;
 }
 
@@ -226,7 +240,8 @@ function renderNoise(
 function renderGroup(
   group: GroupElement,
   defs: any,
-  sampleRate: number
+  sampleRate: number,
+  startOffset: number = 0
 ): Float32Array {
   const renderedSounds = group.sounds.map(sound =>
     renderSound(sound, defs, sampleRate)
@@ -250,7 +265,74 @@ function renderGroup(
     }
   }
 
-  return mixed;
+  // Apply repeat if configured
+  const result = applyRepeat(mixed, group, sampleRate);
+
+  return result;
+}
+
+/**
+ * Render sequence element with timed sounds
+ */
+function renderSequence(
+  sequence: SequenceElement,
+  defs: any,
+  sampleRate: number
+): Float32Array {
+  // Find the total duration of the sequence
+  let maxDuration = 0;
+  for (const element of sequence.elements) {
+    const endTime = element.at + getDuration(element.sound);
+    maxDuration = Math.max(maxDuration, endTime);
+  }
+
+  // If looping, we need to handle it differently (for now, just play once)
+  // TODO: Implement loop support
+
+  const totalSamples = Math.ceil(maxDuration * sampleRate);
+  const result = new Float32Array(totalSamples);
+
+  // Render each timed element
+  for (const element of sequence.elements) {
+    const startSample = Math.floor(element.at * sampleRate);
+    const soundBuffer = renderSound(element.sound, defs, sampleRate);
+
+    // Mix the sound into the result at the correct position
+    for (let i = 0; i < soundBuffer.length && startSample + i < totalSamples; i++) {
+      result[startSample + i] += soundBuffer[i];
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get duration of a sound element
+ */
+function getDuration(sound: ToneElement | NoiseElement | GroupElement): number {
+  if (sound.type === 'tone' || sound.type === 'noise') {
+    let baseDur = sound.dur;
+
+    // Account for repeat if present
+    if (sound.repeat && sound.repeatInterval) {
+      const repeatCount = sound.repeat === 'infinite' ? 20 : sound.repeat; // Cap at 20
+      const totalRepeatTime = (repeatCount - 1) * (sound.dur + sound.repeatInterval);
+      baseDur = sound.dur + totalRepeatTime + (sound.repeatDelay || 0);
+    }
+
+    return baseDur;
+  } else if (sound.type === 'group') {
+    // For groups, find the longest duration
+    let maxDur = 0;
+    for (const child of sound.sounds) {
+      // Recursively get duration (though groups in sequences might be complex)
+      if (child.type === 'tone' || child.type === 'noise') {
+        maxDur = Math.max(maxDur, getDuration(child as ToneElement | NoiseElement));
+      }
+    }
+    return maxDur;
+  }
+  return 0;
 }
 
 /**
@@ -329,6 +411,61 @@ function resolveEnvelope(
     return null;
   }
   return envelope;
+}
+
+/**
+ * Apply repeat to a buffer
+ */
+function applyRepeat(
+  buffer: Float32Array,
+  element: ToneElement | NoiseElement | GroupElement,
+  sampleRate: number
+): Float32Array {
+  // Check if repeat is configured
+  if (!element.repeat || !element.repeatInterval) {
+    return buffer;
+  }
+
+  const repeatCount = element.repeat === 'infinite' ? 100 : element.repeat; // Cap infinite at 100 for practical reasons
+  const intervalSamples = Math.floor(element.repeatInterval * sampleRate);
+  const delaySamples = element.repeatDelay ? Math.floor(element.repeatDelay * sampleRate) : 0;
+  const decay = element.repeatDecay || 0;
+  const pitchShift = element.repeatPitchShift || 0;
+
+  // Calculate total length
+  const totalLength = delaySamples + buffer.length + (repeatCount - 1) * (buffer.length + intervalSamples);
+  const result = new Float32Array(totalLength);
+
+  // Copy original with initial delay
+  for (let i = 0; i < buffer.length; i++) {
+    result[delaySamples + i] = buffer[i];
+  }
+
+  // Add repetitions
+  for (let rep = 1; rep < repeatCount; rep++) {
+    const startIndex = delaySamples + rep * (buffer.length + intervalSamples);
+    const amplitude = Math.pow(1 - decay, rep); // Exponential decay
+
+    // Apply pitch shift if specified
+    if (pitchShift !== 0) {
+      const pitchRatio = Math.pow(2, (pitchShift * rep) / 12);
+      const shiftedLength = Math.floor(buffer.length / pitchRatio);
+
+      for (let i = 0; i < shiftedLength && startIndex + i < result.length; i++) {
+        const sourceIndex = Math.floor(i * pitchRatio);
+        if (sourceIndex < buffer.length) {
+          result[startIndex + i] += buffer[sourceIndex] * amplitude;
+        }
+      }
+    } else {
+      // No pitch shift, just copy with amplitude
+      for (let i = 0; i < buffer.length && startIndex + i < result.length; i++) {
+        result[startIndex + i] += buffer[i] * amplitude;
+      }
+    }
+  }
+
+  return result;
 }
 
 /**

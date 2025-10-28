@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <group>
+    <noise color="brown" dur="0.5"
+           amp="0.8"
+           envelope="0,0.1,0.3,0.4"
+           filter="lowpass" cutoff="500" resonance="2"/>
+    <noise color="white" dur="0.3"
+           amp="0.4"
+           envelope="0,0.05,0,0.25"/>
+    <tone wave="sine" freq="50" dur="0.6"
+          amp="0.6"
+          envelope="0,0.15,0.2,0.45"/>
+  </group>
+</spa>

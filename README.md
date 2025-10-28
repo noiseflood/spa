@@ -173,6 +173,31 @@ LLMs can generate SPA syntax easily
     <tone wave="sine" freq="659" dur="0.3"/>
   </group>
 </spa>
+
+<!-- Heartbeat (NEW: Using repeat!) -->
+<spa version="1.0">
+  <tone wave="sine" freq="60" dur="0.1"
+        repeat="infinite" repeat.interval="0.8"
+        envelope="0.01,0.05,0.3,0.1"/>
+</spa>
+
+<!-- Echo Effect (NEW: With decay and pitch shift!) -->
+<spa version="1.0">
+  <tone wave="sine" freq="440" dur="0.2"
+        repeat="8" repeat.interval="0.15"
+        repeat.decay="0.3" repeat.pitchShift="-2"
+        envelope="0.01,0.05,0.5,0.1"/>
+</spa>
+
+<!-- Musical Melody (NEW: Using sequence!) -->
+<spa version="1.0">
+  <sequence>
+    <tone wave="sine" freq="261.63" dur="0.2" at="0"/>
+    <tone wave="sine" freq="329.63" dur="0.2" at="0.25"/>
+    <tone wave="sine" freq="392" dur="0.2" at="0.5"/>
+    <tone wave="sine" freq="523.25" dur="0.4" at="0.75"/>
+  </sequence>
+</spa>
 ```
 
 ## 🛠️ Development

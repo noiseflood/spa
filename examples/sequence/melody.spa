@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Simple Melody: C Major scale using sequence -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
+  <sequence>
+    <!-- C -->
+    <tone wave="sine" freq="261.63" dur="0.2" at="0"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- D -->
+    <tone wave="sine" freq="293.66" dur="0.2" at="0.25"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- E -->
+    <tone wave="sine" freq="329.63" dur="0.2" at="0.5"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- F -->
+    <tone wave="sine" freq="349.23" dur="0.2" at="0.75"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- G -->
+    <tone wave="sine" freq="392" dur="0.2" at="1.0"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- A -->
+    <tone wave="sine" freq="440" dur="0.2" at="1.25"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- B -->
+    <tone wave="sine" freq="493.88" dur="0.2" at="1.5"
+          envelope="0.01,0.05,0.7,0.1"/>
+    <!-- C (octave) -->
+    <tone wave="sine" freq="523.25" dur="0.4" at="1.75"
+          envelope="0.01,0.05,0.7,0.2"/>
+  </sequence>
+</spa>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <group>
+    <tone wave="saw" dur="0.3"
+          freq.start="1000" freq.end="200" freq.curve="exp"
+          amp="0.5"
+          envelope="0,0.1,0,0.2"
+          filter="lowpass" cutoff="2500" resonance="3"/>
+    <noise color="white" dur="0.15"
+           amp="0.15"
+           envelope="0,0.05,0,0.1"
+           filter="highpass" cutoff="5000"/>
+  </group>
+</spa>

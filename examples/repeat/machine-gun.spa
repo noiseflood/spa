@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Machine Gun: Rapid fire burst with noise and tone -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
+  <group repeat="20" repeat.interval="0.05">
+    <!-- Gunfire pop -->
+    <tone wave="saw" freq="150" dur="0.03"
+          amp="0.6"
+          envelope="0,0.01,0.2,0.02"/>
+    <!-- Muzzle noise -->
+    <noise color="white" dur="0.02"
+           amp="0.4"
+           envelope="0,0.005,0,0.01"
+           filter="highpass" cutoff="2000"/>
+  </group>
+</spa>

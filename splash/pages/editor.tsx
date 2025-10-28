@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Head from 'next/head'
+import { getPresetCategories, loadPreset as loadPresetFile, getPresetPath } from '../utils/presetLoader'
 
 type LayerType = 'tone' | 'noise'
 type WaveType = 'sine' | 'square' | 'sawtooth' | 'triangle'
@@ -32,6 +33,15 @@ interface FilterParams {
   resonance: number
 }
 
+interface RepeatParams {
+  enabled: boolean
+  count: number | 'infinite'
+  interval: number
+  delay?: number
+  decay?: number
+  pitchShift?: number
+}
+
 interface ToneParams {
   wave: WaveType
   freq: number | FrequencyAutomation
@@ -42,6 +52,7 @@ interface ToneParams {
   useFreqAutomation?: boolean
   useAmpAutomation?: boolean
   filter?: FilterParams
+  repeat?: RepeatParams
 }
 
 interface NoiseParams {
@@ -51,6 +62,7 @@ interface NoiseParams {
   pan: number
   envelope: Envelope
   filter?: FilterParams
+  repeat?: RepeatParams
 }
 
 interface Layer {
@@ -261,6 +273,20 @@ export default function Editor() {
 
       const env = params.envelope
       xml += `\n        envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+
+      // Handle repeat
+      if (params.repeat?.enabled) {
+        xml += `\n        repeat="${params.repeat.count}" repeat.interval="${params.repeat.interval}"`
+        if (params.repeat.delay && params.repeat.delay > 0) {
+          xml += ` repeat.delay="${params.repeat.delay}"`
+        }
+        if (params.repeat.decay && params.repeat.decay > 0) {
+          xml += ` repeat.decay="${params.repeat.decay}"`
+        }
+        if (params.repeat.pitchShift && params.repeat.pitchShift !== 0) {
+          xml += ` repeat.pitchShift="${params.repeat.pitchShift}"`
+        }
+      }
     } else {
       const params = layer.params as NoiseParams
       xml += `noise color="${params.color}" dur="${params.dur}"`
@@ -283,6 +309,20 @@ export default function Editor() {
 
       const env = params.envelope
       xml += `\n         envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+
+      // Handle repeat
+      if (params.repeat?.enabled) {
+        xml += `\n         repeat="${params.repeat.count}" repeat.interval="${params.repeat.interval}"`
+        if (params.repeat.delay && params.repeat.delay > 0) {
+          xml += ` repeat.delay="${params.repeat.delay}"`
+        }
+        if (params.repeat.decay && params.repeat.decay > 0) {
+          xml += ` repeat.decay="${params.repeat.decay}"`
+        }
+        if (params.repeat.pitchShift && params.repeat.pitchShift !== 0) {
+          xml += ` repeat.pitchShift="${params.repeat.pitchShift}"`
+        }
+      }
     }
 
     xml += '/>'
@@ -300,15 +340,27 @@ export default function Editor() {
     const sources: any[] = []
     // Use layersRef.current to get the most current layers
     const currentLayers = layersRef.current
-    const maxDuration = Math.max(...currentLayers.map(l => l.params.dur))
+
+    // Calculate max duration including repeats
+    let maxDuration = 0
+    for (const layer of currentLayers) {
+      let layerDuration = layer.params.dur
+      if (layer.params.repeat?.enabled) {
+        const repeatCount = layer.params.repeat.count === 'infinite' ? 20 : layer.params.repeat.count // Cap infinite at 20 for playback
+        const repeatInterval = layer.params.repeat.interval || 0.5
+        const repeatDelay = layer.params.repeat.delay || 0
+        layerDuration = repeatDelay + layer.params.dur + (repeatCount - 1) * (layer.params.dur + repeatInterval)
+      }
+      maxDuration = Math.max(maxDuration, layerDuration)
+    }
 
     for (const layer of currentLayers) {
       if (layer.type === 'tone') {
         const source = playTone(layer.params as ToneParams)
-        sources.push(source)
+        sources.push(...source)
       } else {
         const source = playNoise(layer.params as NoiseParams)
-        sources.push(source)
+        sources.push(...source)
       }
     }
 
@@ -406,10 +458,83 @@ export default function Editor() {
     }
     panNode.connect(ctx.destination)
 
-    oscillator.start(now)
-    oscillator.stop(now + params.dur)
+    // Handle repeat
+    const oscillators = []
 
-    return oscillator
+    if (params.repeat?.enabled) {
+      const repeatCount = params.repeat.count === 'infinite' ? 20 : params.repeat.count // Cap infinite at 20 for playback
+      const repeatInterval = params.repeat.interval || 0.5
+      const repeatDelay = params.repeat.delay || 0
+      const repeatDecay = params.repeat.decay || 0
+      const pitchShift = params.repeat.pitchShift || 0
+
+      for (let i = 0; i < repeatCount; i++) {
+        const startTime = now + repeatDelay + i * (params.dur + repeatInterval)
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        const pan = ctx.createStereoPanner()
+
+        osc.type = params.wave
+
+        // Apply pitch shift
+        const pitchRatio = Math.pow(2, (pitchShift * i) / 12)
+
+        // Handle frequency with pitch shift
+        if (params.useFreqAutomation && typeof params.freq === 'object') {
+          osc.frequency.setValueAtTime(params.freq.start * pitchRatio, startTime)
+          if (params.freq.curve === 'exp') {
+            osc.frequency.exponentialRampToValueAtTime(params.freq.end * pitchRatio, startTime + params.dur)
+          } else if (params.freq.curve === 'smooth') {
+            osc.frequency.setTargetAtTime(params.freq.end * pitchRatio, startTime, params.dur / 4)
+          } else {
+            osc.frequency.linearRampToValueAtTime(params.freq.end * pitchRatio, startTime + params.dur)
+          }
+        } else {
+          const baseFreq = typeof params.freq === 'number' ? params.freq : 440
+          osc.frequency.value = baseFreq * pitchRatio
+        }
+
+        // Apply decay
+        const decayMultiplier = Math.pow(1 - repeatDecay, i)
+        const repBaseAmp = baseAmp * decayMultiplier
+
+        // Apply ADSR envelope for this repeat
+        gain.gain.setValueAtTime(0, startTime)
+        gain.gain.linearRampToValueAtTime(repBaseAmp, startTime + env.attack)
+        gain.gain.linearRampToValueAtTime(repBaseAmp * env.sustain, startTime + env.attack + env.decay)
+        gain.gain.setValueAtTime(repBaseAmp * env.sustain, startTime + params.dur - env.release)
+        gain.gain.linearRampToValueAtTime(0, startTime + params.dur)
+
+        pan.pan.value = params.pan
+
+        // Connect the chain
+        osc.connect(gain)
+
+        // Apply filter if enabled
+        if (filterNode) {
+          const repFilter = ctx.createBiquadFilter()
+          repFilter.type = params.filter!.type || 'lowpass'
+          repFilter.frequency.value = Math.max(20, Math.min(20000, params.filter!.freq))
+          repFilter.Q.value = Math.max(0.1, Math.min(30, params.filter!.resonance))
+          gain.connect(repFilter)
+          repFilter.connect(pan)
+        } else {
+          gain.connect(pan)
+        }
+
+        pan.connect(ctx.destination)
+
+        osc.start(startTime)
+        osc.stop(startTime + params.dur)
+        oscillators.push(osc)
+      }
+    } else {
+      oscillator.start(now)
+      oscillator.stop(now + params.dur)
+      oscillators.push(oscillator)
+    }
+
+    return oscillators
   }
 
   const playNoise = (params: NoiseParams) => {
@@ -458,9 +583,73 @@ export default function Editor() {
     }
     panNode.connect(ctx.destination)
 
-    source.start(now)
+    // Handle repeat
+    const sources = []
 
-    return source
+    if (params.repeat?.enabled) {
+      const repeatCount = params.repeat.count === 'infinite' ? 20 : params.repeat.count // Cap infinite at 20 for playback
+      const repeatInterval = params.repeat.interval || 0.5
+      const repeatDelay = params.repeat.delay || 0
+      const repeatDecay = params.repeat.decay || 0
+      const pitchShift = params.repeat.pitchShift || 0
+
+      for (let i = 0; i < repeatCount; i++) {
+        const startTime = now + repeatDelay + i * (params.dur + repeatInterval)
+        const src = ctx.createBufferSource()
+        const gain = ctx.createGain()
+        const pan = ctx.createStereoPanner()
+
+        // Apply pitch shift by changing playback rate
+        const pitchRatio = Math.pow(2, (pitchShift * i) / 12)
+        src.playbackRate.value = pitchRatio
+
+        // Create a new buffer for each repeat (noise should be different each time)
+        const repBuffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate)
+        for (let channel = 0; channel < 2; channel++) {
+          const repData = repBuffer.getChannelData(channel)
+          generateNoiseData(repData, params.color)
+        }
+        src.buffer = repBuffer
+
+        // Apply decay
+        const decayMultiplier = Math.pow(1 - repeatDecay, i)
+        const repAmp = params.amp * decayMultiplier
+
+        // Apply ADSR envelope for this repeat
+        gain.gain.setValueAtTime(0, startTime)
+        gain.gain.linearRampToValueAtTime(repAmp, startTime + env.attack)
+        gain.gain.linearRampToValueAtTime(repAmp * env.sustain, startTime + env.attack + env.decay)
+        gain.gain.setValueAtTime(repAmp * env.sustain, startTime + params.dur - env.release)
+        gain.gain.linearRampToValueAtTime(0, startTime + params.dur)
+
+        pan.pan.value = params.pan
+
+        // Connect the chain
+        src.connect(gain)
+
+        // Apply filter if enabled
+        if (filterNode) {
+          const repFilter = ctx.createBiquadFilter()
+          repFilter.type = params.filter!.type || 'lowpass'
+          repFilter.frequency.value = Math.max(20, Math.min(20000, params.filter!.freq))
+          repFilter.Q.value = Math.max(0.1, Math.min(30, params.filter!.resonance))
+          gain.connect(repFilter)
+          repFilter.connect(pan)
+        } else {
+          gain.connect(pan)
+        }
+
+        pan.connect(ctx.destination)
+
+        src.start(startTime)
+        sources.push(src)
+      }
+    } else {
+      source.start(now)
+      sources.push(source)
+    }
+
+    return sources
   }
 
   const generateNoiseData = (data: Float32Array, color: NoiseColor) => {
@@ -744,897 +933,30 @@ export default function Editor() {
     event.target.value = ''
   }
 
-  // Comprehensive preset collection organized by category
-  const presetCategories = {
-    'UI Feedback': {
-      'Button Click': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: 800,
-          dur: 0.05,
-          amp: 0.8,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.02, sustain: 0, release: 0.03 }
-        } as ToneParams
-      }],
-      'Button Hover': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: 600,
-          dur: 0.03,
-          amp: 0.3,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.01, sustain: 0, release: 0.02 }
-        } as ToneParams
-      }],
-      'Toggle On': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'triangle',
-          freq: { start: 400, end: 800, curve: 'smooth' },
-          dur: 0.1,
-          amp: 0.5,
-          pan: 0,
-          envelope: { attack: 0.01, decay: 0.02, sustain: 0.3, release: 0.07 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      'Toggle Off': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'triangle',
-          freq: { start: 800, end: 400, curve: 'smooth' },
-          dur: 0.1,
-          amp: 0.4,
-          pan: 0,
-          envelope: { attack: 0.01, decay: 0.02, sustain: 0.3, release: 0.07 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      'Modal Open': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: { start: 200, end: 600, curve: 'exp' },
-          dur: 0.2,
-          amp: 0.3,
-          pan: 0,
-          envelope: { attack: 0.05, decay: 0.05, sustain: 0.4, release: 0.1 },
-          useFreqAutomation: true,
-          filter: { enabled: true, type: 'lowpass', freq: 2000, resonance: 2 }
-        } as ToneParams
-      }],
-      'Modal Close': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: { start: 600, end: 200, curve: 'exp' },
-          dur: 0.15,
-          amp: 0.3,
-          pan: 0,
-          envelope: { attack: 0.01, decay: 0.04, sustain: 0.3, release: 0.1 },
-          useFreqAutomation: true,
-          filter: { enabled: true, type: 'lowpass', freq: 1500, resonance: 1.5 }
-        } as ToneParams
-      }],
-      'Tab Switch': [
-        {
-          id: 0,
-          type: 'noise',
-          params: {
-            color: 'white',
-            dur: 0.02,
-            amp: 0.1,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.005, sustain: 0, release: 0.015 },
-            filter: { enabled: true, type: 'bandpass', freq: 4000, resonance: 3 }
-          } as NoiseParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 1200,
-            dur: 0.08,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.2, release: 0.05 }
-          } as ToneParams
-        }
-      ],
-      'Dropdown Expand': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: { start: 400, end: 450, curve: 'linear' },
-          dur: 0.08,
-          amp: 0.25,
-          pan: 0,
-          envelope: { attack: 0.01, decay: 0.02, sustain: 0.5, release: 0.05 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      'Tooltip Show': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'triangle',
-          freq: 2000,
-          dur: 0.03,
-          amp: 0.15,
-          pan: 0,
-          envelope: { attack: 0.005, decay: 0.01, sustain: 0, release: 0.015 }
-        } as ToneParams
-      }]
-    },
-    'Notifications': {
-      'Success': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 392,  // G4
-            dur: 0.12,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.6, release: 0.09 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 523.25,  // C5
-            dur: 0.12,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.6, release: 0.09 }
-          } as ToneParams
-        },
-        {
-          id: 2,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 783.99,  // G5
-            dur: 0.25,
-            amp: 0.6,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.03, sustain: 0.7, release: 0.21 }
-          } as ToneParams
-        }
-      ],
-      'Error': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'square',
-            freq: 200,
-            dur: 0.15,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'noise',
-          params: {
-            color: 'pink',
-            dur: 0.1,
-            amp: 0.2,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.05 }
-          } as NoiseParams
-        }
-      ],
-      'Warning': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'triangle',
-            freq: 440,
-            dur: 0.15,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.03, sustain: 0.5, release: 0.11 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'triangle',
-            freq: 330,
-            dur: 0.15,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.03, sustain: 0.5, release: 0.11 }
-          } as ToneParams
-        }
-      ],
-      'Info': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: 660,
-          dur: 0.1,
-          amp: 0.4,
-          pan: 0,
-          envelope: { attack: 0.01, decay: 0.02, sustain: 0.4, release: 0.07 },
-          filter: { enabled: true, type: 'lowpass', freq: 3000, resonance: 1 }
-        } as ToneParams
-      }],
-      'Achievement': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 523.25,  // C5
-            dur: 0.1,
-            amp: 0.4,
-            pan: -0.5,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.5, release: 0.07 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 659.25,  // E5
-            dur: 0.1,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.5, release: 0.07 }
-          } as ToneParams
-        },
-        {
-          id: 2,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 783.99,  // G5
-            dur: 0.1,
-            amp: 0.4,
-            pan: 0.5,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.5, release: 0.07 }
-          } as ToneParams
-        },
-        {
-          id: 3,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 1046.5,  // C6
-            dur: 0.3,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.6, release: 0.24 }
-          } as ToneParams
-        }
-      ]
-    },
-    'Game Sounds': {
-      'Coin Collect': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'square',
-          freq: { start: 988, end: 1319, curve: 'linear' },
-          dur: 0.3,
-          amp: 0.4,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.1, sustain: 0.2, release: 0.1 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      'Jump': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'triangle',
-            freq: { start: 200, end: 400, curve: 'exp' },
-            dur: 0.2,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.2, release: 0.14 },
-            useFreqAutomation: true
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'noise',
-          params: {
-            color: 'white',
-            dur: 0.05,
-            amp: 0.1,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.02, sustain: 0, release: 0.03 },
-            filter: { enabled: true, type: 'highpass', freq: 2000, resonance: 1 }
-          } as NoiseParams
-        }
-      ],
-      'Power Up': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sawtooth',
-            freq: { start: 200, end: 800, curve: 'exp' },
-            dur: 0.5,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.3 },
-            useFreqAutomation: true,
-            filter: { enabled: true, type: 'lowpass', freq: 2000, resonance: 3 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: { start: 400, end: 1600, curve: 'exp' },
-            dur: 0.5,
-            amp: 0.2,
-            pan: 0,
-            envelope: { attack: 0.15, decay: 0.1, sustain: 0.4, release: 0.25 },
-            useFreqAutomation: true
-          } as ToneParams
-        }
-      ],
-      'Laser': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sawtooth',
-          freq: { start: 2000, end: 100, curve: 'exp' },
-          dur: 0.3,
-          amp: 0.5,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.1, sustain: 0, release: 0.2 },
-          useFreqAutomation: true,
-          filter: {
-            enabled: true,
-            type: 'lowpass',
-            freq: 3000,
-            resonance: 5
-          }
-        } as ToneParams
-      }],
-      'Explosion': [
-        {
-          id: 0,
-          type: 'noise',
-          params: {
-            color: 'brown',
-            dur: 0.8,
-            amp: 0.7,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.2, sustain: 0.3, release: 0.5 },
-            filter: { enabled: true, type: 'lowpass', freq: 500, resonance: 1 }
-          } as NoiseParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 60,
-            dur: 0.4,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.1, sustain: 0.2, release: 0.3 }
-          } as ToneParams
-        }
-      ],
-      'Hit/Damage': [
-        {
-          id: 0,
-          type: 'noise',
-          params: {
-            color: 'pink',
-            dur: 0.1,
-            amp: 0.6,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.03, sustain: 0, release: 0.07 }
-          } as NoiseParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'square',
-            freq: 150,
-            dur: 0.1,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.05 }
-          } as ToneParams
-        }
-      ],
-      'Level Complete': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 261.63,  // C4
-            dur: 0.15,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.7, release: 0.12 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 329.63,  // E4
-            dur: 0.15,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.7, release: 0.12 }
-          } as ToneParams
-        },
-        {
-          id: 2,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 392,  // G4
-            dur: 0.15,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.7, release: 0.12 }
-          } as ToneParams
-        },
-        {
-          id: 3,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 523.25,  // C5
-            dur: 0.4,
-            amp: 0.6,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.7, release: 0.34 }
-          } as ToneParams
-        }
-      ]
-    },
-    'Ambient & Transitions': {
-      'Whoosh': [{
-        id: 0,
-        type: 'noise',
-        params: {
-          color: 'white',
-          dur: 0.5,
-          amp: 0.4,
-          pan: 0,
-          envelope: { attack: 0.1, decay: 0.1, sustain: 0.3, release: 0.2 },
-          filter: { enabled: true, type: 'bandpass', freq: 1000, resonance: 2 }
-        } as NoiseParams
-      }],
-      'Page Turn': [
-        {
-          id: 0,
-          type: 'noise',
-          params: {
-            color: 'white',
-            dur: 0.3,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.05, decay: 0.05, sustain: 0.2, release: 0.2 },
-            filter: { enabled: true, type: 'highpass', freq: 3000, resonance: 1 }
-          } as NoiseParams
-        }
-      ],
-      'Slide In': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: { start: 100, end: 500, curve: 'exp' },
-          dur: 0.2,
-          amp: 0.3,
-          pan: 0,
-          envelope: { attack: 0.02, decay: 0.05, sustain: 0.4, release: 0.13 },
-          useFreqAutomation: true,
-          filter: { enabled: true, type: 'lowpass', freq: 2000, resonance: 1.5 }
-        } as ToneParams
-      }],
-      'Fade Transition': [{
-        id: 0,
-        type: 'noise',
-        params: {
-          color: 'pink',
-          dur: 0.4,
-          amp: 0.2,
-          pan: 0,
-          envelope: { attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.2 },
-          filter: { enabled: true, type: 'lowpass', freq: 800, resonance: 1 }
-        } as NoiseParams
-      }],
-      'Wind Ambience': [{
-        id: 0,
-        type: 'noise',
-        params: {
-          color: 'brown',
-          dur: 2,
-          amp: 0.2,
-          pan: 0,
-          envelope: { attack: 0.5, decay: 0.3, sustain: 0.5, release: 1.2 },
-          filter: { enabled: true, type: 'lowpass', freq: 400, resonance: 1 }
-        } as NoiseParams
-      }]
-    },
-    'Communication': {
-      'Message Sent': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 440,
-            dur: 0.05,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.02, sustain: 0, release: 0.03 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 880,
-            dur: 0.1,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.03, sustain: 0.2, release: 0.06 }
-          } as ToneParams
-        }
-      ],
-      'Message Received': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'triangle',
-            freq: 880,
-            dur: 0.08,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0.005, decay: 0.01, sustain: 0.2, release: 0.06 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 1760,
-            dur: 0.12,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.005, decay: 0.02, sustain: 0.1, release: 0.09 }
-          } as ToneParams
-        }
-      ],
-      'Call Incoming': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 440,
-            dur: 0.3,
-            amp: { start: 0.3, end: 0, curve: 'linear' },
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.8, release: 0.24 },
-            useAmpAutomation: true
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 350,
-            dur: 0.3,
-            amp: { start: 0.3, end: 0, curve: 'linear' },
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.8, release: 0.24 },
-            useAmpAutomation: true
-          } as ToneParams
-        }
-      ],
-      'Typing': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'square',
-          freq: 1500,
-          dur: 0.02,
-          amp: 0.1,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.005, sustain: 0, release: 0.015 }
-        } as ToneParams
-      }],
-      'Video Call Start': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: { start: 400, end: 800, curve: 'smooth' },
-            dur: 0.3,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0.05, decay: 0.05, sustain: 0.5, release: 0.2 },
-            useFreqAutomation: true
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'noise',
-          params: {
-            color: 'white',
-            dur: 0.1,
-            amp: 0.05,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0, release: 0.07 },
-            filter: { enabled: true, type: 'highpass', freq: 4000, resonance: 1 }
-          } as NoiseParams
-        }
-      ]
-    },
-    'Device & System': {
-      'Camera Shutter': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 1000,
-            dur: 0.05,
-            amp: 0.5,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.02, sustain: 0, release: 0.03 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'noise',
-          params: {
-            color: 'white',
-            dur: 0.08,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0, decay: 0.03, sustain: 0, release: 0.05 }
-          } as NoiseParams
-        }
-      ],
-      'Screenshot': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: { start: 2000, end: 1000, curve: 'linear' },
-          dur: 0.1,
-          amp: 0.3,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.03, sustain: 0, release: 0.07 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      'USB Connect': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 500,
-            dur: 0.1,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.5, release: 0.07 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 750,
-            dur: 0.15,
-            amp: 0.35,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.03, sustain: 0.6, release: 0.11 }
-          } as ToneParams
-        }
-      ],
-      'USB Disconnect': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 750,
-            dur: 0.1,
-            amp: 0.35,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.02, sustain: 0.5, release: 0.07 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'sine',
-            freq: 500,
-            dur: 0.15,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.03, sustain: 0.6, release: 0.11 }
-          } as ToneParams
-        }
-      ],
-      'Low Battery': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'square',
-            freq: 300,
-            dur: 0.2,
-            amp: 0.4,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.5, release: 0.14 }
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'square',
-            freq: 250,
-            dur: 0.2,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.5, release: 0.14 }
-          } as ToneParams
-        }
-      ],
-      'Charging': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'sine',
-          freq: { start: 400, end: 600, curve: 'smooth' },
-          dur: 0.5,
-          amp: 0.2,
-          pan: 0,
-          envelope: { attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.3 },
-          useFreqAutomation: true
-        } as ToneParams
-      }]
-    },
-    'Retro & 8-bit': {
-      '8-bit Coin': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'square',
-          freq: { start: 800, end: 1600, curve: 'linear' },
-          dur: 0.15,
-          amp: 0.4,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      '8-bit Jump': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'square',
-          freq: { start: 200, end: 600, curve: 'linear' },
-          dur: 0.15,
-          amp: 0.5,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.05, sustain: 0.3, release: 0.1 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      '8-bit Death': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'square',
-          freq: { start: 400, end: 50, curve: 'exp' },
-          dur: 0.5,
-          amp: 0.5,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.1, sustain: 0.5, release: 0.4 },
-          useFreqAutomation: true
-        } as ToneParams
-      }],
-      'Arcade Blip': [{
-        id: 0,
-        type: 'tone',
-        params: {
-          wave: 'square',
-          freq: 440,
-          dur: 0.05,
-          amp: 0.4,
-          pan: 0,
-          envelope: { attack: 0, decay: 0.02, sustain: 0, release: 0.03 }
-        } as ToneParams
-      }],
-      'Retro Powerup': [
-        {
-          id: 0,
-          type: 'tone',
-          params: {
-            wave: 'square',
-            freq: { start: 200, end: 2000, curve: 'exp' },
-            dur: 0.4,
-            amp: 0.3,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.1, sustain: 0.4, release: 0.29 },
-            useFreqAutomation: true
-          } as ToneParams
-        },
-        {
-          id: 1,
-          type: 'tone',
-          params: {
-            wave: 'triangle',
-            freq: { start: 100, end: 1000, curve: 'exp' },
-            dur: 0.4,
-            amp: 0.2,
-            pan: 0,
-            envelope: { attack: 0.01, decay: 0.1, sustain: 0.4, release: 0.29 },
-            useFreqAutomation: true
-          } as ToneParams
-        }
-      ]
-    }
-  }
+  // Get preset categories from the preset loader
+  const presetCategories = getPresetCategories()
 
-  const loadPreset = (category: string, preset: string) => {
+  // Legacy preset categories for backwards compatibility (will be removed)
+
+  const loadPreset = async (category: string, preset: string) => {
     // Stop any currently playing sound
     if (isPlaying) {
       stopSound()
     }
 
-    const presets = presetCategories[category as keyof typeof presetCategories]
-    if (presets && presets[preset as keyof typeof presets]) {
-      const presetLayers = presets[preset as keyof typeof presets] as Layer[]
-      layerIdCounterRef.current = presetLayers.length
-      setLayers(presetLayers)
-      setCurrentLayerId(0)
+    const presetPath = getPresetPath(category, preset)
+    if (presetPath) {
+      try {
+        const spaContent = await loadPresetFile(presetPath)
+        const parsedLayers = parseSPAXML(spaContent)
+        if (parsedLayers.length > 0) {
+          layerIdCounterRef.current = parsedLayers.length
+          setLayers(parsedLayers)
+          setCurrentLayerId(parsedLayers[0].id)
+        }
+      } catch (error) {
+        console.error(`Failed to load preset ${preset}:`, error)
+      }
     }
   }
 
@@ -1901,12 +1223,12 @@ export default function Editor() {
                         {(currentLayer.params as ToneParams).useFreqAutomation ? (
                           <div className="space-y-2 bg-surface/50 p-3 rounded">
                             <div>
-                              <label className="text-xs text-gray-500">Start: {typeof (currentLayer.params as ToneParams).freq === 'object' ? (currentLayer.params as ToneParams).freq.start : 440}Hz</label>
+                              <label className="text-xs text-gray-500">Start: {typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).start : 440}Hz</label>
                               <input
                                 type="range"
                                 min="20"
                                 max="2000"
-                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? (currentLayer.params as ToneParams).freq.start : 440}
+                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).start : 440}
                                 onChange={(e) => {
                                   const params = currentLayer.params as ToneParams
                                   const freq = typeof params.freq === 'object' ? params.freq : { start: 440, end: 880, curve: 'linear' as const }
@@ -1921,12 +1243,12 @@ export default function Editor() {
                               />
                             </div>
                             <div>
-                              <label className="text-xs text-gray-500">End: {typeof (currentLayer.params as ToneParams).freq === 'object' ? (currentLayer.params as ToneParams).freq.end : 880}Hz</label>
+                              <label className="text-xs text-gray-500">End: {typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).end : 880}Hz</label>
                               <input
                                 type="range"
                                 min="20"
                                 max="2000"
-                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? (currentLayer.params as ToneParams).freq.end : 880}
+                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).end : 880}
                                 onChange={(e) => {
                                   const params = currentLayer.params as ToneParams
                                   const freq = typeof params.freq === 'object' ? params.freq : { start: 440, end: 880, curve: 'linear' as const }
@@ -1943,7 +1265,7 @@ export default function Editor() {
                             <div>
                               <label className="text-xs text-gray-500">Curve</label>
                               <select
-                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? (currentLayer.params as ToneParams).freq.curve : 'linear'}
+                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).curve : 'linear'}
                                 onChange={(e) => {
                                   const params = currentLayer.params as ToneParams
                                   const freq = typeof params.freq === 'object' ? params.freq : { start: 440, end: 880, curve: 'linear' as const }
@@ -2296,6 +1618,223 @@ export default function Editor() {
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Repeat */}
+                  <div className="bg-surface p-4 rounded-lg border border-primary/10">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-primary text-sm font-semibold uppercase tracking-wider">
+                        Repeat
+                      </h4>
+                      <label className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={currentLayer.params.repeat?.enabled || false}
+                          onChange={(e) => {
+                            const currentRepeat = currentLayer.params.repeat || {
+                              enabled: false,
+                              count: 3,
+                              interval: 0.5,
+                              delay: 0,
+                              decay: 0,
+                              pitchShift: 0
+                            }
+                            updateLayer(currentLayer.id, {
+                              params: {
+                                ...currentLayer.params,
+                                repeat: {
+                                  ...currentRepeat,
+                                  enabled: e.target.checked
+                                }
+                              }
+                            })
+                          }}
+                        />
+                        <span className="text-primary">Enable</span>
+                      </label>
+                    </div>
+
+                    {currentLayer.params.repeat?.enabled && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">
+                            Count: {currentLayer.params.repeat?.count === 'infinite' ? '∞' : currentLayer.params.repeat?.count || 3}
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="range"
+                              min="1"
+                              max="50"
+                              value={currentLayer.params.repeat?.count === 'infinite' ? 50 : (currentLayer.params.repeat?.count || 3)}
+                              onChange={(e) => {
+                                const currentRepeat = currentLayer.params.repeat || {
+                                  enabled: true,
+                                  count: 3,
+                                  interval: 0.5
+                                }
+                                updateLayer(currentLayer.id, {
+                                  params: {
+                                    ...currentLayer.params,
+                                    repeat: {
+                                      ...currentRepeat,
+                                      count: Number(e.target.value)
+                                    }
+                                  }
+                                })
+                              }}
+                              disabled={currentLayer.params.repeat?.count === 'infinite'}
+                              className="flex-1"
+                            />
+                            <label className="flex items-center gap-1 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={currentLayer.params.repeat?.count === 'infinite'}
+                                onChange={(e) => {
+                                  const currentRepeat = currentLayer.params.repeat || {
+                                    enabled: true,
+                                    count: 3,
+                                    interval: 0.5
+                                  }
+                                  updateLayer(currentLayer.id, {
+                                    params: {
+                                      ...currentLayer.params,
+                                      repeat: {
+                                        ...currentRepeat,
+                                        count: e.target.checked ? 'infinite' : 3
+                                      }
+                                    }
+                                  })
+                                }}
+                              />
+                              <span className="text-primary">Infinite</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">
+                            Interval: {currentLayer.params.repeat?.interval || 0.5}s
+                          </label>
+                          <input
+                            type="range"
+                            min="0.05"
+                            max="2"
+                            step="0.05"
+                            value={currentLayer.params.repeat?.interval || 0.5}
+                            onChange={(e) => {
+                              const currentRepeat = currentLayer.params.repeat || {
+                                enabled: true,
+                                count: 3,
+                                interval: 0.5
+                              }
+                              updateLayer(currentLayer.id, {
+                                params: {
+                                  ...currentLayer.params,
+                                  repeat: {
+                                    ...currentRepeat,
+                                    interval: Number(e.target.value)
+                                  }
+                                }
+                              })
+                            }}
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">
+                            Delay: {currentLayer.params.repeat?.delay || 0}s
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.05"
+                            value={currentLayer.params.repeat?.delay || 0}
+                            onChange={(e) => {
+                              const currentRepeat = currentLayer.params.repeat || {
+                                enabled: true,
+                                count: 3,
+                                interval: 0.5,
+                                delay: 0
+                              }
+                              updateLayer(currentLayer.id, {
+                                params: {
+                                  ...currentLayer.params,
+                                  repeat: {
+                                    ...currentRepeat,
+                                    delay: Number(e.target.value)
+                                  }
+                                }
+                              })
+                            }}
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">
+                            Decay: {currentLayer.params.repeat?.decay || 0}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={currentLayer.params.repeat?.decay || 0}
+                            onChange={(e) => {
+                              const currentRepeat = currentLayer.params.repeat || {
+                                enabled: true,
+                                count: 3,
+                                interval: 0.5,
+                                decay: 0
+                              }
+                              updateLayer(currentLayer.id, {
+                                params: {
+                                  ...currentLayer.params,
+                                  repeat: {
+                                    ...currentRepeat,
+                                    decay: Number(e.target.value)
+                                  }
+                                }
+                              })
+                            }}
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">
+                            Pitch Shift: {currentLayer.params.repeat?.pitchShift || 0} semitones
+                          </label>
+                          <input
+                            type="range"
+                            min="-12"
+                            max="12"
+                            step="1"
+                            value={currentLayer.params.repeat?.pitchShift || 0}
+                            onChange={(e) => {
+                              const currentRepeat = currentLayer.params.repeat || {
+                                enabled: true,
+                                count: 3,
+                                interval: 0.5,
+                                pitchShift: 0
+                              }
+                              updateLayer(currentLayer.id, {
+                                params: {
+                                  ...currentLayer.params,
+                                  repeat: {
+                                    ...currentRepeat,
+                                    pitchShift: Number(e.target.value)
+                                  }
+                                }
+                              })
+                            }}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

@@ -1,0 +1,66 @@
+{
+  "categories": {
+    "UI Feedback": {
+      "Button Click": "ui-feedback/button-click.spa",
+      "Hover": "ui-feedback/hover.spa",
+      "Toggle On": "ui-feedback/toggle-on.spa",
+      "Toggle Off": "ui-feedback/toggle-off.spa",
+      "Slider Move": "ui-feedback/slider-move.spa",
+      "Tab Switch": "ui-feedback/tab-switch.spa",
+      "Modal Open": "ui-feedback/modal-open.spa",
+      "Modal Close": "ui-feedback/modal-close.spa",
+      "Dropdown Expand": "ui-feedback/dropdown-expand.spa",
+      "Tooltip Show": "ui-feedback/tooltip-show.spa"
+    },
+    "Notifications": {
+      "Success": "notifications/success.spa",
+      "Error": "notifications/error.spa",
+      "Warning": "notifications/warning.spa",
+      "Info": "notifications/info.spa",
+      "Message Received": "notifications/message-received.spa",
+      "Message Sent": "notifications/message-sent.spa",
+      "Alert": "notifications/alert.spa",
+      "Achievement": "notifications/achievement.spa"
+    },
+    "Game": {
+      "Coin Collect": "game/coin-collect.spa",
+      "Jump": "game/jump.spa",
+      "Land": "game/land.spa",
+      "Hit": "game/hit.spa",
+      "Powerup": "game/powerup.spa",
+      "Level Complete": "game/level-complete.spa",
+      "Game Over": "game/game-over.spa",
+      "Laser": "game/laser.spa",
+      "Explosion": "game/explosion.spa",
+      "Pickup": "game/pickup.spa"
+    },
+    "Forms": {
+      "Input Focus": "forms/input-focus.spa",
+      "Input Blur": "forms/input-blur.spa",
+      "Validation Error": "forms/validation-error.spa",
+      "Validation Success": "forms/validation-success.spa",
+      "Submit": "forms/submit.spa",
+      "Checkbox Check": "forms/checkbox-check.spa",
+      "Checkbox Uncheck": "forms/checkbox-uncheck.spa",
+      "Radio Select": "forms/radio-select.spa"
+    },
+    "Retro": {
+      "8-bit Coin": "retro/8bit-coin.spa",
+      "8-bit Jump": "retro/8bit-jump.spa",
+      "8-bit Shoot": "retro/8bit-shoot.spa",
+      "8-bit Death": "retro/8bit-death.spa",
+      "Arcade Blip": "retro/arcade-blip.spa",
+      "Retro Powerup": "retro/retro-powerup.spa"
+    },
+    "Repeat Effects": {
+      "Heartbeat": "repeat-effects/heartbeat.spa",
+      "Alarm": "repeat-effects/alarm.spa",
+      "Echo": "repeat-effects/echo.spa",
+      "Machine Gun": "repeat-effects/machine-gun.spa",
+      "Sonar Ping": "repeat-effects/sonar-ping.spa",
+      "Bounce": "repeat-effects/bounce.spa",
+      "Morse Code": "repeat-effects/morse-code.spa",
+      "Engine Idle": "repeat-effects/engine-idle.spa"
+    }
+  }
+}

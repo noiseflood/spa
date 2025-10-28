@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <group>
+    <tone wave="triangle" freq="440" dur="0.15"
+          amp="0.4"
+          envelope="0.01,0.03,0.5,0.11"/>
+    <tone wave="triangle" freq="330" dur="0.15"
+          amp="0.3"
+          envelope="0.01,0.03,0.5,0.11"/>
+  </group>
+</spa>

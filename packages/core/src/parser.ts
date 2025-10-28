@@ -16,6 +16,8 @@ import type {
   ToneElement,
   NoiseElement,
   GroupElement,
+  SequenceElement,
+  TimedSound,
   ADSREnvelope,
   AutomationCurve,
   FilterConfig,
@@ -155,6 +157,8 @@ function parseChildren(
       sounds.push(parseNoise(child, defs, resolveRefs));
     } else if (child.tagName === 'group') {
       sounds.push(parseGroup(child, defs, resolveRefs));
+    } else if (child.tagName === 'sequence') {
+      sounds.push(parseSequence(child, defs, resolveRefs));
     }
   }
 
@@ -184,6 +188,8 @@ function parseTone(
     throw new Error('Tone element missing required dur attribute');
   }
 
+  const repeatConfig = parseRepeat(el);
+
   return {
     type: 'tone',
     id: el.getAttribute('id') || undefined,
@@ -196,7 +202,8 @@ function parseTone(
     filter: parseFilter(el),
     phase: el.hasAttribute('phase')
       ? parseFloat(el.getAttribute('phase')!)
-      : undefined
+      : undefined,
+    ...repeatConfig
   };
 }
 
@@ -218,6 +225,8 @@ function parseNoise(
     throw new Error('Noise element missing required dur attribute');
   }
 
+  const repeatConfig = parseRepeat(el);
+
   return {
     type: 'noise',
     id: el.getAttribute('id') || undefined,
@@ -226,7 +235,8 @@ function parseNoise(
     amp: parseNumericOrAutomation(el, 'amp'),
     envelope: parseEnvelope(el, defs, resolveRefs),
     pan: parseNumericOrAutomation(el, 'pan'),
-    filter: parseFilter(el)
+    filter: parseFilter(el),
+    ...repeatConfig
   };
 }
 
@@ -240,6 +250,8 @@ function parseGroup(
 ): GroupElement {
   const sounds = parseChildren(el, defs, resolveRefs);
 
+  const repeatConfig = parseRepeat(el);
+
   return {
     type: 'group',
     id: el.getAttribute('id') || undefined,
@@ -249,8 +261,61 @@ function parseGroup(
       : undefined,
     pan: el.hasAttribute('pan')
       ? parseFloat(el.getAttribute('pan')!)
-      : undefined
+      : undefined,
+    ...repeatConfig
   };
+}
+
+/**
+ * Parse sequence element
+ */
+function parseSequence(
+  el: Element,
+  defs?: any,
+  resolveRefs: boolean = true
+): SequenceElement {
+  const elements: TimedSound[] = [];
+
+  const children = el.children || el.childNodes;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i] as Element;
+    if (!child.tagName) continue; // Skip text nodes
+
+    // Get the timing
+    const at = parseFloat(child.getAttribute('at') || '0');
+
+    // Parse the sound element
+    let sound: ToneElement | NoiseElement | GroupElement;
+
+    if (child.tagName === 'tone') {
+      sound = parseTone(child, defs, resolveRefs);
+    } else if (child.tagName === 'noise') {
+      sound = parseNoise(child, defs, resolveRefs);
+    } else if (child.tagName === 'group') {
+      sound = parseGroup(child, defs, resolveRefs);
+    } else {
+      continue; // Skip unknown elements
+    }
+
+    elements.push({ at, sound });
+  }
+
+  const sequence: SequenceElement = {
+    type: 'sequence',
+    id: el.getAttribute('id') || undefined,
+    elements
+  };
+
+  // Parse optional attributes
+  if (el.hasAttribute('loop')) {
+    sequence.loop = el.getAttribute('loop') === 'true';
+  }
+
+  if (el.hasAttribute('tempo')) {
+    sequence.tempo = parseFloat(el.getAttribute('tempo')!);
+  }
+
+  return sequence;
 }
 
 /**
@@ -278,6 +343,38 @@ function parseNumericOrAutomation(
   }
 
   return undefined;
+}
+
+/**
+ * Parse repeat configuration
+ */
+function parseRepeat(el: Element): {
+  repeat?: number | 'infinite';
+  repeatInterval?: number;
+  repeatDelay?: number;
+  repeatDecay?: number;
+  repeatPitchShift?: number;
+} {
+  const repeat = el.getAttribute('repeat');
+  const repeatInterval = el.getAttribute('repeat.interval');
+
+  if (!repeat || !repeatInterval) {
+    return {};
+  }
+
+  return {
+    repeat: repeat === 'infinite' ? 'infinite' : parseInt(repeat),
+    repeatInterval: parseFloat(repeatInterval),
+    repeatDelay: el.hasAttribute('repeat.delay')
+      ? parseFloat(el.getAttribute('repeat.delay')!)
+      : undefined,
+    repeatDecay: el.hasAttribute('repeat.decay')
+      ? parseFloat(el.getAttribute('repeat.decay')!)
+      : undefined,
+    repeatPitchShift: el.hasAttribute('repeat.pitchShift')
+      ? parseFloat(el.getAttribute('repeat.pitchShift')!)
+      : undefined
+  };
 }
 
 /**

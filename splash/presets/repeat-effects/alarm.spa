@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <tone wave="square" freq="880" dur="0.15"
+        amp="0.7"
+        repeat="10" repeat.interval="0.3"
+        envelope="0,0.05,0.8,0.05"/>
+</spa>

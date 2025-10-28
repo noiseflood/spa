@@ -31,7 +31,7 @@ export interface SPADefinitions {
 /**
  * Union type of all possible sound elements
  */
-export type SPASound = ToneElement | NoiseElement | GroupElement;
+export type SPASound = ToneElement | NoiseElement | GroupElement | SequenceElement;
 
 /**
  * Tone/Oscillator element
@@ -47,6 +47,11 @@ export interface ToneElement {
   pan?: number | AutomationCurve;
   filter?: FilterConfig | string;
   phase?: number;
+  repeat?: number | 'infinite';
+  repeatInterval?: number;
+  repeatDelay?: number;
+  repeatDecay?: number;
+  repeatPitchShift?: number;
 }
 
 /**
@@ -61,6 +66,11 @@ export interface NoiseElement {
   envelope?: ADSREnvelope | string;
   pan?: number | AutomationCurve;
   filter?: FilterConfig | string;
+  repeat?: number | 'infinite';
+  repeatInterval?: number;
+  repeatDelay?: number;
+  repeatDecay?: number;
+  repeatPitchShift?: number;
 }
 
 /**
@@ -72,11 +82,46 @@ export interface GroupElement {
   sounds: SPASound[];
   amp?: number;
   pan?: number;
+  repeat?: number | 'infinite';
+  repeatInterval?: number;
+  repeatDelay?: number;
+  repeatDecay?: number;
+  repeatPitchShift?: number;
+}
+
+/**
+ * Sequence element for timed sound sequences
+ */
+export interface SequenceElement {
+  type: 'sequence';
+  id?: string;
+  elements: TimedSound[];
+  loop?: boolean;
+  tempo?: number; // BPM for beat-based timing
+}
+
+/**
+ * Sound element with timing information for sequences
+ */
+export interface TimedSound {
+  at: number; // Time in seconds when this element starts
+  sound: ToneElement | NoiseElement | GroupElement;
 }
 
 // ============================================================================
 // Parameter Types
 // ============================================================================
+
+/**
+ * Repeat configuration for looping sounds
+ */
+export interface RepeatConfig {
+  count: number | 'infinite';  // Number of repetitions
+  interval: number;             // Time between repetitions in seconds
+  delay?: number;               // Initial delay before first repetition
+  decay?: number;               // Volume reduction per repeat (0-1)
+  pitchShift?: number;          // Semitone shift per repeat
+}
 
 /**
  * ADSR Envelope configuration
@@ -313,6 +358,10 @@ export function isNoiseElement(sound: SPASound): sound is NoiseElement {
 
 export function isGroupElement(sound: SPASound): sound is GroupElement {
   return sound.type === 'group';
+}
+
+export function isSequenceElement(sound: SPASound): sound is SequenceElement {
+  return sound.type === 'sequence';
 }
 
 export function isAutomationCurve(value: any): value is AutomationCurve {

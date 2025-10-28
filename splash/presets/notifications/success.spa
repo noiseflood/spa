@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <group>
+    <tone wave="sine" freq="392" dur="0.12"
+          amp="0.5"
+          envelope="0.01,0.02,0.6,0.09"/>
+    <tone wave="sine" freq="523.25" dur="0.12"
+          amp="0.5"
+          envelope="0.01,0.02,0.6,0.09"/>
+    <tone wave="sine" freq="783.99" dur="0.25"
+          amp="0.6"
+          envelope="0.01,0.03,0.7,0.21"/>
+  </group>
+</spa>

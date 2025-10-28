@@ -26,12 +26,13 @@
         },
         "elements": {
           "type": "array",
-          "description": "Sound elements (tone, noise, group)",
+          "description": "Sound elements (tone, noise, group, sequence)",
           "items": {
             "oneOf": [
               { "$ref": "#/definitions/tone" },
               { "$ref": "#/definitions/noise" },
-              { "$ref": "#/definitions/group" }
+              { "$ref": "#/definitions/group" },
+              { "$ref": "#/definitions/sequence" }
             ]
           }
         }
@@ -234,6 +235,47 @@
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Optional identifier"
+        },
+        "repeat": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Number of repetitions"
+            },
+            {
+              "type": "string",
+              "enum": ["infinite"],
+              "description": "Infinite repetition"
+            }
+          ]
+        },
+        "repeat.interval": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "description": "Time between repetitions in seconds"
+        },
+        "repeat.delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Initial delay before first repetition in seconds"
+        },
+        "repeat.decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Volume reduction per repeat (0=no decay, 1=silent after first)"
+        },
+        "repeat.pitchShift": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 12,
+          "default": 0,
+          "description": "Semitone shift per repeat"
         }
       }
     },
@@ -358,6 +400,47 @@
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Optional identifier"
+        },
+        "repeat": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Number of repetitions"
+            },
+            {
+              "type": "string",
+              "enum": ["infinite"],
+              "description": "Infinite repetition"
+            }
+          ]
+        },
+        "repeat.interval": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "description": "Time between repetitions in seconds"
+        },
+        "repeat.delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Initial delay before first repetition in seconds"
+        },
+        "repeat.decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Volume reduction per repeat (0=no decay, 1=silent after first)"
+        },
+        "repeat.pitchShift": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 12,
+          "default": 0,
+          "description": "Semitone shift per repeat"
         }
       }
     },
@@ -381,9 +464,137 @@
               { "$ref": "#/definitions/group" }
             ]
           }
+        },
+        "repeat": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Number of repetitions"
+            },
+            {
+              "type": "string",
+              "enum": ["infinite"],
+              "description": "Infinite repetition"
+            }
+          ]
+        },
+        "repeat.interval": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "description": "Time between repetitions in seconds"
+        },
+        "repeat.delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Initial delay before first repetition in seconds"
+        },
+        "repeat.decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Volume reduction per repeat (0=no decay, 1=silent after first)"
+        },
+        "repeat.pitchShift": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 12,
+          "default": 0,
+          "description": "Semitone shift per repeat"
         }
       },
       "required": ["elements"]
+    },
+    "sequence": {
+      "type": "object",
+      "description": "Container for sequenced sounds with precise timing",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Optional identifier"
+        },
+        "elements": {
+          "type": "array",
+          "description": "Sequenced sound elements with timing",
+          "minItems": 1,
+          "items": {
+            "allOf": [
+              {
+                "oneOf": [
+                  { "$ref": "#/definitions/timedTone" },
+                  { "$ref": "#/definitions/timedNoise" },
+                  { "$ref": "#/definitions/timedGroup" }
+                ]
+              }
+            ]
+          }
+        },
+        "loop": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to loop the entire sequence"
+        },
+        "tempo": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "description": "Optional BPM for beat-based timing"
+        }
+      },
+      "required": ["elements"]
+    },
+    "timedTone": {
+      "allOf": [
+        { "$ref": "#/definitions/tone" },
+        {
+          "type": "object",
+          "required": ["at"],
+          "properties": {
+            "at": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Time in seconds when this element starts"
+            }
+          }
+        }
+      ]
+    },
+    "timedNoise": {
+      "allOf": [
+        { "$ref": "#/definitions/noise" },
+        {
+          "type": "object",
+          "required": ["at"],
+          "properties": {
+            "at": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Time in seconds when this element starts"
+            }
+          }
+        }
+      ]
+    },
+    "timedGroup": {
+      "allOf": [
+        { "$ref": "#/definitions/group" },
+        {
+          "type": "object",
+          "required": ["at"],
+          "properties": {
+            "at": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Time in seconds when this element starts"
+            }
+          }
+        }
+      ]
     },
     "curveType": {
       "type": "string",

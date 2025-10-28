@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ringtone: Classic phone ring sequence -->
+<spa version="1.0" xmlns="http://spa.audio/ns">
+  <sequence loop="true">
+    <!-- First ring -->
+    <group at="0">
+      <tone wave="sine" freq="440" dur="0.4"
+            amp="0.7"
+            envelope="0.01,0.05,0.8,0.05"/>
+      <tone wave="sine" freq="480" dur="0.4"
+            amp="0.7"
+            envelope="0.01,0.05,0.8,0.05"/>
+    </group>
+
+    <!-- Pause -->
+
+    <!-- Second ring -->
+    <group at="0.6">
+      <tone wave="sine" freq="440" dur="0.4"
+            amp="0.7"
+            envelope="0.01,0.05,0.8,0.05"/>
+      <tone wave="sine" freq="480" dur="0.4"
+            amp="0.7"
+            envelope="0.01,0.05,0.8,0.05"/>
+    </group>
+
+    <!-- Long pause before loop -->
+    <!-- Total sequence duration: 2 seconds -->
+  </sequence>
+</spa>

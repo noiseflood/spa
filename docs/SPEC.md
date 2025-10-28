@@ -181,6 +181,11 @@ Generates periodic waveforms.
 - `amp` - Amplitude/volume (0.0-1.0, default: 1.0)
 - `envelope` - ADSR envelope (see Envelopes section)
 - `pan` - Stereo panning (-1.0 left, 0 center, 1.0 right, default: 0)
+- `repeat` - Number of repetitions (integer or "infinite")
+- `repeat.interval` - Time between repetitions in seconds (required if repeat is set)
+- `repeat.delay` - Initial delay before first repetition (optional)
+- `repeat.decay` - Volume reduction per repeat, 0-1 (optional, default: 0)
+- `repeat.pitchShift` - Semitone shift per repeat (optional, default: 0)
 
 **Examples:**
 ```xml
@@ -192,8 +197,18 @@ Generates periodic waveforms.
       envelope="0.01,0.1,0.2,0.1"/>
 
 <!-- Quieter tone panned left -->
-<tone wave="saw" freq="220" dur="2.0" 
+<tone wave="saw" freq="220" dur="2.0"
       amp="0.5" pan="-0.7"/>
+
+<!-- Heartbeat rhythm with infinite repeat -->
+<tone wave="sine" freq="60" dur="0.1"
+      repeat="infinite" repeat.interval="0.8"
+      envelope="0.01,0.05,0.3,0.1"/>
+
+<!-- Echo effect with decay and pitch shift -->
+<tone wave="sine" freq="440" dur="0.2"
+      repeat="8" repeat.interval="0.15"
+      repeat.decay="0.3" repeat.pitchShift="-2"/>
 ```
 
 ### 2. Noise
@@ -215,6 +230,11 @@ Generates noise (random waveforms).
 - `amp` - Amplitude (0.0-1.0, default: 1.0)
 - `envelope` - ADSR envelope
 - `pan` - Stereo panning
+- `repeat` - Number of repetitions (integer or "infinite")
+- `repeat.interval` - Time between repetitions in seconds (required if repeat is set)
+- `repeat.delay` - Initial delay before first repetition (optional)
+- `repeat.decay` - Volume reduction per repeat, 0-1 (optional, default: 0)
+- `repeat.pitchShift` - Semitone shift per repeat (optional, default: 0)
 
 **Noise Types:**
 - `white` - Equal energy at all frequencies (hiss)
@@ -243,6 +263,13 @@ Layers multiple sound elements together.
 
 **Optional Attributes:**
 - `id` - Identifier for referencing
+- `amp` - Amplitude multiplier for entire group (0.0-1.0, default: 1.0)
+- `pan` - Stereo panning for entire group (-1.0 left, 0 center, 1.0 right, default: 0)
+- `repeat` - Number of repetitions for entire group (integer or "infinite")
+- `repeat.interval` - Time between group repetitions in seconds (required if repeat is set)
+- `repeat.delay` - Initial delay before first repetition (optional)
+- `repeat.decay` - Volume reduction per repeat, 0-1 (optional, default: 0)
+- `repeat.pitchShift` - Semitone shift per repeat (optional, default: 0)
 
 **Notes:**
 - All child elements play simultaneously
@@ -268,6 +295,49 @@ Layers multiple sound elements together.
          amp="0.2"
          envelope="0,0.1,0,0.2"/>
 </group>
+```
+
+### 4. Sequence
+
+Container for scheduling sounds at specific times in a timeline.
+
+```xml
+<sequence id="melody" loop="false" tempo="120">
+  <tone wave="sine" freq="440" dur="0.2" at="0"/>
+  <tone wave="sine" freq="523" dur="0.2" at="0.25"/>
+  <tone wave="sine" freq="659" dur="0.2" at="0.5"/>
+  <group at="0.75">
+    <tone wave="sine" freq="523" dur="0.4"/>
+    <tone wave="sine" freq="659" dur="0.4"/>
+  </group>
+</sequence>
+```
+
+**Optional Attributes:**
+- `id` - Identifier for referencing
+- `loop` - Whether to loop the entire sequence (true/false, default: false)
+- `tempo` - Optional BPM for beat-based timing (20-300)
+
+**Child Elements:**
+All child elements (tone, noise, group) MUST have an `at` attribute:
+- `at` - Time in seconds when this element starts playing
+
+**Notes:**
+- Child elements are scheduled at their specified times
+- Elements can overlap if their durations extend past the next element's start time
+- Sequences enable musical melodies, rhythms, and complex timed compositions
+
+**Example - Notification Sound:**
+```xml
+<sequence>
+  <!-- Three ascending tones -->
+  <tone wave="sine" freq="523" dur="0.15" at="0"
+        envelope="0.01,0.03,0.6,0.11"/>
+  <tone wave="sine" freq="659" dur="0.15" at="0.2"
+        envelope="0.01,0.03,0.6,0.11"/>
+  <tone wave="sine" freq="784" dur="0.25" at="0.4"
+        envelope="0.01,0.04,0.7,0.20"/>
+</sequence>
 ```
 
 ---

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa version="1.0">
+  <tone wave="sine" freq="800" dur="0.05"
+        amp="0.8"
+        envelope="0,0.02,0,0.03"/>
+</spa>
