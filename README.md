@@ -1,4 +1,4 @@
-# SPA - Scalable Parametric Audio
+# SPA - Synthetic Parametric Audio
 ## The SVG of Sound Effects
 
 A declarative XML format for procedural sound effects on the web.

@@ -1,5 +1,5 @@
 /**
- * @spa.audio/react - React integration for SPA (Scalable Parametric Audio)
+ * @spa.audio/react - React integration for SPA (Synthetic Parametric Audio)
  */
 
 // Hooks

@@ -90,7 +90,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>SPA - Scalable Parametric Audio</title>
+        <title>SPA - Synthetic Parametric Audio</title>
         <meta name="description" content="The SVG of Sound Effects - Empowering AI to generate procedural audio" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
@@ -223,7 +223,7 @@ export default function Home() {
           {/* Footer */}
           <footer className="py-12 mt-16 border-t border-primary/10 text-center">
             <p className="text-gray-400 mb-4">
-              SPA - Scalable Parametric Audio | Open Source | MIT License
+              SPA - Synthetic Parametric Audio | Open Source | MIT License
             </p>
             <div className="flex gap-8 justify-center">
               <a href="https://github.com/noiseflood/spa" className="text-primary hover:text-secondary transition-colors">

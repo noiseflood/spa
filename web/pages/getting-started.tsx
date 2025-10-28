@@ -9,7 +9,7 @@ export default function GettingStarted() {
     <>
       <Head>
         <title>Getting Started - SPA</title>
-        <meta name="description" content="Learn how to use SPA - Scalable Parametric Audio" />
+        <meta name="description" content="Learn how to use SPA - Synthetic Parametric Audio" />
       </Head>
 
       <div className="min-h-screen bg-background text-gray-200">
@@ -32,8 +32,8 @@ export default function GettingStarted() {
             <h2 className="text-2xl font-semibold text-primary mb-4">1. Understanding SPA</h2>
             <div className="bg-surface rounded-lg p-6 border border-primary/10">
               <p className="mb-4">
-                SPA (Scalable Parametric Audio) is an XML-based format for defining procedural sound effects.
-                Think of it as "SVG for audio" - declarative, scalable, and perfect for AI generation.
+                SPA (Synthetic Parametric Audio) is an XML-based format for defining procedural sound effects.
+                Think of it as "SVG for audio" - declarative, Synthetic, and perfect for AI generation.
               </p>
               <div className="bg-background rounded p-4 font-mono text-sm text-accent">
                 <pre>{`<spa version="1.0">

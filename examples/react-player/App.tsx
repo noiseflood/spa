@@ -184,7 +184,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>SPA (Scalable Parametric Audio) - The SVG of Sound Effects</p>
+        <p>SPA (Synthetic Parametric Audio) - The SVG of Sound Effects</p>
       </footer>
     </div>
   );

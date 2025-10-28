@@ -1,5 +1,5 @@
 /**
- * @spa.audio/core - Core library for parsing and rendering SPA (Scalable Parametric Audio)
+ * @spa.audio/core - Core library for parsing and rendering SPA (Synthetic Parametric Audio)
  */
 
 export { parseSPA } from './parser';

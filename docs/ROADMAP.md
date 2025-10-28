@@ -149,7 +149,7 @@ if (errors.length > 0) {
 **Make editing .spa files nice**
 
 ```
-Name: SPA (Scalable Parametric Audio)
+Name: SPA (Synthetic Parametric Audio)
 Publisher: spa-audio
 ```
 

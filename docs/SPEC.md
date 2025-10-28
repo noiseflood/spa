@@ -1,9 +1,9 @@
-# SPA - Scalable Parametric Audio
+# SPA - Synthetic Parametric Audio
 ## Format Specification v1.0
 
 ### Overview
 
-SPA (Scalable Parametric Audio) is a declarative, XML-based file format for defining simple synthesized sound effects. Inspired by SVG's approach to vector graphics, SPA provides a human-readable, text-based format for generating audio procedurally rather than storing raw waveform data.
+SPA (Synthetic Parametric Audio) is a declarative, XML-based file format for defining simple synthesized sound effects. Inspired by SVG's approach to vector graphics, SPA provides a human-readable, text-based format for generating audio procedurally rather than storing raw waveform data.
 
 **Key Features:**
 - Declarative syntax (describe what you want, not how to generate it)

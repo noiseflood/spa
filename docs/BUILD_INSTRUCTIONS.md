@@ -597,7 +597,7 @@ export default {
 {
   "name": "spa-audio",
   "version": "1.0.0",
-  "description": "Scalable Parametric Audio - procedural sound effects",
+  "description": "Synthetic Parametric Audio - procedural sound effects",
   "main": "dist/spa.js",
   "module": "dist/spa.esm.js",
   "types": "dist/spa.d.ts",

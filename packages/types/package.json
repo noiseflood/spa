@@ -1,7 +1,7 @@
 {
   "name": "@spa.audio/types",
   "version": "1.0.0",
-  "description": "Shared TypeScript types for SPA (Scalable Parametric Audio)",
+  "description": "Shared TypeScript types for SPA (Synthetic Parametric Audio)",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

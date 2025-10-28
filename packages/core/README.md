@@ -1,6 +1,6 @@
 # spa-audio
 
-Core JavaScript library for parsing and rendering SPA (Scalable Parametric Audio) files.
+Core JavaScript library for parsing and rendering SPA (Synthetic Parametric Audio) files.
 
 ## Features
 

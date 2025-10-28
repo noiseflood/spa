@@ -2,7 +2,7 @@
 
 ## What is SPA?
 
-**SPA (Scalable Parametric Audio)** is the SVG of sound effects - a tiny, declarative XML format for generating simple sounds procedurally.
+**SPA (Synthetic Parametric Audio)** is the SVG of sound effects - a tiny, declarative XML format for generating simple sounds procedurally.
 
 **Perfect for:** Button clicks, UI feedback, web game sounds, notifications
 

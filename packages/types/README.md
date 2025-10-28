@@ -1,6 +1,6 @@
 # @spa.audio/types
 
-Shared TypeScript type definitions for SPA (Scalable Parametric Audio).
+Shared TypeScript type definitions for SPA (Synthetic Parametric Audio).
 
 ## Installation
 
