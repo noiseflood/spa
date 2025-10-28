@@ -9,10 +9,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Invalid path' });
   }
 
-  // In Next.js, when running from splash directory, we need to use the correct base path
-  const basePath = process.cwd().endsWith('splash')
+  // In Next.js, when running from web directory, we need to use the correct base path
+  const basePath = process.cwd().endsWith('web')
     ? process.cwd()
-    : path.join(process.cwd(), 'splash');
+    : path.join(process.cwd(), 'web');
 
   const filePath = path.join(basePath, 'presets', ...pathArray);
   const presetsDir = path.join(basePath, 'presets');

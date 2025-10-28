@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  const basePath = process.cwd().endsWith('splash')
+  const basePath = process.cwd().endsWith('web')
     ? process.cwd()
-    : path.join(process.cwd(), 'splash');
+    : path.join(process.cwd(), 'web');
 
   const presetsDir = path.join(basePath, 'presets');
 
