@@ -1,214 +1,123 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Head from 'next/head'
+import {
+  parseSPA,
+  playSPA,
+  type SPADocument,
+  type SPASound,
+  type ToneElement,
+  type NoiseElement,
+  type GroupElement,
+  type ADSREnvelope,
+  type AutomationCurve,
+  type FilterConfig
+} from '@spa/core'
 import { getPresetCategories, loadPreset as loadPresetFile, getPresetPath } from '../utils/presetLoader'
 
-type LayerType = 'tone' | 'noise'
-type WaveType = 'sine' | 'square' | 'sawtooth' | 'triangle'
-type NoiseColor = 'white' | 'pink' | 'brown' | 'blue'
-
-interface Envelope {
-  attack: number
-  decay: number
-  sustain: number
-  release: number
-}
-
-interface FrequencyAutomation {
-  start: number
-  end: number
-  curve: 'linear' | 'exp' | 'smooth'
-}
-
-interface AmplitudeAutomation {
-  start: number
-  end: number
-  curve: 'linear' | 'exp' | 'smooth'
-}
-
-interface FilterParams {
-  enabled: boolean
-  type: 'lowpass' | 'highpass' | 'bandpass' | 'notch'
-  freq: number
-  resonance: number
-}
-
-interface RepeatParams {
-  enabled: boolean
-  count: number | 'infinite'
-  interval: number
-  delay?: number
-  decay?: number
-  pitchShift?: number
-}
-
-interface ToneParams {
-  wave: WaveType
-  freq: number | FrequencyAutomation
-  dur: number
-  amp: number | AmplitudeAutomation
-  pan: number
-  envelope: Envelope
-  useFreqAutomation?: boolean
-  useAmpAutomation?: boolean
-  filter?: FilterParams
-  repeat?: RepeatParams
-}
-
-interface NoiseParams {
-  color: NoiseColor
-  dur: number
-  amp: number
-  pan: number
-  envelope: Envelope
-  filter?: FilterParams
-  repeat?: RepeatParams
-}
-
-interface Layer {
+// Editor-specific types for UI state
+interface EditorLayer {
   id: number
-  type: LayerType
-  params: ToneParams | NoiseParams
+  sound: SPASound
 }
 
 export default function Editor() {
-  const [layers, setLayers] = useState<Layer[]>([])
+  const [layers, setLayers] = useState<EditorLayer[]>([])
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [xmlOutput, setXmlOutput] = useState('')
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
   const [showPresets, setShowPresets] = useState(false)
-  const [expandedCategory, setExpandedCategory] = useState<string | null>('ui')
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback')
   const audioContextRef = useRef<AudioContext | null>(null)
-  const currentSourcesRef = useRef<any[]>([])
   const layerIdCounterRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const layersRef = useRef<Layer[]>(layers)
+  const currentPlaybackRef = useRef<Promise<void> | null>(null)
+
+  // Get preset categories
+  const presetCategories = getPresetCategories()
 
   useEffect(() => {
     // Add initial layer
     addLayer()
   }, [])
 
-  // Move keyboard shortcut effect after function definitions
-
   useEffect(() => {
     updateXMLOutput()
-    // Keep the ref in sync with current layers
-    layersRef.current = layers
   }, [layers])
 
-  const getDefaultParams = (type: LayerType): ToneParams | NoiseParams => {
+  const getDefaultSound = (type: 'tone' | 'noise' = 'tone'): SPASound => {
     if (type === 'tone') {
       return {
+        type: 'tone',
         wave: 'sine',
         freq: 440,
         dur: 0.5,
         amp: 1,
-        pan: 0,
         envelope: {
           attack: 0.01,
           decay: 0.1,
           sustain: 0.7,
           release: 0.2
-        },
-        useFreqAutomation: false,
-        useAmpAutomation: false,
-        filter: {
-          enabled: false,
-          type: 'lowpass',
-          freq: 1000,
-          resonance: 1
         }
-      } as ToneParams
+      } as ToneElement
     } else {
       return {
+        type: 'noise',
         color: 'white',
         dur: 0.5,
-        amp: 0.5,
-        pan: 0,
+        amp: 1,
         envelope: {
           attack: 0.01,
           decay: 0.1,
           sustain: 0.7,
           release: 0.2
-        },
-        filter: {
-          enabled: false,
-          type: 'lowpass',
-          freq: 1000,
-          resonance: 1
         }
-      } as NoiseParams
+      } as NoiseElement
     }
   }
 
-  const addLayer = (type: LayerType = 'tone') => {
+  const addLayer = (type: 'tone' | 'noise' = 'tone') => {
     // Stop any currently playing sound when adding a layer
     if (isPlaying) {
       stopSound()
     }
-    const newLayer: Layer = {
+
+    const newLayer: EditorLayer = {
       id: layerIdCounterRef.current++,
-      type,
-      params: getDefaultParams(type)
+      sound: getDefaultSound(type)
     }
+
     setLayers([...layers, newLayer])
     setCurrentLayerId(newLayer.id)
   }
 
-  const deleteLayer = (id: number) => {
-    // Stop any currently playing sound when deleting a layer
+  const removeLayer = (id: number) => {
+    // Stop any currently playing sound
     if (isPlaying) {
       stopSound()
     }
-    const newLayers = layers.filter(l => l.id !== id)
-    setLayers(newLayers)
+
+    setLayers(layers.filter(l => l.id !== id))
+
+    // Update current layer selection
     if (currentLayerId === id) {
-      setCurrentLayerId(newLayers.length > 0 ? newLayers[0].id : null)
+      const remaining = layers.filter(l => l.id !== id)
+      setCurrentLayerId(remaining.length > 0 ? remaining[0].id : null)
     }
   }
 
-  const updateLayer = (id: number, updates: Partial<Layer>) => {
-    // Stop any currently playing sound when layer changes
-    if (isPlaying) {
-      stopSound()
-    }
-    setLayers(layers.map(layer =>
-      layer.id === id ? { ...layer, ...updates } : layer
+  const updateLayer = (id: number, updates: Partial<EditorLayer>) => {
+    setLayers(layers.map(l =>
+      l.id === id ? { ...l, ...updates } : l
     ))
   }
 
-  const updateLayerParam = (id: number, paramName: string, value: any) => {
-    // Stop any currently playing sound when parameters change
-    if (isPlaying) {
-      stopSound()
-    }
-    setLayers(layers.map(layer => {
-      if (layer.id !== id) return layer
-
-      if (['attack', 'decay', 'sustain', 'release'].includes(paramName)) {
-        return {
-          ...layer,
-          params: {
-            ...layer.params,
-            envelope: {
-              ...layer.params.envelope,
-              [paramName]: value
-            }
-          }
-        }
-      }
-
-      return {
-        ...layer,
-        params: {
-          ...layer.params,
-          [paramName]: value
-        }
-      }
-    }))
+  const updateLayerSound = (id: number, soundUpdates: Partial<SPASound>) => {
+    setLayers(layers.map(l =>
+      l.id === id ? { ...l, sound: { ...l.sound, ...soundUpdates } } : l
+    ))
   }
 
   const updateXMLOutput = () => {
@@ -220,108 +129,112 @@ export default function Editor() {
       return
     }
 
+    // Create a SPA document from our layers
+    const doc: SPADocument = {
+      version: '1.0',
+      sounds: layers.map(l => l.sound)
+    }
+
+    // Generate XML manually (we could also add a toXML function to the package)
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<spa version="1.0">\n'
 
     if (layers.length > 1) {
       xml += '  <group>\n'
       layers.forEach(layer => {
-        xml += '    ' + generateLayerXML(layer) + '\n'
+        xml += '    ' + soundToXML(layer.sound) + '\n'
       })
       xml += '  </group>\n'
     } else {
-      xml += '  ' + generateLayerXML(layers[0]) + '\n'
+      xml += '  ' + soundToXML(layers[0].sound) + '\n'
     }
 
     xml += '</spa>'
     setXmlOutput(xml)
   }
 
-  const generateLayerXML = (layer: Layer): string => {
+  const soundToXML = (sound: SPASound): string => {
     let xml = '<'
 
-    if (layer.type === 'tone') {
-      const params = layer.params as ToneParams
-      xml += `tone wave="${params.wave}"`
+    if (sound.type === 'tone') {
+      const tone = sound as ToneElement
+      xml += `tone wave="${tone.wave}"`
 
       // Handle frequency
-      if (params.useFreqAutomation && typeof params.freq === 'object') {
-        xml += ` freq.start="${params.freq.start}" freq.end="${params.freq.end}" freq.curve="${params.freq.curve}"`
+      if (typeof tone.freq === 'object' && 'start' in tone.freq) {
+        const freq = tone.freq as AutomationCurve
+        xml += ` freq.start="${freq.start}" freq.end="${freq.end}" freq.curve="${freq.curve}"`
       } else {
-        xml += ` freq="${typeof params.freq === 'number' ? params.freq : 440}"`
+        xml += ` freq="${tone.freq}"`
       }
 
-      xml += ` dur="${params.dur}"`
+      xml += ` dur="${tone.dur}"`
 
       // Handle amplitude
-      if (params.useAmpAutomation && typeof params.amp === 'object') {
-        xml += ` amp.start="${params.amp.start}" amp.end="${params.amp.end}" amp.curve="${params.amp.curve}"`
-      } else if (typeof params.amp === 'number' && params.amp !== 1) {
-        xml += ` amp="${params.amp}"`
+      if (typeof tone.amp === 'object' && 'start' in tone.amp) {
+        const amp = tone.amp as AutomationCurve
+        xml += ` amp.start="${amp.start}" amp.end="${amp.end}" amp.curve="${amp.curve}"`
+      } else if (tone.amp !== undefined && tone.amp !== 1) {
+        xml += ` amp="${tone.amp}"`
       }
 
-      if (params.pan !== 0) {
-        xml += ` pan="${params.pan}"`
-      }
-
-      // Handle filter
-      if (params.filter?.enabled) {
-        xml += ` filter="${params.filter.type}" cutoff="${params.filter.freq}"`
-        if (params.filter.resonance !== 1) {
-          xml += ` resonance="${params.filter.resonance}"`
-        }
-      }
-
-      const env = params.envelope
-      xml += `\n        envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
-
-      // Handle repeat
-      if (params.repeat?.enabled) {
-        xml += `\n        repeat="${params.repeat.count}" repeat.interval="${params.repeat.interval}"`
-        if (params.repeat.delay && params.repeat.delay > 0) {
-          xml += ` repeat.delay="${params.repeat.delay}"`
-        }
-        if (params.repeat.decay && params.repeat.decay > 0) {
-          xml += ` repeat.decay="${params.repeat.decay}"`
-        }
-        if (params.repeat.pitchShift && params.repeat.pitchShift !== 0) {
-          xml += ` repeat.pitchShift="${params.repeat.pitchShift}"`
-        }
-      }
-    } else {
-      const params = layer.params as NoiseParams
-      xml += `noise color="${params.color}" dur="${params.dur}"`
-
-      if (params.amp !== 1) {
-        xml += ` amp="${params.amp}"`
-      }
-
-      if (params.pan !== 0) {
-        xml += ` pan="${params.pan}"`
+      if (tone.pan !== undefined && tone.pan !== 0) {
+        xml += ` pan="${tone.pan}"`
       }
 
       // Handle filter
-      if (params.filter?.enabled) {
-        xml += ` filter="${params.filter.type}" cutoff="${params.filter.freq}"`
-        if (params.filter.resonance !== 1) {
-          xml += ` resonance="${params.filter.resonance}"`
+      if (tone.filter) {
+        xml += ` filter="${tone.filter.type}" cutoff="${tone.filter.cutoff}"`
+        if (tone.filter.resonance !== undefined && tone.filter.resonance !== 1) {
+          xml += ` resonance="${tone.filter.resonance}"`
         }
       }
 
-      const env = params.envelope
-      xml += `\n         envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+      // Handle envelope
+      if (tone.envelope) {
+        const env = tone.envelope
+        xml += `\n        envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+      }
 
       // Handle repeat
-      if (params.repeat?.enabled) {
-        xml += `\n         repeat="${params.repeat.count}" repeat.interval="${params.repeat.interval}"`
-        if (params.repeat.delay && params.repeat.delay > 0) {
-          xml += ` repeat.delay="${params.repeat.delay}"`
+      if (tone.repeat !== undefined && tone.repeatInterval !== undefined) {
+        xml += `\n        repeat="${tone.repeat}" repeat.interval="${tone.repeatInterval}"`
+        if (tone.repeatDelay) xml += ` repeat.delay="${tone.repeatDelay}"`
+        if (tone.repeatDecay) xml += ` repeat.decay="${tone.repeatDecay}"`
+        if (tone.repeatPitchShift) xml += ` repeat.pitchShift="${tone.repeatPitchShift}"`
+      }
+
+    } else if (sound.type === 'noise') {
+      const noise = sound as NoiseElement
+      xml += `noise color="${noise.color}" dur="${noise.dur}"`
+
+      if (noise.amp !== undefined && noise.amp !== 1) {
+        xml += ` amp="${noise.amp}"`
+      }
+
+      if (noise.pan !== undefined && noise.pan !== 0) {
+        xml += ` pan="${noise.pan}"`
+      }
+
+      // Handle filter
+      if (noise.filter) {
+        xml += ` filter="${noise.filter.type}" cutoff="${noise.filter.cutoff}"`
+        if (noise.filter.resonance !== undefined && noise.filter.resonance !== 1) {
+          xml += ` resonance="${noise.filter.resonance}"`
         }
-        if (params.repeat.decay && params.repeat.decay > 0) {
-          xml += ` repeat.decay="${params.repeat.decay}"`
-        }
-        if (params.repeat.pitchShift && params.repeat.pitchShift !== 0) {
-          xml += ` repeat.pitchShift="${params.repeat.pitchShift}"`
-        }
+      }
+
+      // Handle envelope
+      if (noise.envelope) {
+        const env = noise.envelope
+        xml += `\n         envelope="${env.attack},${env.decay},${env.sustain},${env.release}"`
+      }
+
+      // Handle repeat
+      if (noise.repeat !== undefined && noise.repeatInterval !== undefined) {
+        xml += `\n         repeat="${noise.repeat}" repeat.interval="${noise.repeatInterval}"`
+        if (noise.repeatDelay) xml += ` repeat.delay="${noise.repeatDelay}"`
+        if (noise.repeatDecay) xml += ` repeat.decay="${noise.repeatDecay}"`
+        if (noise.repeatPitchShift) xml += ` repeat.pitchShift="${noise.repeatPitchShift}"`
       }
     }
 
@@ -337,574 +250,45 @@ export default function Editor() {
     stopSound()
     setIsPlaying(true)
 
-    const sources: any[] = []
-    // Use layersRef.current to get the most current layers
-    const currentLayers = layersRef.current
-
-    // Calculate max duration including repeats
-    let maxDuration = 0
-    for (const layer of currentLayers) {
-      let layerDuration = layer.params.dur
-      if (layer.params.repeat?.enabled) {
-        const repeatCount = layer.params.repeat.count === 'infinite' ? 20 : layer.params.repeat.count // Cap infinite at 20 for playback
-        const repeatInterval = layer.params.repeat.interval || 0.5
-        const repeatDelay = layer.params.repeat.delay || 0
-        layerDuration = repeatDelay + layer.params.dur + (repeatCount - 1) * (layer.params.dur + repeatInterval)
-      }
-      maxDuration = Math.max(maxDuration, layerDuration)
-    }
-
-    for (const layer of currentLayers) {
-      if (layer.type === 'tone') {
-        const source = playTone(layer.params as ToneParams)
-        sources.push(...source)
-      } else {
-        const source = playNoise(layer.params as NoiseParams)
-        sources.push(...source)
-      }
-    }
-
-    currentSourcesRef.current = sources
-
-    setTimeout(() => {
-      stopSound()
-    }, maxDuration * 1000 + 100)
-  }
-
-  const playTone = (params: ToneParams) => {
-    const ctx = audioContextRef.current!
-    const oscillator = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-    const panNode = ctx.createStereoPanner()
-
-    oscillator.type = params.wave
-
-    // Handle frequency automation
-    if (params.useFreqAutomation && typeof params.freq === 'object') {
-      const now = ctx.currentTime
-      oscillator.frequency.setValueAtTime(params.freq.start, now)
-
-      if (params.freq.curve === 'exp') {
-        oscillator.frequency.exponentialRampToValueAtTime(params.freq.end, now + params.dur)
-      } else if (params.freq.curve === 'smooth') {
-        oscillator.frequency.setTargetAtTime(params.freq.end, now, params.dur / 4)
-      } else {
-        oscillator.frequency.linearRampToValueAtTime(params.freq.end, now + params.dur)
-      }
-    } else {
-      oscillator.frequency.value = typeof params.freq === 'number' ? params.freq : 440
-    }
-
-    const now = ctx.currentTime
-    const env = params.envelope
-
-    // Get base amplitude
-    let baseAmp = 1
-    if (params.useAmpAutomation && typeof params.amp === 'object') {
-      baseAmp = params.amp.start
-    } else if (typeof params.amp === 'number') {
-      baseAmp = params.amp
-    }
-
-    // Apply ADSR envelope
-    gainNode.gain.setValueAtTime(0, now)
-    gainNode.gain.linearRampToValueAtTime(baseAmp, now + env.attack)
-    gainNode.gain.linearRampToValueAtTime(baseAmp * env.sustain, now + env.attack + env.decay)
-    gainNode.gain.setValueAtTime(baseAmp * env.sustain, now + params.dur - env.release)
-    gainNode.gain.linearRampToValueAtTime(0, now + params.dur)
-
-    panNode.pan.value = params.pan
-
-    // Create filter if enabled
-    let filterNode: BiquadFilterNode | null = null
-    if (params.filter?.enabled && params.filter.freq && params.filter.resonance) {
-      filterNode = ctx.createBiquadFilter()
-      filterNode.type = params.filter.type || 'lowpass'
-      filterNode.frequency.value = Math.max(20, Math.min(20000, params.filter.freq))
-      filterNode.Q.value = Math.max(0.1, Math.min(30, params.filter.resonance))
-    }
-
-    // Build audio chain
-    oscillator.connect(gainNode)
-
-    // Apply amplitude automation if enabled
-    if (params.useAmpAutomation && typeof params.amp === 'object') {
-      const ampGain = ctx.createGain()
-      ampGain.gain.setValueAtTime(1, now)
-
-      const ratio = params.amp.end / params.amp.start
-      if (params.amp.curve === 'exp' && ratio > 0) {
-        ampGain.gain.exponentialRampToValueAtTime(ratio, now + params.dur)
-      } else if (params.amp.curve === 'smooth') {
-        ampGain.gain.setTargetAtTime(ratio, now, params.dur / 4)
-      } else {
-        ampGain.gain.linearRampToValueAtTime(ratio, now + params.dur)
-      }
-
-      gainNode.connect(ampGain)
-      if (filterNode) {
-        ampGain.connect(filterNode)
-        filterNode.connect(panNode)
-      } else {
-        ampGain.connect(panNode)
-      }
-    } else {
-      if (filterNode) {
-        gainNode.connect(filterNode)
-        filterNode.connect(panNode)
-      } else {
-        gainNode.connect(panNode)
-      }
-    }
-    panNode.connect(ctx.destination)
-
-    // Handle repeat
-    const oscillators = []
-
-    if (params.repeat?.enabled) {
-      const repeatCount = params.repeat.count === 'infinite' ? 20 : params.repeat.count // Cap infinite at 20 for playback
-      const repeatInterval = params.repeat.interval || 0.5
-      const repeatDelay = params.repeat.delay || 0
-      const repeatDecay = params.repeat.decay || 0
-      const pitchShift = params.repeat.pitchShift || 0
-
-      for (let i = 0; i < repeatCount; i++) {
-        const startTime = now + repeatDelay + i * (params.dur + repeatInterval)
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        const pan = ctx.createStereoPanner()
-
-        osc.type = params.wave
-
-        // Apply pitch shift
-        const pitchRatio = Math.pow(2, (pitchShift * i) / 12)
-
-        // Handle frequency with pitch shift
-        if (params.useFreqAutomation && typeof params.freq === 'object') {
-          osc.frequency.setValueAtTime(params.freq.start * pitchRatio, startTime)
-          if (params.freq.curve === 'exp') {
-            osc.frequency.exponentialRampToValueAtTime(params.freq.end * pitchRatio, startTime + params.dur)
-          } else if (params.freq.curve === 'smooth') {
-            osc.frequency.setTargetAtTime(params.freq.end * pitchRatio, startTime, params.dur / 4)
-          } else {
-            osc.frequency.linearRampToValueAtTime(params.freq.end * pitchRatio, startTime + params.dur)
-          }
-        } else {
-          const baseFreq = typeof params.freq === 'number' ? params.freq : 440
-          osc.frequency.value = baseFreq * pitchRatio
-        }
-
-        // Apply decay
-        const decayMultiplier = Math.pow(1 - repeatDecay, i)
-        const repBaseAmp = baseAmp * decayMultiplier
-
-        // Apply ADSR envelope for this repeat
-        gain.gain.setValueAtTime(0, startTime)
-        gain.gain.linearRampToValueAtTime(repBaseAmp, startTime + env.attack)
-        gain.gain.linearRampToValueAtTime(repBaseAmp * env.sustain, startTime + env.attack + env.decay)
-        gain.gain.setValueAtTime(repBaseAmp * env.sustain, startTime + params.dur - env.release)
-        gain.gain.linearRampToValueAtTime(0, startTime + params.dur)
-
-        pan.pan.value = params.pan
-
-        // Connect the chain
-        osc.connect(gain)
-
-        // Apply filter if enabled
-        if (filterNode) {
-          const repFilter = ctx.createBiquadFilter()
-          repFilter.type = params.filter!.type || 'lowpass'
-          repFilter.frequency.value = Math.max(20, Math.min(20000, params.filter!.freq))
-          repFilter.Q.value = Math.max(0.1, Math.min(30, params.filter!.resonance))
-          gain.connect(repFilter)
-          repFilter.connect(pan)
-        } else {
-          gain.connect(pan)
-        }
-
-        pan.connect(ctx.destination)
-
-        osc.start(startTime)
-        osc.stop(startTime + params.dur)
-        oscillators.push(osc)
-      }
-    } else {
-      oscillator.start(now)
-      oscillator.stop(now + params.dur)
-      oscillators.push(oscillator)
-    }
-
-    return oscillators
-  }
-
-  const playNoise = (params: NoiseParams) => {
-    const ctx = audioContextRef.current!
-    const bufferSize = ctx.sampleRate * params.dur
-    const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate)
-
-    for (let channel = 0; channel < 2; channel++) {
-      const data = buffer.getChannelData(channel)
-      generateNoiseData(data, params.color)
-    }
-
-    const source = ctx.createBufferSource()
-    const gainNode = ctx.createGain()
-    const panNode = ctx.createStereoPanner()
-
-    source.buffer = buffer
-
-    const now = ctx.currentTime
-    const env = params.envelope
-
-    gainNode.gain.setValueAtTime(0, now)
-    gainNode.gain.linearRampToValueAtTime(params.amp, now + env.attack)
-    gainNode.gain.linearRampToValueAtTime(params.amp * env.sustain, now + env.attack + env.decay)
-    gainNode.gain.setValueAtTime(params.amp * env.sustain, now + params.dur - env.release)
-    gainNode.gain.linearRampToValueAtTime(0, now + params.dur)
-
-    panNode.pan.value = params.pan
-
-    // Create filter if enabled
-    let filterNode: BiquadFilterNode | null = null
-    if (params.filter?.enabled && params.filter.freq && params.filter.resonance) {
-      filterNode = ctx.createBiquadFilter()
-      filterNode.type = params.filter.type || 'lowpass'
-      filterNode.frequency.value = Math.max(20, Math.min(20000, params.filter.freq))
-      filterNode.Q.value = Math.max(0.1, Math.min(30, params.filter.resonance))
-    }
-
-    // Build audio chain
-    source.connect(gainNode)
-    if (filterNode) {
-      gainNode.connect(filterNode)
-      filterNode.connect(panNode)
-    } else {
-      gainNode.connect(panNode)
-    }
-    panNode.connect(ctx.destination)
-
-    // Handle repeat
-    const sources = []
-
-    if (params.repeat?.enabled) {
-      const repeatCount = params.repeat.count === 'infinite' ? 20 : params.repeat.count // Cap infinite at 20 for playback
-      const repeatInterval = params.repeat.interval || 0.5
-      const repeatDelay = params.repeat.delay || 0
-      const repeatDecay = params.repeat.decay || 0
-      const pitchShift = params.repeat.pitchShift || 0
-
-      for (let i = 0; i < repeatCount; i++) {
-        const startTime = now + repeatDelay + i * (params.dur + repeatInterval)
-        const src = ctx.createBufferSource()
-        const gain = ctx.createGain()
-        const pan = ctx.createStereoPanner()
-
-        // Apply pitch shift by changing playback rate
-        const pitchRatio = Math.pow(2, (pitchShift * i) / 12)
-        src.playbackRate.value = pitchRatio
-
-        // Create a new buffer for each repeat (noise should be different each time)
-        const repBuffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate)
-        for (let channel = 0; channel < 2; channel++) {
-          const repData = repBuffer.getChannelData(channel)
-          generateNoiseData(repData, params.color)
-        }
-        src.buffer = repBuffer
-
-        // Apply decay
-        const decayMultiplier = Math.pow(1 - repeatDecay, i)
-        const repAmp = params.amp * decayMultiplier
-
-        // Apply ADSR envelope for this repeat
-        gain.gain.setValueAtTime(0, startTime)
-        gain.gain.linearRampToValueAtTime(repAmp, startTime + env.attack)
-        gain.gain.linearRampToValueAtTime(repAmp * env.sustain, startTime + env.attack + env.decay)
-        gain.gain.setValueAtTime(repAmp * env.sustain, startTime + params.dur - env.release)
-        gain.gain.linearRampToValueAtTime(0, startTime + params.dur)
-
-        pan.pan.value = params.pan
-
-        // Connect the chain
-        src.connect(gain)
-
-        // Apply filter if enabled
-        if (filterNode) {
-          const repFilter = ctx.createBiquadFilter()
-          repFilter.type = params.filter!.type || 'lowpass'
-          repFilter.frequency.value = Math.max(20, Math.min(20000, params.filter!.freq))
-          repFilter.Q.value = Math.max(0.1, Math.min(30, params.filter!.resonance))
-          gain.connect(repFilter)
-          repFilter.connect(pan)
-        } else {
-          gain.connect(pan)
-        }
-
-        pan.connect(ctx.destination)
-
-        src.start(startTime)
-        sources.push(src)
-      }
-    } else {
-      source.start(now)
-      sources.push(source)
-    }
-
-    return sources
-  }
-
-  const generateNoiseData = (data: Float32Array, color: NoiseColor) => {
-    const length = data.length
-
-    switch (color) {
-      case 'white':
-        for (let i = 0; i < length; i++) {
-          data[i] = Math.random() * 2 - 1
-        }
-        break
-      case 'pink':
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
-        for (let i = 0; i < length; i++) {
-          const white = Math.random() * 2 - 1
-          b0 = 0.99886 * b0 + white * 0.0555179
-          b1 = 0.99332 * b1 + white * 0.0750759
-          b2 = 0.96900 * b2 + white * 0.1538520
-          b3 = 0.86650 * b3 + white * 0.3104856
-          b4 = 0.55000 * b4 + white * 0.5329522
-          b5 = -0.7616 * b5 - white * 0.0168980
-          data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11
-          b6 = white * 0.115926
-        }
-        break
-      case 'brown':
-        let lastOut = 0
-        for (let i = 0; i < length; i++) {
-          const white = Math.random() * 2 - 1
-          lastOut = (lastOut + (0.02 * white)) / 1.02
-          data[i] = lastOut * 3.5
-        }
-        break
-      case 'blue':
-        let lastValue = 0
-        for (let i = 0; i < length; i++) {
-          const white = Math.random() * 2 - 1
-          data[i] = (white - lastValue) * 0.5
-          lastValue = white
-        }
-        break
+    try {
+      // Use the SPA package's playSPA function
+      currentPlaybackRef.current = playSPA(xmlOutput)
+      await currentPlaybackRef.current
+    } catch (error) {
+      console.error('Error playing sound:', error)
+    } finally {
+      setIsPlaying(false)
+      currentPlaybackRef.current = null
     }
   }
 
   const stopSound = () => {
-    // Stop all current sources
-    currentSourcesRef.current.forEach(source => {
-      try {
-        source.stop()
-        source.disconnect()
-      } catch (e) {}
-    })
-    currentSourcesRef.current = []
-
-    // Clear any scheduled timeouts
-    if (audioContextRef.current) {
-      // Suspend and resume the audio context to clear any scheduled events
-      audioContextRef.current.suspend().then(() => {
-        audioContextRef.current?.resume()
-      })
-    }
-
+    // The playSPA function returns a promise, but we can't really stop it mid-playback
+    // This is a limitation we should address in the package
     setIsPlaying(false)
-  }
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(xmlOutput)
-  }
-
-  const resetEditor = () => {
-    // Stop any currently playing sound
-    if (isPlaying) {
-      stopSound()
-    }
-    setLayers([])
-    setCurrentLayerId(null)
-    layerIdCounterRef.current = 0
-    addLayer()
-  }
-
-  const parseSPAXML = (xmlText: string): Layer[] => {
-    try {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(xmlText, 'text/xml')
-
-      // Check for parsing errors
-      const parseError = doc.querySelector('parsererror')
-      if (parseError) {
-        throw new Error('Invalid XML format')
-      }
-
-      const spaElement = doc.querySelector('spa')
-      if (!spaElement) {
-        throw new Error('Invalid SPA file: missing <spa> root element')
-      }
-
-      const newLayers: Layer[] = []
-      let layerId = 0
-
-      // Parse all tone and noise elements
-      const processElement = (element: Element) => {
-        if (element.tagName === 'tone') {
-          const wave = (element.getAttribute('wave') || 'sine') as WaveType
-          const dur = parseFloat(element.getAttribute('dur') || '0.5')
-          const pan = parseFloat(element.getAttribute('pan') || '0')
-
-          // Parse frequency (might be automated)
-          let freq: number | FrequencyAutomation = 440
-          let useFreqAutomation = false
-
-          if (element.hasAttribute('freq.start')) {
-            freq = {
-              start: parseFloat(element.getAttribute('freq.start') || '440'),
-              end: parseFloat(element.getAttribute('freq.end') || '880'),
-              curve: (element.getAttribute('freq.curve') || 'linear') as 'linear' | 'exp' | 'smooth'
-            }
-            useFreqAutomation = true
-          } else {
-            freq = parseFloat(element.getAttribute('freq') || '440')
-          }
-
-          // Parse amplitude (might be automated)
-          let amp: number | AmplitudeAutomation = 1
-          let useAmpAutomation = false
-
-          if (element.hasAttribute('amp.start')) {
-            amp = {
-              start: parseFloat(element.getAttribute('amp.start') || '0.5'),
-              end: parseFloat(element.getAttribute('amp.end') || '1'),
-              curve: (element.getAttribute('amp.curve') || 'linear') as 'linear' | 'exp' | 'smooth'
-            }
-            useAmpAutomation = true
-          } else {
-            amp = parseFloat(element.getAttribute('amp') || '1')
-          }
-
-          // Parse envelope
-          const envelopeStr = element.getAttribute('envelope') || '0.01,0.1,0.7,0.2'
-          const envValues = envelopeStr.split(',').map(v => parseFloat(v))
-          const envelope: Envelope = {
-            attack: envValues[0] || 0.01,
-            decay: envValues[1] || 0.1,
-            sustain: envValues[2] || 0.7,
-            release: envValues[3] || 0.2
-          }
-
-          // Parse filter
-          let filter: FilterParams = {
-            enabled: false,
-            type: 'lowpass',
-            freq: 1000,
-            resonance: 1
-          }
-
-          if (element.hasAttribute('filter')) {
-            filter = {
-              enabled: true,
-              type: (element.getAttribute('filter') || 'lowpass') as 'lowpass' | 'highpass' | 'bandpass' | 'notch',
-              freq: parseFloat(element.getAttribute('cutoff') || '1000'),
-              resonance: parseFloat(element.getAttribute('resonance') || '1')
-            }
-          }
-
-          newLayers.push({
-            id: layerId++,
-            type: 'tone',
-            params: {
-              wave,
-              freq,
-              dur,
-              amp,
-              pan,
-              envelope,
-              useFreqAutomation,
-              useAmpAutomation,
-              filter
-            } as ToneParams
-          })
-        } else if (element.tagName === 'noise') {
-          const color = (element.getAttribute('color') || 'white') as NoiseColor
-          const dur = parseFloat(element.getAttribute('dur') || '0.5')
-          const amp = parseFloat(element.getAttribute('amp') || '0.5')
-          const pan = parseFloat(element.getAttribute('pan') || '0')
-
-          // Parse envelope
-          const envelopeStr = element.getAttribute('envelope') || '0.01,0.1,0.7,0.2'
-          const envValues = envelopeStr.split(',').map(v => parseFloat(v))
-          const envelope: Envelope = {
-            attack: envValues[0] || 0.01,
-            decay: envValues[1] || 0.1,
-            sustain: envValues[2] || 0.7,
-            release: envValues[3] || 0.2
-          }
-
-          // Parse filter
-          let filter: FilterParams = {
-            enabled: false,
-            type: 'lowpass',
-            freq: 1000,
-            resonance: 1
-          }
-
-          if (element.hasAttribute('filter')) {
-            filter = {
-              enabled: true,
-              type: (element.getAttribute('filter') || 'lowpass') as 'lowpass' | 'highpass' | 'bandpass' | 'notch',
-              freq: parseFloat(element.getAttribute('cutoff') || '1000'),
-              resonance: parseFloat(element.getAttribute('resonance') || '1')
-            }
-          }
-
-          newLayers.push({
-            id: layerId++,
-            type: 'noise',
-            params: {
-              color,
-              dur,
-              amp,
-              pan,
-              envelope,
-              filter
-            } as NoiseParams
-          })
-        } else if (element.tagName === 'group' || element.tagName === 'spa') {
-          // Recursively process children
-          Array.from(element.children).forEach(processElement)
-        }
-      }
-
-      // Process all elements
-      Array.from(spaElement.children).forEach(processElement)
-
-      if (newLayers.length === 0) {
-        throw new Error('No valid sound layers found in the file')
-      }
-
-      return newLayers
-    } catch (error: any) {
-      alert(`Failed to import SPA file: ${error.message}`)
-      return []
-    }
+    currentPlaybackRef.current = null
   }
 
   const importFromText = () => {
-    const parsedLayers = parseSPAXML(importText)
-    if (parsedLayers.length > 0) {
-      // Stop any currently playing sound
-      if (isPlaying) {
-        stopSound()
+    try {
+      const doc = parseSPA(importText)
+      const editorLayers: EditorLayer[] = doc.sounds.map((sound, index) => ({
+        id: index,
+        sound
+      }))
+
+      if (editorLayers.length > 0) {
+        if (isPlaying) {
+          stopSound()
+        }
+        setLayers(editorLayers)
+        layerIdCounterRef.current = editorLayers.length
+        setCurrentLayerId(editorLayers[0].id)
+        setShowImportModal(false)
+        setImportText('')
       }
-      setLayers(parsedLayers)
-      layerIdCounterRef.current = parsedLayers.length
-      setCurrentLayerId(parsedLayers[0].id)
-      setShowImportModal(false)
-      setImportText('')
+    } catch (error) {
+      alert(`Failed to import SPA file: ${error}`)
     }
   }
 
@@ -915,31 +299,31 @@ export default function Editor() {
     const reader = new FileReader()
     reader.onload = (e) => {
       const content = e.target?.result as string
-      const parsedLayers = parseSPAXML(content)
-      if (parsedLayers.length > 0) {
-        // Stop any currently playing sound
-        if (isPlaying) {
-          stopSound()
+      try {
+        const doc = parseSPA(content)
+        const editorLayers: EditorLayer[] = doc.sounds.map((sound, index) => ({
+          id: index,
+          sound
+        }))
+
+        if (editorLayers.length > 0) {
+          if (isPlaying) {
+            stopSound()
+          }
+          setLayers(editorLayers)
+          layerIdCounterRef.current = editorLayers.length
+          setCurrentLayerId(editorLayers[0].id)
+          setShowImportModal(false)
         }
-        setLayers(parsedLayers)
-        layerIdCounterRef.current = parsedLayers.length
-        setCurrentLayerId(parsedLayers[0].id)
-        setShowImportModal(false)
+      } catch (error) {
+        alert(`Failed to import SPA file: ${error}`)
       }
     }
     reader.readAsText(file)
-
-    // Reset the input so the same file can be selected again
     event.target.value = ''
   }
 
-  // Get preset categories from the preset loader
-  const presetCategories = getPresetCategories()
-
-  // Legacy preset categories for backwards compatibility (will be removed)
-
   const loadPreset = async (category: string, preset: string) => {
-    // Stop any currently playing sound
     if (isPlaying) {
       stopSound()
     }
@@ -948,11 +332,16 @@ export default function Editor() {
     if (presetPath) {
       try {
         const spaContent = await loadPresetFile(presetPath)
-        const parsedLayers = parseSPAXML(spaContent)
-        if (parsedLayers.length > 0) {
-          layerIdCounterRef.current = parsedLayers.length
-          setLayers(parsedLayers)
-          setCurrentLayerId(parsedLayers[0].id)
+        const doc = parseSPA(spaContent)
+        const editorLayers: EditorLayer[] = doc.sounds.map((sound, index) => ({
+          id: index,
+          sound
+        }))
+
+        if (editorLayers.length > 0) {
+          layerIdCounterRef.current = editorLayers.length
+          setLayers(editorLayers)
+          setCurrentLayerId(editorLayers[0].id)
         }
       } catch (error) {
         console.error(`Failed to load preset ${preset}:`, error)
@@ -962,26 +351,18 @@ export default function Editor() {
 
   const currentLayer = layers.find(l => l.id === currentLayerId)
 
-  // Keyboard shortcut for play/stop
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle spacebar for play/stop
       if (e.code === 'Space') {
         const activeElement = document.activeElement as HTMLElement
-
-        // Only skip spacebar handling for textareas (where we need to type spaces)
-        // For all other elements including sliders, we want spacebar to play/stop
         if (activeElement && activeElement.tagName === 'TEXTAREA') {
-          return // Let textarea handle spacebar normally
+          return
         }
-
-        // Prevent all default spacebar behaviors (scrolling, button clicking, slider focusing)
         e.preventDefault()
-
-        // Trigger play/stop using current layer ref
         if (isPlaying) {
           stopSound()
-        } else if (layersRef.current.length > 0) {
+        } else if (layers.length > 0) {
           playSound()
         }
       }
@@ -989,20 +370,20 @@ export default function Editor() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPlaying]) // Removed layers.length dependency since we use ref now
+  }, [isPlaying, layers, xmlOutput])
 
   return (
-    <>
+    <div className="min-h-screen bg-background text-white">
       <Head>
         <title>SPA Sound Editor</title>
       </Head>
 
-      <div className="min-h-screen bg-background text-gray-200 flex flex-col">
-        {/* Header */}
-        <header className="bg-surface px-6 py-4 flex items-center justify-between border-b border-primary/10">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-primary hover:text-secondary transition-colors">
-              ← Back
+      {/* Header */}
+      <header className="bg-surface border-b border-primary">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <Link href="/" className="text-sm text-gray-400 hover:text-white">
+              ← Back to Home
             </Link>
             <button
               onClick={() => setShowPresets(!showPresets)}
@@ -1017,27 +398,49 @@ export default function Editor() {
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             SPA Sound Editor
           </h1>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="px-4 py-2 bg-surface border border-primary rounded-md hover:bg-primary transition-colors text-sm"
-            >
-              Import .spa
-            </button>
-            <button
-              onClick={resetEditor}
-              className="px-4 py-2 bg-surface border border-primary rounded-md hover:bg-primary transition-colors text-sm"
-            >
-              Reset
-            </button>
-            <button
-              onClick={copyToClipboard}
-              className="px-4 py-2 bg-primary rounded-md hover:bg-primary-dark transition-colors text-sm"
-            >
-              Copy XML
-            </button>
-          </div>
-        </header>
+          <p className="text-gray-400 text-sm mt-1">
+            Visual editor for creating SPA sound effects
+          </p>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex flex-col h-[calc(100vh-120px)]">
+        {/* Toolbar */}
+        <div className="bg-surface px-6 py-3 border-b border-primary/10 flex items-center gap-4">
+          <button
+            onClick={() => addLayer('tone')}
+            className="px-4 py-2 bg-primary hover:bg-primary/80 rounded-md transition-colors"
+          >
+            + Add Tone
+          </button>
+          <button
+            onClick={() => addLayer('noise')}
+            className="px-4 py-2 bg-primary hover:bg-primary/80 rounded-md transition-colors"
+          >
+            + Add Noise
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-surface border border-primary hover:bg-primary/20 rounded-md transition-colors"
+          >
+            Import SPA
+          </button>
+          <button
+            onClick={() => {
+              const blob = new Blob([xmlOutput], { type: 'text/xml' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = 'sound.spa'
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+            className="px-4 py-2 bg-surface border border-primary hover:bg-primary/20 rounded-md transition-colors"
+          >
+            Export SPA
+          </button>
+        </div>
 
         <div className="flex-1 flex">
           {/* Presets Sidebar */}
@@ -1082,760 +485,531 @@ export default function Editor() {
             </div>
           )}
 
-          {/* Main Editor */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-[300px_1fr_400px] gap-px bg-primary/10">
-          {/* Layers Panel */}
-          <div className="bg-background flex flex-col">
-            <div className="bg-surface px-4 py-3 flex items-center justify-between border-b border-primary/10">
-              <h2 className="text-primary font-semibold">Sound Layers</h2>
-              <button
-                onClick={() => addLayer()}
-                className="px-3 py-1 bg-primary text-white text-sm rounded hover:bg-primary-dark transition-colors"
-              >
-                + Add Layer
-              </button>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-              {layers.map(layer => (
-                <div
-                  key={layer.id}
-                  onClick={() => setCurrentLayerId(layer.id)}
-                  className={`bg-surface border rounded-md mb-2 cursor-pointer transition-all ${
-                    currentLayerId === layer.id
-                      ? 'border-primary shadow-lg shadow-primary/20'
-                      : 'border-primary/20 hover:border-primary/40'
-                  }`}
-                >
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-primary text-white text-xs rounded uppercase">
-                        {layer.type}
-                      </span>
-                      <span className="text-sm">
-                        {layer.type === 'tone'
-                          ? (() => {
-                              const params = layer.params as ToneParams
-                              const freqDisplay = typeof params.freq === 'object'
-                                ? `${params.freq.start}→${params.freq.end}Hz`
-                                : `${params.freq}Hz`
-                              return `${params.wave} @ ${freqDisplay}`
-                            })()
-                          : `${(layer.params as NoiseParams).color} noise`}
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteLayer(layer.id)
-                      }}
-                      className="text-gray-400 hover:text-red-500 text-xl leading-none"
-                    >
-                      ×
-                    </button>
+          {/* Editor Panel */}
+          <div className="flex-1 flex">
+            {/* Layers Panel */}
+            <div className="w-80 bg-surface border-r border-primary/10 overflow-y-auto">
+              <div className="p-4">
+                <h2 className="text-primary font-semibold mb-4">Layers</h2>
+                {layers.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No layers yet. Add a tone or noise to start.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {layers.map(layer => (
+                      <div
+                        key={layer.id}
+                        className={`p-3 bg-background rounded-lg cursor-pointer border-2 transition-colors ${
+                          currentLayerId === layer.id
+                            ? 'border-primary'
+                            : 'border-transparent hover:border-primary/50'
+                        }`}
+                        onClick={() => setCurrentLayerId(layer.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">
+                            {layer.sound.type === 'tone'
+                              ? `Tone (${(layer.sound as ToneElement).wave})`
+                              : `Noise (${(layer.sound as NoiseElement).color})`
+                            }
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeLayer(layer.id)
+                            }}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-              {layers.length === 0 && (
-                <p className="text-gray-500 text-center mt-8">No layers yet. Add one to start!</p>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Parameters Panel */}
-          <div className="bg-background flex flex-col">
-            <div className="bg-surface px-4 py-3 border-b border-primary/10">
-              <h2 className="text-primary font-semibold">Layer Parameters</h2>
-            </div>
-            <div className="flex-1 p-6 overflow-y-auto">
+            {/* Parameters Panel */}
+            <div className="flex-1 bg-background p-6 overflow-y-auto">
+              <h2 className="text-primary font-semibold mb-4">Parameters</h2>
               {currentLayer ? (
-                <div className="space-y-6">
-                  {/* Type selector */}
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Type</label>
-                    <select
-                      value={currentLayer.type}
-                      onChange={(e) => {
-                        const newType = e.target.value as LayerType
-                        updateLayer(currentLayer.id, {
-                          type: newType,
-                          params: getDefaultParams(newType)
-                        })
-                      }}
-                      className="w-full px-3 py-2 bg-surface border border-primary/20 rounded text-white"
-                    >
-                      <option value="tone">Tone</option>
-                      <option value="noise">Noise</option>
-                    </select>
-                  </div>
-
-                  {/* Type-specific parameters */}
-                  {currentLayer.type === 'tone' && (
+                <div className="space-y-4 max-w-2xl">
+                  {currentLayer.sound.type === 'tone' ? (
+                    // Tone Parameters
                     <>
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Waveform</label>
-                        <select
-                          value={(currentLayer.params as ToneParams).wave}
-                          onChange={(e) => updateLayerParam(currentLayer.id, 'wave', e.target.value)}
-                          className="w-full px-3 py-2 bg-surface border border-primary/20 rounded text-white"
-                        >
-                          <option value="sine">Sine</option>
-                          <option value="square">Square</option>
-                          <option value="sawtooth">Sawtooth</option>
-                          <option value="triangle">Triangle</option>
-                        </select>
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Waveform</h3>
+                        <div className="flex gap-2">
+                          {['sine', 'square', 'sawtooth', 'triangle'].map(wave => (
+                            <button
+                              key={wave}
+                              onClick={() => updateLayerSound(currentLayer.id, { wave } as Partial<ToneElement>)}
+                              className={`px-4 py-2 rounded-md transition-colors ${
+                                (currentLayer.sound as ToneElement).wave === wave
+                                  ? 'bg-primary text-white'
+                                  : 'bg-background border border-primary/20 hover:bg-primary/10'
+                              }`}
+                            >
+                              {wave}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
-                      {/* Frequency Control */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm text-gray-400">
-                            Frequency
-                          </label>
-                          <label className="flex items-center gap-2 text-xs">
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Frequency</h3>
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Frequency (Hz)</span>
                             <input
-                              type="checkbox"
-                              checked={(currentLayer.params as ToneParams).useFreqAutomation}
-                              onChange={(e) => {
-                                const params = currentLayer.params as ToneParams
-                                if (e.target.checked) {
-                                  updateLayer(currentLayer.id, {
-                                    params: {
-                                      ...params,
-                                      freq: { start: 440, end: 880, curve: 'linear' },
-                                      useFreqAutomation: true
-                                    }
-                                  })
-                                } else {
-                                  updateLayer(currentLayer.id, {
-                                    params: {
-                                      ...params,
-                                      freq: 440,
-                                      useFreqAutomation: false
-                                    }
-                                  })
-                                }
-                              }}
+                              type="number"
+                              value={typeof (currentLayer.sound as ToneElement).freq === 'number'
+                                ? (currentLayer.sound as ToneElement).freq
+                                : ((currentLayer.sound as ToneElement).freq as AutomationCurve).start}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { freq: parseFloat(e.target.value) || 440 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="20"
+                              max="20000"
                             />
-                            <span className="text-primary">Automate</span>
+                          </label>
+                          <input
+                            type="range"
+                            value={typeof (currentLayer.sound as ToneElement).freq === 'number'
+                              ? (currentLayer.sound as ToneElement).freq
+                              : ((currentLayer.sound as ToneElement).freq as AutomationCurve).start}
+                            onChange={(e) => updateLayerSound(currentLayer.id, { freq: parseFloat(e.target.value) } as Partial<ToneElement>)}
+                            className="w-full"
+                            min="20"
+                            max="2000"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Duration</h3>
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Duration (s)</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).dur}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { dur: parseFloat(e.target.value) || 0.5 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0.01"
+                              max="10"
+                              step="0.01"
+                            />
+                          </label>
+                          <input
+                            type="range"
+                            value={(currentLayer.sound as ToneElement).dur}
+                            onChange={(e) => updateLayerSound(currentLayer.id, { dur: parseFloat(e.target.value) } as Partial<ToneElement>)}
+                            className="w-full"
+                            min="0.01"
+                            max="5"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Amplitude</h3>
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Volume</span>
+                            <input
+                              type="number"
+                              value={typeof (currentLayer.sound as ToneElement).amp === 'number'
+                                ? (currentLayer.sound as ToneElement).amp
+                                : ((currentLayer.sound as ToneElement).amp as AutomationCurve)?.start || 1}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { amp: parseFloat(e.target.value) || 1 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <input
+                            type="range"
+                            value={typeof (currentLayer.sound as ToneElement).amp === 'number'
+                              ? (currentLayer.sound as ToneElement).amp
+                              : ((currentLayer.sound as ToneElement).amp as AutomationCurve)?.start || 1}
+                            onChange={(e) => updateLayerSound(currentLayer.id, { amp: parseFloat(e.target.value) } as Partial<ToneElement>)}
+                            className="w-full"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Envelope (ADSR)</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Attack</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).envelope?.attack || 0.01}
+                              onChange={(e) => {
+                                const tone = currentLayer.sound as ToneElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    attack: parseFloat(e.target.value) || 0.01
+                                  }
+                                } as Partial<ToneElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Decay</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).envelope?.decay || 0.1}
+                              onChange={(e) => {
+                                const tone = currentLayer.sound as ToneElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    decay: parseFloat(e.target.value) || 0.1
+                                  }
+                                } as Partial<ToneElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Sustain</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).envelope?.sustain || 0.7}
+                              onChange={(e) => {
+                                const tone = currentLayer.sound as ToneElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    sustain: parseFloat(e.target.value) || 0.7
+                                  }
+                                } as Partial<ToneElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Release</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).envelope?.release || 0.2}
+                              onChange={(e) => {
+                                const tone = currentLayer.sound as ToneElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(tone.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    release: parseFloat(e.target.value) || 0.2
+                                  }
+                                } as Partial<ToneElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
                           </label>
                         </div>
+                      </div>
 
-                        {(currentLayer.params as ToneParams).useFreqAutomation ? (
-                          <div className="space-y-2 bg-surface/50 p-3 rounded">
-                            <div>
-                              <label className="text-xs text-gray-500">Start: {typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).start : 440}Hz</label>
-                              <input
-                                type="range"
-                                min="20"
-                                max="2000"
-                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).start : 440}
-                                onChange={(e) => {
-                                  const params = currentLayer.params as ToneParams
-                                  const freq = typeof params.freq === 'object' ? params.freq : { start: 440, end: 880, curve: 'linear' as const }
-                                  updateLayer(currentLayer.id, {
-                                    params: {
-                                      ...params,
-                                      freq: { ...freq, start: Number(e.target.value) }
-                                    }
-                                  })
-                                }}
-                                className="w-full"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-gray-500">End: {typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).end : 880}Hz</label>
-                              <input
-                                type="range"
-                                min="20"
-                                max="2000"
-                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).end : 880}
-                                onChange={(e) => {
-                                  const params = currentLayer.params as ToneParams
-                                  const freq = typeof params.freq === 'object' ? params.freq : { start: 440, end: 880, curve: 'linear' as const }
-                                  updateLayer(currentLayer.id, {
-                                    params: {
-                                      ...params,
-                                      freq: { ...freq, end: Number(e.target.value) }
-                                    }
-                                  })
-                                }}
-                                className="w-full"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-gray-500">Curve</label>
-                              <select
-                                value={typeof (currentLayer.params as ToneParams).freq === 'object' ? ((currentLayer.params as ToneParams).freq as FrequencyAutomation).curve : 'linear'}
-                                onChange={(e) => {
-                                  const params = currentLayer.params as ToneParams
-                                  const freq = typeof params.freq === 'object' ? params.freq : { start: 440, end: 880, curve: 'linear' as const }
-                                  updateLayer(currentLayer.id, {
-                                    params: {
-                                      ...params,
-                                      freq: { ...freq, curve: e.target.value as 'linear' | 'exp' | 'smooth' }
-                                    }
-                                  })
-                                }}
-                                className="w-full px-2 py-1 bg-surface border border-primary/20 rounded text-white text-sm"
-                              >
-                                <option value="linear">Linear</option>
-                                <option value="exp">Exponential</option>
-                                <option value="smooth">Smooth</option>
-                              </select>
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <label className="text-xs text-gray-500">{(currentLayer.params as ToneParams).freq}Hz</label>
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Repeat</h3>
+                        <div className="space-y-3">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Count</span>
                             <input
-                              type="range"
-                              min="20"
-                              max="2000"
-                              value={typeof (currentLayer.params as ToneParams).freq === 'number' ? (currentLayer.params as ToneParams).freq : 440}
-                              onChange={(e) => updateLayerParam(currentLayer.id, 'freq', Number(e.target.value))}
-                              className="w-full"
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).repeat || 1}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeat: parseInt(e.target.value) || 1 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="1"
+                              max="100"
                             />
-                          </div>
-                        )}
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Interval (s)</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).repeatInterval || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatInterval: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="10"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Delay (s)</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).repeatDelay || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDelay: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="10"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Decay</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).repeatDecay || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDecay: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Pitch Shift</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as ToneElement).repeatPitchShift || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatPitchShift: parseFloat(e.target.value) || 0 } as Partial<ToneElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="-12"
+                              max="12"
+                              step="0.1"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // Noise Parameters
+                    <>
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Noise Type</h3>
+                        <div className="flex gap-2">
+                          {['white', 'pink', 'brown'].map(color => (
+                            <button
+                              key={color}
+                              onClick={() => updateLayerSound(currentLayer.id, { color } as Partial<NoiseElement>)}
+                              className={`px-4 py-2 rounded-md transition-colors ${
+                                (currentLayer.sound as NoiseElement).color === color
+                                  ? 'bg-primary text-white'
+                                  : 'bg-background border border-primary/20 hover:bg-primary/10'
+                              }`}
+                            >
+                              {color}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Duration</h3>
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Duration (s)</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).dur}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { dur: parseFloat(e.target.value) || 0.5 } as Partial<NoiseElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0.01"
+                              max="10"
+                              step="0.01"
+                            />
+                          </label>
+                          <input
+                            type="range"
+                            value={(currentLayer.sound as NoiseElement).dur}
+                            onChange={(e) => updateLayerSound(currentLayer.id, { dur: parseFloat(e.target.value) } as Partial<NoiseElement>)}
+                            className="w-full"
+                            min="0.01"
+                            max="5"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Amplitude</h3>
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Volume</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).amp || 1}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { amp: parseFloat(e.target.value) || 1 } as Partial<NoiseElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <input
+                            type="range"
+                            value={(currentLayer.sound as NoiseElement).amp || 1}
+                            onChange={(e) => updateLayerSound(currentLayer.id, { amp: parseFloat(e.target.value) } as Partial<NoiseElement>)}
+                            className="w-full"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Envelope (ADSR)</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Attack</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).envelope?.attack || 0.01}
+                              onChange={(e) => {
+                                const noise = currentLayer.sound as NoiseElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    attack: parseFloat(e.target.value) || 0.01
+                                  }
+                                } as Partial<NoiseElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Decay</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).envelope?.decay || 0.1}
+                              onChange={(e) => {
+                                const noise = currentLayer.sound as NoiseElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    decay: parseFloat(e.target.value) || 0.1
+                                  }
+                                } as Partial<NoiseElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Sustain</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).envelope?.sustain || 0.7}
+                              onChange={(e) => {
+                                const noise = currentLayer.sound as NoiseElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    sustain: parseFloat(e.target.value) || 0.7
+                                  }
+                                } as Partial<NoiseElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-sm text-gray-400">Release</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).envelope?.release || 0.2}
+                              onChange={(e) => {
+                                const noise = currentLayer.sound as NoiseElement
+                                updateLayerSound(currentLayer.id, {
+                                  envelope: {
+                                    ...(noise.envelope || { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 }),
+                                    release: parseFloat(e.target.value) || 0.2
+                                  }
+                                } as Partial<NoiseElement>)
+                              }}
+                              className="w-full px-2 py-1 bg-background rounded border border-primary/20"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-lg space-y-4">
+                        <h3 className="text-accent font-medium">Repeat</h3>
+                        <div className="space-y-3">
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Count</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).repeat || 1}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeat: parseInt(e.target.value) || 1 } as Partial<NoiseElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="1"
+                              max="100"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Interval (s)</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).repeatInterval || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatInterval: parseFloat(e.target.value) || 0 } as Partial<NoiseElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="10"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Delay (s)</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).repeatDelay || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDelay: parseFloat(e.target.value) || 0 } as Partial<NoiseElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="10"
+                              step="0.01"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Decay</span>
+                            <input
+                              type="number"
+                              value={(currentLayer.sound as NoiseElement).repeatDecay || 0}
+                              onChange={(e) => updateLayerSound(currentLayer.id, { repeatDecay: parseFloat(e.target.value) || 0 } as Partial<NoiseElement>)}
+                              className="w-24 px-2 py-1 bg-background rounded border border-primary/20 text-right"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                            />
+                          </label>
+                        </div>
                       </div>
                     </>
                   )}
-
-                  {currentLayer.type === 'noise' && (
-                    <div>
-                      <label className="block text-sm text-gray-400 mb-2">Color</label>
-                      <select
-                        value={(currentLayer.params as NoiseParams).color}
-                        onChange={(e) => updateLayerParam(currentLayer.id, 'color', e.target.value)}
-                        className="w-full px-3 py-2 bg-surface border border-primary/20 rounded text-white"
-                      >
-                        <option value="white">White</option>
-                        <option value="pink">Pink</option>
-                        <option value="brown">Brown</option>
-                        <option value="blue">Blue</option>
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Common parameters */}
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">
-                      Duration: {currentLayer.params.dur}s
-                    </label>
-                    <input
-                      type="range"
-                      min="0.01"
-                      max="3"
-                      step="0.01"
-                      value={currentLayer.params.dur}
-                      onChange={(e) => updateLayerParam(currentLayer.id, 'dur', Number(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Amplitude Control */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm text-gray-400">
-                        Amplitude
-                      </label>
-                      {currentLayer.type === 'tone' && (
-                        <label className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={(currentLayer.params as ToneParams).useAmpAutomation}
-                            onChange={(e) => {
-                              const params = currentLayer.params as ToneParams
-                              if (e.target.checked) {
-                                updateLayer(currentLayer.id, {
-                                  params: {
-                                    ...params,
-                                    amp: { start: 0.5, end: 1, curve: 'linear' },
-                                    useAmpAutomation: true
-                                  }
-                                })
-                              } else {
-                                updateLayer(currentLayer.id, {
-                                  params: {
-                                    ...params,
-                                    amp: 1,
-                                    useAmpAutomation: false
-                                  }
-                                })
-                              }
-                            }}
-                          />
-                          <span className="text-primary">Automate</span>
-                        </label>
-                      )}
-                    </div>
-
-                    {currentLayer.type === 'tone' && (currentLayer.params as ToneParams).useAmpAutomation ? (
-                      <div className="space-y-2 bg-surface/50 p-3 rounded">
-                        <div>
-                          <label className="text-xs text-gray-500">Start: {typeof (currentLayer.params as ToneParams).amp === 'object' ? (currentLayer.params as ToneParams).amp.start : 0.5}</label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={typeof (currentLayer.params as ToneParams).amp === 'object' ? (currentLayer.params as ToneParams).amp.start : 0.5}
-                            onChange={(e) => {
-                              const params = currentLayer.params as ToneParams
-                              const amp = typeof params.amp === 'object' ? params.amp : { start: 0.5, end: 1, curve: 'linear' as const }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...params,
-                                  amp: { ...amp, start: Number(e.target.value) }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500">End: {typeof (currentLayer.params as ToneParams).amp === 'object' ? (currentLayer.params as ToneParams).amp.end : 1}</label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={typeof (currentLayer.params as ToneParams).amp === 'object' ? (currentLayer.params as ToneParams).amp.end : 1}
-                            onChange={(e) => {
-                              const params = currentLayer.params as ToneParams
-                              const amp = typeof params.amp === 'object' ? params.amp : { start: 0.5, end: 1, curve: 'linear' as const }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...params,
-                                  amp: { ...amp, end: Number(e.target.value) }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500">Curve</label>
-                          <select
-                            value={typeof (currentLayer.params as ToneParams).amp === 'object' ? (currentLayer.params as ToneParams).amp.curve : 'linear'}
-                            onChange={(e) => {
-                              const params = currentLayer.params as ToneParams
-                              const amp = typeof params.amp === 'object' ? params.amp : { start: 0.5, end: 1, curve: 'linear' as const }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...params,
-                                  amp: { ...amp, curve: e.target.value as 'linear' | 'exp' | 'smooth' }
-                                }
-                              })
-                            }}
-                            className="w-full px-2 py-1 bg-surface border border-primary/20 rounded text-white text-sm"
-                          >
-                            <option value="linear">Linear</option>
-                            <option value="exp">Exponential</option>
-                            <option value="smooth">Smooth</option>
-                          </select>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="text-xs text-gray-500">{typeof currentLayer.params.amp === 'number' ? currentLayer.params.amp : 1}</label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={typeof currentLayer.params.amp === 'number' ? currentLayer.params.amp : 1}
-                          onChange={(e) => updateLayerParam(currentLayer.id, 'amp', Number(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">
-                      Pan: {currentLayer.params.pan}
-                    </label>
-                    <input
-                      type="range"
-                      min="-1"
-                      max="1"
-                      step="0.01"
-                      value={currentLayer.params.pan}
-                      onChange={(e) => updateLayerParam(currentLayer.id, 'pan', Number(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Filter */}
-                  <div className="bg-surface p-4 rounded-lg border border-primary/10">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-primary text-sm font-semibold uppercase tracking-wider">
-                        Filter
-                      </h4>
-                      <label className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={currentLayer.params.filter?.enabled || false}
-                          onChange={(e) => {
-                            const currentFilter = currentLayer.params.filter || {
-                              enabled: false,
-                              type: 'lowpass' as const,
-                              freq: 1000,
-                              resonance: 1
-                            }
-                            updateLayer(currentLayer.id, {
-                              params: {
-                                ...currentLayer.params,
-                                filter: {
-                                  ...currentFilter,
-                                  enabled: e.target.checked
-                                }
-                              }
-                            })
-                          }}
-                        />
-                        <span className="text-primary">Enable</span>
-                      </label>
-                    </div>
-
-                    {currentLayer.params.filter?.enabled && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">Type</label>
-                          <select
-                            value={currentLayer.params.filter?.type || 'lowpass'}
-                            onChange={(e) => {
-                              const currentFilter = currentLayer.params.filter || {
-                                enabled: true,
-                                type: 'lowpass' as const,
-                                freq: 1000,
-                                resonance: 1
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  filter: {
-                                    ...currentFilter,
-                                    type: e.target.value as 'lowpass' | 'highpass' | 'bandpass' | 'notch'
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full px-3 py-2 bg-surface border border-primary/20 rounded text-white"
-                          >
-                            <option value="lowpass">Lowpass</option>
-                            <option value="highpass">Highpass</option>
-                            <option value="bandpass">Bandpass</option>
-                            <option value="notch">Notch</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Cutoff: {currentLayer.params.filter?.freq || 1000}Hz
-                          </label>
-                          <input
-                            type="range"
-                            min="20"
-                            max="20000"
-                            value={currentLayer.params.filter?.freq || 1000}
-                            onChange={(e) => {
-                              const currentFilter = currentLayer.params.filter || {
-                                enabled: true,
-                                type: 'lowpass' as const,
-                                freq: 1000,
-                                resonance: 1
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  filter: {
-                                    ...currentFilter,
-                                    freq: Number(e.target.value)
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Resonance (Q): {currentLayer.params.filter?.resonance || 1}
-                          </label>
-                          <input
-                            type="range"
-                            min="0.1"
-                            max="30"
-                            step="0.1"
-                            value={currentLayer.params.filter?.resonance || 1}
-                            onChange={(e) => {
-                              const currentFilter = currentLayer.params.filter || {
-                                enabled: true,
-                                type: 'lowpass' as const,
-                                freq: 1000,
-                                resonance: 1
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  filter: {
-                                    ...currentFilter,
-                                    resonance: Number(e.target.value)
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Envelope */}
-                  <div className="bg-surface p-4 rounded-lg border border-primary/10">
-                    <h4 className="text-primary text-sm font-semibold mb-4 uppercase tracking-wider">
-                      Envelope (ADSR)
-                    </h4>
-                    <div className="space-y-3">
-                      {['attack', 'decay', 'sustain', 'release'].map(param => (
-                        <div key={param}>
-                          <label className="block text-sm text-gray-400 mb-1 capitalize">
-                            {param}: {currentLayer.params.envelope[param as keyof Envelope]}
-                          </label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={currentLayer.params.envelope[param as keyof Envelope]}
-                            onChange={(e) => updateLayerParam(currentLayer.id, param, Number(e.target.value))}
-                            className="w-full"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Repeat */}
-                  <div className="bg-surface p-4 rounded-lg border border-primary/10">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-primary text-sm font-semibold uppercase tracking-wider">
-                        Repeat
-                      </h4>
-                      <label className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={currentLayer.params.repeat?.enabled || false}
-                          onChange={(e) => {
-                            const currentRepeat = currentLayer.params.repeat || {
-                              enabled: false,
-                              count: 3,
-                              interval: 0.5,
-                              delay: 0,
-                              decay: 0,
-                              pitchShift: 0
-                            }
-                            updateLayer(currentLayer.id, {
-                              params: {
-                                ...currentLayer.params,
-                                repeat: {
-                                  ...currentRepeat,
-                                  enabled: e.target.checked
-                                }
-                              }
-                            })
-                          }}
-                        />
-                        <span className="text-primary">Enable</span>
-                      </label>
-                    </div>
-
-                    {currentLayer.params.repeat?.enabled && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Count: {currentLayer.params.repeat?.count === 'infinite' ? '∞' : currentLayer.params.repeat?.count || 3}
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="range"
-                              min="1"
-                              max="50"
-                              value={currentLayer.params.repeat?.count === 'infinite' ? 50 : (currentLayer.params.repeat?.count || 3)}
-                              onChange={(e) => {
-                                const currentRepeat = currentLayer.params.repeat || {
-                                  enabled: true,
-                                  count: 3,
-                                  interval: 0.5
-                                }
-                                updateLayer(currentLayer.id, {
-                                  params: {
-                                    ...currentLayer.params,
-                                    repeat: {
-                                      ...currentRepeat,
-                                      count: Number(e.target.value)
-                                    }
-                                  }
-                                })
-                              }}
-                              disabled={currentLayer.params.repeat?.count === 'infinite'}
-                              className="flex-1"
-                            />
-                            <label className="flex items-center gap-1 text-xs">
-                              <input
-                                type="checkbox"
-                                checked={currentLayer.params.repeat?.count === 'infinite'}
-                                onChange={(e) => {
-                                  const currentRepeat = currentLayer.params.repeat || {
-                                    enabled: true,
-                                    count: 3,
-                                    interval: 0.5
-                                  }
-                                  updateLayer(currentLayer.id, {
-                                    params: {
-                                      ...currentLayer.params,
-                                      repeat: {
-                                        ...currentRepeat,
-                                        count: e.target.checked ? 'infinite' : 3
-                                      }
-                                    }
-                                  })
-                                }}
-                              />
-                              <span className="text-primary">Infinite</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Interval: {currentLayer.params.repeat?.interval || 0.5}s
-                          </label>
-                          <input
-                            type="range"
-                            min="0.05"
-                            max="2"
-                            step="0.05"
-                            value={currentLayer.params.repeat?.interval || 0.5}
-                            onChange={(e) => {
-                              const currentRepeat = currentLayer.params.repeat || {
-                                enabled: true,
-                                count: 3,
-                                interval: 0.5
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  repeat: {
-                                    ...currentRepeat,
-                                    interval: Number(e.target.value)
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Delay: {currentLayer.params.repeat?.delay || 0}s
-                          </label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="2"
-                            step="0.05"
-                            value={currentLayer.params.repeat?.delay || 0}
-                            onChange={(e) => {
-                              const currentRepeat = currentLayer.params.repeat || {
-                                enabled: true,
-                                count: 3,
-                                interval: 0.5,
-                                delay: 0
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  repeat: {
-                                    ...currentRepeat,
-                                    delay: Number(e.target.value)
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Decay: {currentLayer.params.repeat?.decay || 0}
-                          </label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={currentLayer.params.repeat?.decay || 0}
-                            onChange={(e) => {
-                              const currentRepeat = currentLayer.params.repeat || {
-                                enabled: true,
-                                count: 3,
-                                interval: 0.5,
-                                decay: 0
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  repeat: {
-                                    ...currentRepeat,
-                                    decay: Number(e.target.value)
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-2">
-                            Pitch Shift: {currentLayer.params.repeat?.pitchShift || 0} semitones
-                          </label>
-                          <input
-                            type="range"
-                            min="-12"
-                            max="12"
-                            step="1"
-                            value={currentLayer.params.repeat?.pitchShift || 0}
-                            onChange={(e) => {
-                              const currentRepeat = currentLayer.params.repeat || {
-                                enabled: true,
-                                count: 3,
-                                interval: 0.5,
-                                pitchShift: 0
-                              }
-                              updateLayer(currentLayer.id, {
-                                params: {
-                                  ...currentLayer.params,
-                                  repeat: {
-                                    ...currentRepeat,
-                                    pitchShift: Number(e.target.value)
-                                  }
-                                }
-                              })
-                            }}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               ) : (
                 <p className="text-gray-500 text-center mt-8">Select a layer to edit its parameters</p>
@@ -1844,7 +1018,7 @@ export default function Editor() {
           </div>
 
           {/* Preview Panel */}
-          <div className="bg-background flex flex-col">
+          <div className="w-96 bg-background flex flex-col">
             <div className="bg-surface px-4 py-3 border-b border-primary/10">
               <h2 className="text-primary font-semibold">XML Output</h2>
             </div>
@@ -1859,14 +1033,12 @@ export default function Editor() {
               <button
                 onClick={playSound}
                 disabled={isPlaying || layers.length === 0}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-md font-semibold transition-colors flex items-center justify-center gap-2 relative"
-                title="Press spacebar to play/stop"
+                className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-md font-semibold transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
                 Play Sound
-                <span className="text-xs opacity-75 absolute bottom-1 right-2">[Space]</span>
               </button>
               <button
                 onClick={stopSound}
@@ -1879,11 +1051,9 @@ export default function Editor() {
                 Stop
               </button>
             </div>
-
           </div>
         </div>
       </div>
-    </div>
 
       {/* Import Modal */}
       {showImportModal && (
@@ -1917,92 +1087,31 @@ export default function Editor() {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full py-3 bg-surface border-2 border-dashed border-primary/40 rounded-lg hover:border-primary transition-colors text-center"
                 >
-                  <svg className="w-8 h-8 mx-auto mb-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <div className="text-sm">
-                    Click to select a .spa file from your computer
-                  </div>
+                  Click to select a .spa file
                 </button>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-px bg-primary/20"></div>
-                <span className="text-gray-500 text-sm">OR</span>
-                <div className="flex-1 h-px bg-primary/20"></div>
-              </div>
-
-              {/* Text Paste Option */}
+              {/* Text Input Option */}
               <div className="space-y-3">
                 <h3 className="text-primary font-semibold">Option 2: Paste SPA XML</h3>
                 <textarea
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
-                  placeholder={`<?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
-  <tone wave="sine" freq="440" dur="0.5"/>
-</spa>`}
-                  className="w-full h-48 bg-surface text-white p-4 rounded-lg border border-primary/20 font-mono text-sm resize-none focus:border-primary outline-none"
+                  placeholder="Paste your SPA XML here..."
+                  className="w-full h-64 bg-surface text-white p-4 rounded-lg border border-primary/20 font-mono text-sm"
                 />
                 <button
                   onClick={importFromText}
                   disabled={!importText.trim()}
-                  className="w-full py-2 bg-primary hover:bg-primary-dark disabled:bg-surface disabled:text-gray-500 disabled:cursor-not-allowed rounded-md font-semibold transition-colors"
+                  className="w-full py-3 bg-primary hover:bg-primary/80 disabled:bg-surface disabled:text-gray-500 rounded-lg font-semibold transition-colors"
                 >
                   Import from Text
                 </button>
-              </div>
-
-              {/* Example Files */}
-              <div className="space-y-3">
-                <h3 className="text-gray-400 text-sm">Example SPA files to try:</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <button
-                    onClick={() => setImportText(`<?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
-  <tone wave="sine" freq.start="200" freq.end="800" freq.curve="exp" dur="0.3" envelope="0,0.1,0,0.2"/>
-</spa>`)}
-                    className="py-2 px-3 bg-surface border border-primary/20 hover:bg-primary hover:border-primary rounded text-left transition-colors"
-                  >
-                    Sweep Effect
-                  </button>
-                  <button
-                    onClick={() => setImportText(`<?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
-  <group>
-    <tone wave="triangle" freq="261.63" dur="0.2" envelope="0.01,0.05,0.7,0.1"/>
-    <tone wave="triangle" freq="329.63" dur="0.2" envelope="0.01,0.05,0.7,0.1"/>
-    <tone wave="triangle" freq="392" dur="0.3" envelope="0.01,0.05,0.7,0.2"/>
-  </group>
-</spa>`)}
-                    className="py-2 px-3 bg-surface border border-primary/20 hover:bg-primary hover:border-primary rounded text-left transition-colors"
-                  >
-                    Musical Chord
-                  </button>
-                  <button
-                    onClick={() => setImportText(`<?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
-  <noise color="pink" dur="0.5" filter="highpass" cutoff="2000" envelope="0.1,0.1,0.3,0.2"/>
-</spa>`)}
-                    className="py-2 px-3 bg-surface border border-primary/20 hover:bg-primary hover:border-primary rounded text-left transition-colors"
-                  >
-                    Filtered Noise
-                  </button>
-                  <button
-                    onClick={() => setImportText(`<?xml version="1.0" encoding="UTF-8"?>
-<spa version="1.0">
-  <tone wave="sawtooth" freq.start="2000" freq.end="100" freq.curve="exp" dur="0.3" filter="lowpass" cutoff="3000" resonance="5" envelope="0,0.1,0,0.2"/>
-</spa>`)}
-                    className="py-2 px-3 bg-surface border border-primary/20 hover:bg-primary hover:border-primary rounded text-left transition-colors"
-                  >
-                    Laser with Filter
-                  </button>
-                </div>
               </div>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
