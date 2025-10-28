@@ -242,19 +242,9 @@
           "description": "Time in seconds when this element starts (for use in sequences)"
         },
         "repeat": {
-          "oneOf": [
-            {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "description": "Number of repetitions"
-            },
-            {
-              "type": "string",
-              "enum": ["infinite"],
-              "description": "Infinite repetition"
-            }
-          ]
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of repetitions"
         },
         "repeat.interval": {
           "type": "number",
@@ -412,19 +402,9 @@
           "description": "Time in seconds when this element starts (for use in sequences)"
         },
         "repeat": {
-          "oneOf": [
-            {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "description": "Number of repetitions"
-            },
-            {
-              "type": "string",
-              "enum": ["infinite"],
-              "description": "Infinite repetition"
-            }
-          ]
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of repetitions"
         },
         "repeat.interval": {
           "type": "number",
@@ -481,19 +461,9 @@
           }
         },
         "repeat": {
-          "oneOf": [
-            {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "description": "Number of repetitions"
-            },
-            {
-              "type": "string",
-              "enum": ["infinite"],
-              "description": "Infinite repetition"
-            }
-          ]
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of repetitions"
         },
         "repeat.interval": {
           "type": "number",

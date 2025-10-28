@@ -181,7 +181,7 @@ Generates periodic waveforms.
 - `amp` - Amplitude/volume (0.0-1.0, default: 1.0)
 - `envelope` - ADSR envelope (see Envelopes section)
 - `pan` - Stereo panning (-1.0 left, 0 center, 1.0 right, default: 0)
-- `repeat` - Number of repetitions (integer or "infinite")
+- `repeat` - Number of repetitions (positive integer)
 - `repeat.interval` - Time between repetitions in seconds (required if repeat is set)
 - `repeat.delay` - Initial delay before first repetition (optional)
 - `repeat.decay` - Volume reduction per repeat, 0-1 (optional, default: 0)
@@ -230,7 +230,7 @@ Generates noise (random waveforms).
 - `amp` - Amplitude (0.0-1.0, default: 1.0)
 - `envelope` - ADSR envelope
 - `pan` - Stereo panning
-- `repeat` - Number of repetitions (integer or "infinite")
+- `repeat` - Number of repetitions (positive integer)
 - `repeat.interval` - Time between repetitions in seconds (required if repeat is set)
 - `repeat.delay` - Initial delay before first repetition (optional)
 - `repeat.decay` - Volume reduction per repeat, 0-1 (optional, default: 0)
@@ -265,7 +265,7 @@ Layers multiple sound elements together.
 - `id` - Identifier for referencing
 - `amp` - Amplitude multiplier for entire group (0.0-1.0, default: 1.0)
 - `pan` - Stereo panning for entire group (-1.0 left, 0 center, 1.0 right, default: 0)
-- `repeat` - Number of repetitions for entire group (integer or "infinite")
+- `repeat` - Number of repetitions for entire group (positive integer)
 - `repeat.interval` - Time between group repetitions in seconds (required if repeat is set)
 - `repeat.delay` - Initial delay before first repetition (optional)
 - `repeat.decay` - Volume reduction per repeat, 0-1 (optional, default: 0)

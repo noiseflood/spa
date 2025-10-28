@@ -16,6 +16,10 @@
     "core:build": "pnpm --filter @spa-audio/core build",
     "core:test": "pnpm --filter @spa-audio/core test",
     "react:build": "pnpm --filter @spa-audio/react build",
+    "types:build": "pnpm --filter @spa-audio/types build",
+    "core:publish": "pnpm core:build && cd packages/core && npm publish --access public",
+    "react:publish": "pnpm react:build && cd packages/react && npm publish --access public",
+    "types:publish": "pnpm types:build && cd packages/types && npm publish --access public",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"

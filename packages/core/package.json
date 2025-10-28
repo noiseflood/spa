@@ -1,6 +1,6 @@
 {
   "name": "@spa-audio/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Core JavaScript library for parsing and rendering SPA (Synthetic Parametric Audio) - procedural sound effects for the web",
   "main": "dist/spa.cjs.js",

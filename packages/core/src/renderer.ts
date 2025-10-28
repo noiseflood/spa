@@ -327,8 +327,7 @@ function getDuration(sound: ToneElement | NoiseElement | GroupElement): number {
 
     // Account for repeat if present
     if (sound.repeat && sound.repeatInterval) {
-      const repeatCount = sound.repeat === 'infinite' ? 20 : sound.repeat; // Cap at 20
-      const totalRepeatTime = (repeatCount - 1) * (sound.dur + sound.repeatInterval);
+      const totalRepeatTime = (sound.repeat - 1) * (sound.dur + sound.repeatInterval);
       baseDur = sound.dur + totalRepeatTime + (sound.repeatDelay || 0);
     }
 
@@ -438,7 +437,7 @@ function applyRepeat(
     return buffer;
   }
 
-  const repeatCount = element.repeat === 'infinite' ? 100 : element.repeat; // Cap infinite at 100 for practical reasons
+  const repeatCount = element.repeat;
   const intervalSamples = Math.floor(element.repeatInterval * sampleRate);
   const delaySamples = element.repeatDelay ? Math.floor(element.repeatDelay * sampleRate) : 0;
   const decay = element.repeatDecay || 0;

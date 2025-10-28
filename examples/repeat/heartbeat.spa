@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Heartbeat: Rhythmic double-beat pattern using repeat -->
 <spa xmlns="https://spa.audio/ns" version="1.0" xmlns="http://spa.audio/ns">
-  <group repeat="infinite" repeat.interval="0.8">
+  <group repeat="100" repeat.interval="0.8">
     <!-- First thump -->
     <tone wave="sine" freq="60" dur="0.1"
           amp="0.8"

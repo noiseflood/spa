@@ -177,7 +177,7 @@ LLMs can generate SPA syntax easily
 <!-- Heartbeat (NEW: Using repeat!) -->
 <spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="60" dur="0.1"
-        repeat="infinite" repeat.interval="0.8"
+        repeat="100" repeat.interval="0.8"
         envelope="0.01,0.05,0.3,0.1"/>
 </spa>
 

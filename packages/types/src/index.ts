@@ -47,7 +47,7 @@ export interface ToneElement {
   pan?: number | AutomationCurve;
   filter?: FilterConfig | string;
   phase?: number;
-  repeat?: number | 'infinite';
+  repeat?: number;
   repeatInterval?: number;
   repeatDelay?: number;
   repeatDecay?: number;
@@ -66,7 +66,7 @@ export interface NoiseElement {
   envelope?: ADSREnvelope | string;
   pan?: number | AutomationCurve;
   filter?: FilterConfig | string;
-  repeat?: number | 'infinite';
+  repeat?: number;
   repeatInterval?: number;
   repeatDelay?: number;
   repeatDecay?: number;
@@ -82,7 +82,7 @@ export interface GroupElement {
   sounds: SPASound[];
   amp?: number;
   pan?: number;
-  repeat?: number | 'infinite';
+  repeat?: number;
   repeatInterval?: number;
   repeatDelay?: number;
   repeatDecay?: number;
@@ -116,7 +116,7 @@ export interface TimedSound {
  * Repeat configuration for looping sounds
  */
 export interface RepeatConfig {
-  count: number | 'infinite';  // Number of repetitions
+  count: number;  // Number of repetitions
   interval: number;             // Time between repetitions in seconds
   delay?: number;               // Initial delay before first repetition
   decay?: number;               // Volume reduction per repeat (0-1)

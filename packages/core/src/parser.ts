@@ -349,7 +349,7 @@ function parseNumericOrAutomation(
  * Parse repeat configuration
  */
 function parseRepeat(el: Element): {
-  repeat?: number | 'infinite';
+  repeat?: number;
   repeatInterval?: number;
   repeatDelay?: number;
   repeatDecay?: number;
@@ -363,7 +363,7 @@ function parseRepeat(el: Element): {
   }
 
   return {
-    repeat: repeat === 'infinite' ? 'infinite' : parseInt(repeat),
+    repeat: parseInt(repeat),
     repeatInterval: parseFloat(repeatInterval),
     repeatDelay: el.hasAttribute('repeat.delay')
       ? parseFloat(el.getAttribute('repeat.delay')!)
