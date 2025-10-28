@@ -56,7 +56,7 @@ Thumbs.db
 *.pem
 .cache
 
-# Generated public files
+# Generated public files (created by prebuild script)
 web/public/presets/
 web/public/presets.json
 web/public/ns.json
