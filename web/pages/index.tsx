@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
-import { playSPA } from '@spa/core'
+import { playSPA } from '@spa.audio/core'
 
 export default function Home() {
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([])
