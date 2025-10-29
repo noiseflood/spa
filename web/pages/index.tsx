@@ -5,7 +5,24 @@ import { playSPA } from '@spa-audio/core'
 import { useSound } from '../contexts/SoundContext'
 import MuteButton from '../components/MuteButton'
 
+// Cookie helper functions
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null
+  return null
+}
+
+function setCookie(name: string, value: string, days: number = 365) {
+  if (typeof document === 'undefined') return
+  const expires = new Date()
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`
+}
+
 export default function Home() {
+  const [hasAccepted, setHasAccepted] = useState<boolean | null>(null)
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([])
   const [currentPreset, setCurrentPreset] = useState<{ path: string; name: string } | null>(null)
   const [displayedName, setDisplayedName] = useState('')
@@ -13,13 +30,20 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false)
   const { playSound } = useSound()
 
-  // Load all preset files on mount
+  // Check for cookie on mount
   useEffect(() => {
+    const accepted = getCookie('accept_noise') === 'true'
+    setHasAccepted(accepted)
+  }, [])
+
+  // Load all preset files on mount (for original landing page)
+  useEffect(() => {
+    if (hasAccepted === false) return // Don't load if showing gate
+    
     async function loadPresets() {
       try {
         const response = await fetch('/presets.json')
         const files: string[] = await response.json()
-        // Convert paths to objects with path and simple name
         const presetObjects = files.map(path => ({
           path,
           name: path.split('/').pop() || path
@@ -33,7 +57,7 @@ export default function Home() {
       }
     }
     loadPresets()
-  }, [])
+  }, [hasAccepted])
 
   // Typing animation
   useEffect(() => {
@@ -54,14 +78,11 @@ export default function Home() {
     setIsPlaying(true)
 
     try {
-      // Fetch and play the SPA file from static presets
       const response = await fetch(`/presets/${currentPreset.path}.spa`)
       if (!response.ok) {
         throw new Error(`Failed to fetch preset: ${response.statusText}`)
       }
       const spaContent = await response.text()
-
-      // Play the SPA using the playSPA function
       await playSPA(spaContent)
     } catch (error) {
       console.error('Error playing SPA:', error)
@@ -78,7 +99,6 @@ export default function Home() {
         if (prev.length === 0) {
           clearInterval(deleteInterval)
 
-          // Pick new random preset
           const available = presets.filter(p => p.path !== currentPreset.path)
           const newPreset = available[Math.floor(Math.random() * available.length)]
           setCurrentPreset(newPreset)
@@ -90,6 +110,65 @@ export default function Home() {
     }, 30)
   }
 
+  const handleAccept = () => {
+    setCookie('accept_noise', 'true')
+    setHasAccepted(true)
+  }
+
+  // Show loading state while checking cookie
+  if (hasAccepted === null) {
+    return null
+  }
+
+  // Show gate if not accepted
+  if (!hasAccepted) {
+    return (
+      <>
+        <Head>
+          <title>SPA - Unmute the Internet</title>
+          <meta name="description" content="The SVG of Sound Effects - Empowering AI to generate procedural audio" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </Head>
+
+        <div className="min-h-screen bg-[#16152F] grid grid-cols-2 grid-rows-2 gap-16 p-16">
+          {/* Top Left - Title */}
+          <div className="col-start-1 row-start-1 flex items-end text-right justify-end">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-light tracking-[0.2em] text-[#8ED670] !leading-[1.8] font-[Verdana,sans-serif]">
+              Unmute<br/>
+              the<br/>
+              internet<br/>
+              ?
+            </h1>
+          </div>
+
+          {/* Top Right - Empty */}
+          <div className="col-start-2 row-start-1"></div>
+
+          {/* Bottom Left - Yes Button */}
+          <div className="col-start-1 row-start-2 flex items-start justify-end">
+            <button
+              onClick={handleAccept}
+              className="text-3xl md:text-4xl lg:text-5xl font-light tracking-[0.2em] text-[#8ED670] font-[Verdana,sans-serif] bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity duration-200"
+            >
+              Yes
+            </button>
+          </div>
+
+          {/* Bottom Right - No Button */}
+          <div className="col-start-2 row-start-2 flex items-start justify-start">
+            <a
+              href="https://google.com"
+              className="px-16 py-3 text-white text-3xl md:text-4xl lg:text-5xl font-medium rounded-full bg-gradient-to-r from-pink-300 via-purple-300 to-amber-100 hover:scale-105 shadow-[0_0_50px_rgba(255,182,193,0.9)] hover:shadow-[0_0_70px_rgba(255,182,193,1)] transition-all duration-200 cursor-pointer font-serif"
+            >
+              No
+            </a>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  // Show original landing page if accepted
   return (
     <>
       <Head>
@@ -120,18 +199,6 @@ export default function Home() {
               <p className="text-2xl text-gray-400 font-light mb-8">
                 The SVG of Sound Effects
               </p>
-
-              {/* <div className="max-w-3xl mx-auto mb-12">
-                <p className="text-lg text-gray-200 mb-4">
-                  Empowering AI to generate procedural audio through simple, declarative XML.
-                  Just as SVG revolutionized vector graphics on the web, SPA brings the same
-                  simplicity and power to sound design.
-                </p>
-                <p className="text-gray-400">
-                  Create rich, dynamic sound effects with human-readable code that AI models
-                  can understand, generate, and manipulate as easily as they do with text.
-                </p>
-              </div> */}
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
