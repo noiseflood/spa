@@ -33,31 +33,51 @@ function copyDir(src, dest) {
 
 copyDir(presetsDir, publicPresetsDir);
 
-// Generate presets.json index
-function getAllSpaFiles(dir, baseDir = dir) {
-  const files = [];
+// Generate presets.json index with categories
+function generatePresetCategories(dir) {
+  const categories = {};
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-
     if (entry.isDirectory()) {
-      files.push(...getAllSpaFiles(fullPath, baseDir));
-    } else if (entry.name.endsWith('.spa')) {
-      const relativePath = path.relative(baseDir, fullPath);
-      // Remove .spa extension
-      files.push(relativePath.replace(/\.spa$/, '').replace(/\\/g, '/'));
+      const categoryDir = entry.name;
+      const categoryPath = path.join(dir, categoryDir);
+      const files = fs.readdirSync(categoryPath);
+      
+      // Convert directory name to title case (e.g., "ui-feedback" -> "UI Feedback")
+      const categoryName = categoryDir
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      categories[categoryName] = {};
+      
+      // Add all .spa files in this category
+      for (const file of files) {
+        if (file.endsWith('.spa')) {
+          const fileName = file.replace(/\.spa$/, '');
+          // Convert file name to title case (e.g., "button-click" -> "Button Click")
+          const presetName = fileName
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+          
+          categories[categoryName][presetName] = `${categoryDir}/${file}`;
+        }
+      }
     }
   }
 
-  return files;
+  return categories;
 }
 
-const spaFiles = getAllSpaFiles(presetsDir);
-const presetsJsonPath = path.join(__dirname, '../public/presets.json');
-fs.writeFileSync(presetsJsonPath, JSON.stringify(spaFiles, null, 2));
+const categories = generatePresetCategories(presetsDir);
+const presetConfig = { categories };
+const presetsJsonPath = path.join(__dirname, '../presets/presets.json');
+fs.writeFileSync(presetsJsonPath, JSON.stringify(presetConfig, null, 2));
 
-console.log(`Generated presets.json with ${spaFiles.length} presets`);
+const totalPresets = Object.values(categories).reduce((sum, cat) => sum + Object.keys(cat).length, 0);
+console.log(`Generated presets.json with ${Object.keys(categories).length} categories and ${totalPresets} presets`);
 
 // Copy schema file
 const schemaPath = path.join(__dirname, '../../schema/spa-v1.schema.json');

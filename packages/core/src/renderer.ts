@@ -42,7 +42,39 @@ export async function renderSPA(
   // Parse if string
   const doc = typeof xml === 'string' ? parseSPA(xml) : xml;
 
-  // Render each sound
+  // Check if any root sounds have 'at' timing
+  const hasRootTiming = doc.sounds.some(sound => 
+    'at' in sound && (sound as any).at !== undefined
+  );
+
+  if (hasRootTiming) {
+    // Handle root-level timing like an implicit sequence
+    let maxDuration = 0;
+    for (const sound of doc.sounds) {
+      const at = (sound as any).at || 0;
+      const duration = getDuration(sound);
+      maxDuration = Math.max(maxDuration, at + duration);
+    }
+
+    const totalSamples = Math.ceil(maxDuration * sampleRate);
+    const mixedMono = new Float32Array(totalSamples);
+
+    // Render each sound at its specified time
+    for (const sound of doc.sounds) {
+      const at = (sound as any).at || 0;
+      const startSample = Math.floor(at * sampleRate);
+      const soundBuffer = renderSound(sound, doc.defs, sampleRate);
+
+      // Mix the sound at the correct position
+      for (let i = 0; i < soundBuffer.length && startSample + i < totalSamples; i++) {
+        mixedMono[startSample + i] += soundBuffer[i];
+      }
+    }
+
+    return finalizeMixedAudio(mixedMono, channels, sampleRate, normalize, masterVolume);
+  }
+
+  // Original behavior for sounds without timing
   const renderedSounds = doc.sounds.map(sound =>
     renderSound(sound, doc.defs, sampleRate)
   );
@@ -61,36 +93,7 @@ export async function renderSPA(
     }
   }
 
-  // Apply master volume
-  for (let i = 0; i < mixedMono.length; i++) {
-    mixedMono[i] *= masterVolume;
-  }
-
-  // Normalize if requested
-  if (normalize) {
-    // Find peak without using spread operator (which can cause stack overflow on large arrays)
-    let peak = 0;
-    for (let i = 0; i < mixedMono.length; i++) {
-      const abs = Math.abs(mixedMono[i]);
-      if (abs > peak) peak = abs;
-    }
-
-    if (peak > 1.0) {
-      for (let i = 0; i < mixedMono.length; i++) {
-        mixedMono[i] /= peak;
-      }
-    }
-  }
-
-  // Create AudioBuffer
-  const audioBuffer = createAudioBuffer(channels, maxLength, sampleRate);
-
-  // Copy to channels (mono to stereo)
-  for (let channel = 0; channel < channels; channel++) {
-    audioBuffer.copyToChannel(mixedMono, channel);
-  }
-
-  return audioBuffer;
+  return finalizeMixedAudio(mixedMono, channels, sampleRate, normalize, masterVolume);
 }
 
 /**
@@ -520,4 +523,46 @@ function createAudioBuffer(
       // No-op in Node.js
     }
   } as AudioBuffer;
+}
+
+/**
+ * Finalize mixed audio with volume and normalization
+ */
+function finalizeMixedAudio(
+  mixedMono: Float32Array,
+  channels: number,
+  sampleRate: number,
+  normalize: boolean,
+  masterVolume: number
+): AudioBuffer {
+  // Apply master volume
+  for (let i = 0; i < mixedMono.length; i++) {
+    mixedMono[i] *= masterVolume;
+  }
+
+  // Normalize if requested
+  if (normalize) {
+    // Find peak without using spread operator (which can cause stack overflow on large arrays)
+    let peak = 0;
+    for (let i = 0; i < mixedMono.length; i++) {
+      const abs = Math.abs(mixedMono[i]);
+      if (abs > peak) peak = abs;
+    }
+
+    if (peak > 1.0) {
+      for (let i = 0; i < mixedMono.length; i++) {
+        mixedMono[i] /= peak;
+      }
+    }
+  }
+
+  // Create AudioBuffer
+  const audioBuffer = createAudioBuffer(channels, mixedMono.length, sampleRate);
+
+  // Copy to channels (mono to stereo)
+  for (let channel = 0; channel < channels; channel++) {
+    audioBuffer.copyToChannel(mixedMono, channel);
+  }
+
+  return audioBuffer;
 }

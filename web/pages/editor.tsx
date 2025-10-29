@@ -31,6 +31,8 @@ export default function Editor() {
   const [importText, setImportText] = useState('')
   const [showPresets, setShowPresets] = useState(true)
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback')
+  const [rawXmlMode, setRawXmlMode] = useState(false)
+  const [rawXml, setRawXml] = useState('')
   const audioContextRef = useRef<AudioContext | null>(null)
   const layerIdCounterRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -274,12 +276,15 @@ export default function Editor() {
 
     setIsPlaying(true)
 
+    // Use raw XML if in raw mode, otherwise use generated XML
+    const xmlToPlay = rawXmlMode ? rawXml : xmlOutput
+
     try {
-      currentPlaybackRef.current = playSPA(xmlOutput)
+      currentPlaybackRef.current = playSPA(xmlToPlay)
       await currentPlaybackRef.current
     } catch (error) {
       console.error('Error playing sound:', error)
-      console.error('XML that caused error:', xmlOutput)
+      console.error('XML that caused error:', xmlToPlay)
     } finally {
       setIsPlaying(false)
       currentPlaybackRef.current = null
@@ -293,22 +298,32 @@ export default function Editor() {
 
   const importFromText = () => {
     try {
+      // First validate the XML
       const doc = parseSPA(importText)
 
+      // Try to convert to editor layers
       const editorLayers: EditorLayer[] = []
       let layerId = 0
+      let hasComplexStructure = false
 
-      doc.sounds.forEach((sound: SPASound) => {
+      const processSound = (sound: SPASound, depth: number = 0): void => {
         if (sound.type === 'group') {
           const group = sound as GroupElement
+          if (depth > 0 || group.sounds?.some(s => s.type === 'sequence' || s.type === 'group')) {
+            // Nested groups or sequences inside groups - too complex for visual editor
+            hasComplexStructure = true
+            return
+          }
           group.sounds?.forEach((groupSound: SPASound) => {
-            editorLayers.push({
-              id: layerId++,
-              sound: normalizeSound(groupSound)
-            })
+            processSound(groupSound, depth + 1)
           })
         } else if (sound.type === 'sequence') {
           const sequence = sound as SequenceElement
+          if (depth > 0) {
+            // Nested sequences - too complex for visual editor
+            hasComplexStructure = true
+            return
+          }
           sequence.elements?.forEach((timedSound: any) => {
             // Add the 'at' timing to the sound object for the editor
             const soundWithTiming = { ...timedSound.sound, at: timedSound.at }
@@ -323,12 +338,24 @@ export default function Editor() {
             sound: normalizeSound(sound)
           })
         }
-      })
+      }
 
-      if (editorLayers.length > 0) {
+      doc.sounds.forEach(sound => processSound(sound))
+
+      if (hasComplexStructure) {
+        // Use raw XML mode for complex structures
+        setRawXmlMode(true)
+        setRawXml(importText)
+        setShowImportModal(false)
+        setImportText('')
+        alert('This SPA file contains complex nested structures. Switched to raw XML mode for playback.')
+      } else if (editorLayers.length > 0) {
+        // Simple structure - use visual editor
         if (isPlaying) {
           stopSound()
         }
+        setRawXmlMode(false)
+        setRawXml('')
         setLayers(editorLayers)
         layerIdCounterRef.current = layerId
         setCurrentLayerId(editorLayers[0].id)
@@ -529,7 +556,7 @@ export default function Editor() {
               onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
               onClick={() => {
                 playSoundEffect('ui-feedback/button-click')
-                const blob = new Blob([xmlOutput], { type: 'text/xml' })
+                const blob = new Blob([rawXmlMode ? rawXml : xmlOutput], { type: 'text/xml' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
@@ -611,6 +638,27 @@ export default function Editor() {
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Synth Controls */}
           <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Raw XML Mode Indicator */}
+            {rawXmlMode && (
+              <div className="bg-yellow-900/20 border border-yellow-600/50 px-4 py-2 flex items-center justify-between">
+                <span className="text-yellow-200 text-sm">
+                  ⚠️ Raw XML Mode - Complex structure loaded directly
+                </span>
+                <button
+                  onClick={() => {
+                    setRawXmlMode(false)
+                    setRawXml('')
+                    // Reset to simple editor
+                    setLayers([])
+                    addLayer()
+                  }}
+                  className="text-xs px-2 py-1 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-600/50 rounded transition-colors"
+                >
+                  Clear & Exit Raw Mode
+                </button>
+              </div>
+            )}
+            
             {/* Top Bar: Layers + Waveform */}
             <div className="bg-surface border-b border-primary/10 p-4 flex gap-4">
               {/* Left: Layer Selection */}
@@ -819,7 +867,7 @@ export default function Editor() {
                 <span className="text-primary font-semibold text-xs uppercase tracking-wider">SPA Code</span>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(xmlOutput)
+                    navigator.clipboard.writeText(rawXmlMode ? rawXml : xmlOutput)
                   }}
                   className="px-3 py-1.5 bg-primary hover:bg-primary/80 rounded text-xs font-medium transition-colors"
                 >
@@ -829,7 +877,7 @@ export default function Editor() {
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               <pre className="bg-background text-accent p-3 rounded-lg font-mono text-xs border border-primary/10 whitespace-pre-wrap break-words">
-                {xmlOutput}
+                {rawXmlMode ? rawXml : xmlOutput}
               </pre>
             </div>
           </div>
@@ -839,7 +887,7 @@ export default function Editor() {
       {/* Fixed Play Button - Sticky at bottom */}
       <button
         onClick={playSound}
-        disabled={layers.length === 0}
+        disabled={!rawXmlMode && layers.length === 0}
         className={`fixed bottom-0 right-0 left-0 md:left-auto md:bottom-6 md:right-6 md:rounded-lg shadow-2xl transition-all z-50 ${
           isPlaying
             ? 'bg-red-600 hover:bg-red-700'

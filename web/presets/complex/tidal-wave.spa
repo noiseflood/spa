@@ -1,0 +1,49 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <group>
+    <!-- Phase 1: Deep rumble building (0-2.5s) -->
+    <tone wave="sine" freq="35" dur="3.5" 
+          amp.start="0" amp.end="0.8" amp.curve="exp"
+          envelope="0.5,0,1,1.0"/>
+    
+    <!-- Brown noise for deep water texture -->
+    <noise color="brown" dur="3.0" 
+           amp.start="0.1" amp.end="0.6" amp.curve="exp"
+           envelope="0.3,0,1,0.8"/>
+    
+    <!-- Pink noise building (rushing water) -->
+    <noise color="pink" dur="2.8" 
+           amp.start="0.05" amp.end="0.5" amp.curve="exp"
+           filter="lowpass" 
+           cutoff.start="400" cutoff.end="2500" cutoff.curve="exp"/>
+    
+    <!-- Phase 2: Impact/Crash (2.5s) -->
+    <sequence>
+      <!-- Low frequency boom -->
+      <tone wave="sine" freq="28" dur="0.6" at="2.5" 
+            amp="0.9" envelope="0,0.15,0.6,0.4"/>
+      
+      <!-- Explosive white noise crash -->
+      <noise color="white" dur="0.8" at="2.5" 
+             amp="0.9" envelope="0,0.05,0.5,0.2"/>
+      
+      <!-- Secondary impact thump -->
+      <tone wave="triangle" freq="50" dur="0.4" at="2.6" 
+            amp="0.7" envelope="0,0.1,0.4,0.3"/>
+    </sequence>
+    
+    <!-- Phase 3: Wash and recede (3s-7.5s) -->
+    <sequence>
+      <noise color="white" dur="4.5" at="3.0"
+             amp.start="0.7" amp.end="0" amp.curve="smooth"
+             filter="bandpass" 
+             cutoff.start="3000" cutoff.end="500" cutoff.curve="exp"
+             envelope="0,0.4,0.7,2.0"/>
+      
+      <!-- Residual low rumble fading out -->
+      <noise color="brown" dur="3.0" at="4.0"
+             amp.start="0.4" amp.end="0" amp.curve="smooth"
+             envelope="0,0.5,0.8,1.5"/>
+    </sequence>
+  </group>
+</spa>

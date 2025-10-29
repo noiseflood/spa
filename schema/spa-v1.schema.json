@@ -239,7 +239,7 @@
         "at": {
           "type": "number",
           "minimum": 0,
-          "description": "Time in seconds when this element starts (for use in sequences)"
+          "description": "Time in seconds when this element starts (for use in sequences or root-level timing)"
         },
         "repeat": {
           "type": "integer",
@@ -399,7 +399,7 @@
         "at": {
           "type": "number",
           "minimum": 0,
-          "description": "Time in seconds when this element starts (for use in sequences)"
+          "description": "Time in seconds when this element starts (for use in sequences or root-level timing)"
         },
         "repeat": {
           "type": "integer",
@@ -446,7 +446,7 @@
         "at": {
           "type": "number",
           "minimum": 0,
-          "description": "Time in seconds when this element starts (for use in sequences)"
+          "description": "Time in seconds when this element starts (for use in sequences or root-level timing)"
         },
         "elements": {
           "type": "array",

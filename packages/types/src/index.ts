@@ -52,6 +52,7 @@ export interface ToneElement {
   repeatDelay?: number;
   repeatDecay?: number;
   repeatPitchShift?: number;
+  at?: number; // Time in seconds when this element starts (for root-level timing)
 }
 
 /**
@@ -71,6 +72,7 @@ export interface NoiseElement {
   repeatDelay?: number;
   repeatDecay?: number;
   repeatPitchShift?: number;
+  at?: number; // Time in seconds when this element starts (for root-level timing)
 }
 
 /**
@@ -87,6 +89,7 @@ export interface GroupElement {
   repeatDelay?: number;
   repeatDecay?: number;
   repeatPitchShift?: number;
+  at?: number; // Time in seconds when this element starts (for root-level timing)
 }
 
 /**

@@ -10,6 +10,7 @@ export interface PresetCategories {
 
 /**
  * Get all preset categories and their presets
+ * Categories are auto-generated at build time from the presets directory
  */
 export function getPresetCategories(): PresetCategories {
   return presetConfig.categories;

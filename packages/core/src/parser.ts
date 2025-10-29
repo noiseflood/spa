@@ -196,6 +196,8 @@ function parseTone(
 
   const repeatConfig = parseRepeat(el);
 
+  const at = el.hasAttribute('at') ? parseFloat(el.getAttribute('at')!) : undefined;
+
   return {
     type: 'tone',
     id: el.getAttribute('id') || undefined,
@@ -205,6 +207,7 @@ function parseTone(
     amp: parseNumericOrAutomation(el, 'amp'),
     envelope: parseEnvelope(el, defs, resolveRefs),
     pan: parseNumericOrAutomation(el, 'pan'),
+    at,
     filter: parseFilter(el),
     phase: el.hasAttribute('phase')
       ? parseFloat(el.getAttribute('phase')!)
@@ -232,6 +235,7 @@ function parseNoise(
   }
 
   const repeatConfig = parseRepeat(el);
+  const at = el.hasAttribute('at') ? parseFloat(el.getAttribute('at')!) : undefined;
 
   return {
     type: 'noise',
@@ -242,6 +246,7 @@ function parseNoise(
     envelope: parseEnvelope(el, defs, resolveRefs),
     pan: parseNumericOrAutomation(el, 'pan'),
     filter: parseFilter(el),
+    at,
     ...repeatConfig
   };
 }
@@ -257,6 +262,7 @@ function parseGroup(
   const sounds = parseChildren(el, defs, resolveRefs);
 
   const repeatConfig = parseRepeat(el);
+  const at = el.hasAttribute('at') ? parseFloat(el.getAttribute('at')!) : undefined;
 
   return {
     type: 'group',
@@ -268,6 +274,7 @@ function parseGroup(
     pan: el.hasAttribute('pan')
       ? parseFloat(el.getAttribute('pan')!)
       : undefined,
+    at,
     ...repeatConfig
   };
 }
@@ -426,7 +433,7 @@ function parseFilter(el: Element): FilterConfig | undefined {
   if (!filterType) return undefined;
 
   const cutoff = parseNumericOrAutomation(el, 'cutoff');
-  if (!cutoff) {
+  if (cutoff === undefined) {
     throw new Error('Filter requires cutoff attribute');
   }
 

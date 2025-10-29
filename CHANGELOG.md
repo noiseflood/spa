@@ -5,6 +5,32 @@ All notable changes to the SPA (Synthetic Parametric Audio) format will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-10-28
+
+### Added
+- **Raw XML mode in web editor** - Complex nested structures are now supported
+  - Automatically detects complex structures (sequences in groups, nested groups)
+  - Falls back to raw XML playback mode with visual indicator
+  - Allows direct playback of pasted XML that can't be visually represented
+
+### Fixed
+- Web editor can now handle and play any valid SPA XML structure
+- Export and copy functions work correctly in raw XML mode
+
+## [1.1.1] - 2025-10-28
+
+### Added
+- **Root-level timing** - Sound elements (tone, noise, group) can now use `at` attribute at root level
+  - Enables timing without explicit sequence wrapper
+  - Example: `<tone wave="sine" freq="440" dur="1" at="2.5"/>`
+- **Filter automation** - Filters now properly animate over time
+  - `cutoff.start` and `cutoff.end` create smooth filter sweeps
+  - Works with all filter types (lowpass, highpass, bandpass)
+
+### Fixed
+- Filter automation previously only used start value, now interpolates properly
+- Multiple root-level elements now properly support timing
+
 ## [1.1.0] - 2025-10-28
 
 ### Added

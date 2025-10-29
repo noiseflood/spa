@@ -181,6 +181,7 @@ Generates periodic waveforms.
 - `amp` - Amplitude/volume (0.0-1.0, default: 1.0)
 - `envelope` - ADSR envelope (see Envelopes section)
 - `pan` - Stereo panning (-1.0 left, 0 center, 1.0 right, default: 0)
+- `at` - Start time in seconds (for root-level timing or within sequences)
 - `repeat` - Number of repetitions (positive integer)
 - `repeat.interval` - Time between repetitions in seconds (required if repeat is set)
 - `repeat.delay` - Initial delay before first repetition (optional)
@@ -230,6 +231,7 @@ Generates noise (random waveforms).
 - `amp` - Amplitude (0.0-1.0, default: 1.0)
 - `envelope` - ADSR envelope
 - `pan` - Stereo panning
+- `at` - Start time in seconds (for root-level timing or within sequences)
 - `repeat` - Number of repetitions (positive integer)
 - `repeat.interval` - Time between repetitions in seconds (required if repeat is set)
 - `repeat.delay` - Initial delay before first repetition (optional)
@@ -265,6 +267,7 @@ Layers multiple sound elements together.
 - `id` - Identifier for referencing
 - `amp` - Amplitude multiplier for entire group (0.0-1.0, default: 1.0)
 - `pan` - Stereo panning for entire group (-1.0 left, 0 center, 1.0 right, default: 0)
+- `at` - Start time in seconds (for root-level timing or within sequences)
 - `repeat` - Number of repetitions for entire group (positive integer)
 - `repeat.interval` - Time between group repetitions in seconds (required if repeat is set)
 - `repeat.delay` - Initial delay before first repetition (optional)
@@ -339,6 +342,29 @@ All child elements (tone, noise, group) MUST have an `at` attribute:
         envelope="0.01,0.04,0.7,0.20"/>
 </sequence>
 ```
+
+---
+
+## Root-Level Timing
+
+Sound elements at the root level can use the `at` attribute to schedule timing without wrapping in a `<sequence>`:
+
+```xml
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <!-- These play at specific times -->
+  <tone wave="sine" freq="440" dur="0.2" at="0"/>
+  <tone wave="sine" freq="554" dur="0.2" at="0.5"/>
+  <tone wave="sine" freq="659" dur="0.2" at="1.0"/>
+  
+  <!-- This group starts at 2 seconds -->
+  <group at="2.0">
+    <tone wave="sine" freq="880" dur="0.5"/>
+    <noise color="white" dur="0.5" amp="0.2"/>
+  </group>
+</spa>
+```
+
+This is equivalent to wrapping everything in a sequence but more concise for simple timed layouts.
 
 ---
 
@@ -975,7 +1001,11 @@ npm install -g spa-cli          # CLI tools
 
 ## Version History
 
-**v1.1** (Current)
+**v1.1.1** (Current)
+- Added root-level timing support (`at` attribute without sequence wrapper)
+- Fixed filter automation to properly interpolate over time
+
+**v1.1**
 - Added `<sequence>` element for timed sound playback
 - Added repeat functionality for all sound elements
 - Added `pulse` waveform type
