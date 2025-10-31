@@ -71,7 +71,7 @@ export default function Editor() {
   const [rootNodes, setRootNodes] = useState<EditorNode[]>(getInitialNodes);
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { playSound: _playSoundEffect } = useSound();
+  const { playSound: playSoundEffect } = useSound();
   const [xmlOutput, setXmlOutput] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
@@ -814,6 +814,70 @@ export default function Editor() {
         <div className="w-[450px]">
           <Chat />
         </div>
+        {/* OLD Presets Sidebar */}
+        {/* {showPresets && (
+          <div className="w-64 bg-surface border-r border-primary/10 overflow-y-auto flex-shrink-0">
+            <div className="sticky top-0 bg-surface p-3 border-b border-primary/10 flex items-center justify-between">
+              <h2 className="text-primary font-semibold">Presets</h2>
+              <button
+                onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                onClick={() => {
+                  playSoundEffect('ui-feedback/button-click');
+                  setShowPresets(false);
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-3">
+              {Object.entries(presetCategories).map(([category, presets]) => (
+                <div key={category} className="mb-3">
+                  <button
+                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                    onClick={() => {
+                      playSoundEffect('ui-feedback/tab-switch');
+                      setExpandedCategory(expandedCategory === category ? null : category);
+                    }}
+                    className="w-full flex items-center justify-between p-2 bg-background rounded hover:bg-primary/10 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-primary">{category}</span>
+                    <svg
+                      className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                  {expandedCategory === category && (
+                    <div className="space-y-0.5 ml-2 mt-1">
+                      {Object.keys(presets).map((presetName) => (
+                        <button
+                          key={presetName}
+                          onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                          onClick={() => {
+                            playSoundEffect('ui-feedback/button-click');
+                            loadPreset(category, presetName);
+                          }}
+                          className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-primary/20 hover:text-white rounded transition-colors truncate"
+                        >
+                          {presetName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )} */}
 
         {/* Main Content: Synth-style Layout */}
         <div className="flex-1 flex overflow-hidden w-full">
