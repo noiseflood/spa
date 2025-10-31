@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './colors.css';
+
+/* Roboto Mono Variable Font */
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('/fonts/RobotoMono-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('/fonts/RobotoMono-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Optional: Set Roboto Mono as the default monospace font */
+@layer base {
+  body {
+    font-family: 'Roboto Mono', monospace;
+  }
+}
+
+/* TEMP TREE STYLING, APPLY AS TAILWIND INLINE */
+.tree li {
+  display: block;
+  position: relative;
+  padding-left: calc(2 * 1.5rem - 5px - 2px) !important;
+}
+
+.tree ul {
+  margin-left: calc(5px - 1.5rem);
+  padding-left: 0;
+}
+
+.tree ul li {
+  border-left: 2px solid #ddd;
+}
+
+.tree ul li:last-child {
+  border-color: transparent;
+}
+
+.tree ul li::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: calc(1.5rem / -2);
+  left: -2px;
+  width: calc(1.5rem + 2px);
+  height: calc(1.5rem + 1px);
+  border: solid #ddd;
+  border-width: 0 0 2px 2px;
+}
+
+.tree summary {
+  display: block;
+  cursor: pointer;
+}
+
+.tree summary::marker,
+.tree summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree summary:focus {
+  outline: none;
+}
+
+.tree summary:focus-visible {
+  outline: 1px dotted #000;
+}
+
+.tree li::after,
+.tree summary::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: calc(1.5rem / 2 - 5px);
+  left: calc(1.5rem - 5px - 1px);
+  width: calc(2 * 5px);
+  height: calc(2 * 5px);
+  border-radius: 50%;
+  background: #ddd;
+}
+
+.tree summary::before {
+  z-index: 1;
+  background: #fff;
+}
+
+.tree details[open] > summary::before {
+  background-position: calc(-2 * 5px) 0;
+}

@@ -873,7 +873,7 @@ export default function SoundDesigner() {
             />
           ))}
           <div className="flex gap-2 mt-4">
-            <button onClick={addTone} className="btn btn-primary">+ Add Tone</button>
+            <button onClick={addTone} className="btn btn-navy-light">+ Add Tone</button>
             <button onClick={addNoise} className="btn btn-secondary">+ Add Noise</button>
           </div>
         </div>
@@ -882,7 +882,7 @@ export default function SoundDesigner() {
         <div className="border rounded-lg p-4">
           <h2 className="text-xl font-semibold mb-4">Preview</h2>
           <Waveform audioBuffer={audioBuffer} />
-          <button onClick={playSound} className="btn btn-primary mt-4">▶ Play</button>
+          <button onClick={playSound} className="btn btn-navy-light mt-4">▶ Play</button>
         </div>
         
         {/* SPA Output */}
