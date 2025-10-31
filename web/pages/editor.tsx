@@ -41,10 +41,37 @@ interface EditorSequence {
 }
 
 export default function Editor() {
-  const [rootNodes, setRootNodes] = useState<EditorNode[]>([]);
-  const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
+  // Initialize with a default tone layer
+  const getInitialNodes = (): EditorNode[] => {
+    const initialNode: EditorLayer = {
+      id: 0,
+      type: 'layer',
+      sound: {
+        type: 'tone',
+        wave: 'sine',
+        freq: 440,
+        dur: 0.5,
+        amp: 1,
+        envelope: {
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.7,
+          release: 0.2,
+        },
+        repeat: 1,
+        repeatInterval: 0,
+        repeatDelay: 0,
+        repeatDecay: 0,
+        repeatPitchShift: 0,
+      } as ToneElement,
+    };
+    return [initialNode];
+  };
+
+  const [rootNodes, setRootNodes] = useState<EditorNode[]>(getInitialNodes);
+  const [currentNodeId, setCurrentNodeId] = useState<number | null>(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { playSound: playSoundEffect } = useSound();
+  const { playSound: _playSoundEffect } = useSound();
   const [xmlOutput, setXmlOutput] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
@@ -53,17 +80,12 @@ export default function Editor() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
-  const nodeIdCounterRef = useRef(0);
+  const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPlaybackRef = useRef<Promise<void> | null>(null);
 
   // Get preset categories
   const presetCategories = getPresetCategories();
-
-  useEffect(() => {
-    // Add initial layer
-    addNode(null, 'tone');
-  }, []);
 
   useEffect(() => {
     updateXMLOutput();
@@ -120,10 +142,13 @@ export default function Editor() {
     return null;
   };
 
-  const _findParentNode = (nodes: EditorNode[], childId: number): EditorGroup | EditorSequence | null => {
+  const _findParentNode = (
+    nodes: EditorNode[],
+    childId: number
+  ): EditorGroup | EditorSequence | null => {
     for (const node of nodes) {
       if (node.type === 'group' || node.type === 'sequence') {
-        if (node.children.some(child => child.id === childId)) {
+        if (node.children.some((child) => child.id === childId)) {
           return node;
         }
         const found = _findParentNode(node.children, childId);
@@ -147,14 +172,14 @@ export default function Editor() {
         type: 'group',
         children: [],
       };
-      setExpandedNodes(prev => new Set(Array.from(prev).concat(newNodeId)));
+      setExpandedNodes((prev) => new Set(Array.from(prev).concat(newNodeId)));
     } else if (nodeType === 'sequence') {
       newNode = {
         id: newNodeId,
         type: 'sequence',
         children: [],
       };
-      setExpandedNodes(prev => new Set(Array.from(prev).concat(newNodeId)));
+      setExpandedNodes((prev) => new Set(Array.from(prev).concat(newNodeId)));
     } else {
       newNode = {
         id: newNodeId,
@@ -164,11 +189,11 @@ export default function Editor() {
     }
 
     if (parentId === null) {
-      setRootNodes([...rootNodes, newNode]);
+      setRootNodes((prevNodes) => [...prevNodes, newNode]);
     } else {
-      setRootNodes(prevNodes => {
+      setRootNodes((prevNodes) => {
         const updateNodes = (nodes: EditorNode[]): EditorNode[] => {
-          return nodes.map(node => {
+          return nodes.map((node) => {
             if (node.id === parentId && (node.type === 'group' || node.type === 'sequence')) {
               return {
                 ...node,
@@ -198,7 +223,7 @@ export default function Editor() {
     }
 
     const removeFromNodes = (nodes: EditorNode[]): EditorNode[] => {
-      return nodes.filter(node => {
+      return nodes.filter((node) => {
         if (node.id === id) return false;
         if (node.type === 'group' || node.type === 'sequence') {
           node.children = removeFromNodes(node.children);
@@ -216,7 +241,7 @@ export default function Editor() {
 
   const updateLayerSound = (id: number, soundUpdates: Partial<ToneElement | NoiseElement>) => {
     const updateNodes = (nodes: EditorNode[]): EditorNode[] => {
-      return nodes.map(node => {
+      return nodes.map((node) => {
         if (node.id === id && node.type === 'layer') {
           return {
             ...node,
@@ -237,7 +262,7 @@ export default function Editor() {
   };
 
   const toggleNodeExpansion = (id: number) => {
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
         newSet.delete(id);
@@ -284,7 +309,8 @@ export default function Editor() {
       return;
     }
 
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.0">\n';
+    let xml =
+      '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.0">\n';
 
     for (const node of rootNodes) {
       xml += '  ' + nodeToXML(node, '  ') + '\n';
@@ -444,9 +470,9 @@ export default function Editor() {
             children: [],
           };
           if (group.sounds) {
-            groupNode.children = group.sounds.map(s => processSoundToNode(s));
+            groupNode.children = group.sounds.map((s) => processSoundToNode(s));
           }
-          setExpandedNodes(prev => new Set(Array.from(prev).concat(groupNode.id)));
+          setExpandedNodes((prev) => new Set(Array.from(prev).concat(groupNode.id)));
           return groupNode;
         } else if (sound.type === 'sequence') {
           const sequence = sound as SequenceElement;
@@ -461,7 +487,7 @@ export default function Editor() {
               return processSoundToNode(soundWithTiming);
             });
           }
-          setExpandedNodes(prev => new Set(Array.from(prev).concat(sequenceNode.id)));
+          setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
           return sequenceNode;
         } else {
           return {
@@ -579,9 +605,23 @@ export default function Editor() {
     return layers;
   };
 
-  const currentNode = currentNodeId ? findNodeById(rootNodes, currentNodeId) : null;
+  const currentNode = currentNodeId !== null ? findNodeById(rootNodes, currentNodeId) : null;
   const currentLayer = currentNode?.type === 'layer' ? currentNode : null;
   const allLayers = getAllLayers(rootNodes);
+
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Check if click is outside of any dropdown
+      if (!target.closest('.dropdown-menu') && !target.closest('.dropdown-trigger')) {
+        setShowAddMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -606,7 +646,15 @@ export default function Editor() {
   }, [isPlaying, rootNodes, xmlOutput]);
 
   // Tree-based layer display component
-  const LayerTree = ({ nodes, parentId = null, depth = 0 }: { nodes: EditorNode[], parentId?: number | null, depth?: number }) => {
+  const LayerTree = ({
+    nodes,
+    parentId = null,
+    depth = 0,
+  }: {
+    nodes: EditorNode[];
+    parentId?: number | null;
+    depth?: number;
+  }) => {
     const isRoot = parentId === null;
 
     return (
@@ -615,7 +663,8 @@ export default function Editor() {
           const isExpanded = expandedNodes.has(node.id);
           const isSelected = currentNodeId === node.id;
           const isLast = index === nodes.length - 1;
-          const hasChildren = (node.type === 'group' || node.type === 'sequence') && node.children.length > 0;
+          const hasChildren =
+            (node.type === 'group' || node.type === 'sequence') && node.children.length > 0;
 
           let nodeLabel = '';
           let nodeIcon = '';
@@ -681,9 +730,7 @@ export default function Editor() {
                         left: !isRoot ? 'calc(1.5rem - 5px - 1px)' : '-12px',
                       }}
                     />
-                    <span className="text-gray-400 text-xs ml-3">
-                      {isExpanded ? '▼' : '▶'}
-                    </span>
+                    <span className="text-gray-400 text-xs ml-3">{isExpanded ? '▼' : '▶'}</span>
                   </button>
                 ) : null}
 
@@ -703,12 +750,12 @@ export default function Editor() {
                   <div className="relative">
                     <button
                       onClick={() => setShowAddMenu(showAddMenu === node.id ? null : node.id)}
-                      className="text-xs px-2 py-1 bg-navy-light/20 hover:bg-navy-light/40 rounded transition-colors"
+                      className="dropdown-trigger text-xs px-2 py-1 bg-navy-light/20 hover:bg-navy-light/40 rounded transition-colors"
                     >
                       +
                     </button>
                     {showAddMenu === node.id && (
-                      <div className="absolute left-0 top-8 bg-navy border border-navy-light/20 rounded shadow-lg z-20">
+                      <div className="dropdown-menu absolute left-0 top-8 bg-navy border border-navy-light/20 rounded shadow-lg z-20">
                         <button
                           onClick={() => addNode(node.id, 'tone')}
                           className="block w-full text-left px-3 py-2 text-sm hover:bg-navy-light/10 transition-colors"
@@ -922,19 +969,18 @@ export default function Editor() {
                   <button
                     onClick={playSound}
                     disabled={rootNodes.length === 0}
-                    className={`md:rounded-lg transition-all ${
+                    className={`md:rounded-lg transition-all border-2 border-green ${
                       isPlaying ? 'text-green bg-transparent' : 'text-grey bg-green'
                     } disabled:bg-gray disabled:cursor-not-allowed`}
                   >
                     <div className="flex items-center gap-1 py-1 px-2">
                       {isPlaying ? (
                         <>
-                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="var(--color-grey)">
+                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="var(--color-green)">
                             <path d="M6 6h12v12H6z" />
                           </svg>
                           <div className="text-left">
-                            <div className="font-bold text-lg">STOP</div>
-                            <div className="text-xs">Spacebar</div>
+                            <div className="text-xs">(space)</div>
                           </div>
                         </>
                       ) : (
@@ -964,12 +1010,12 @@ export default function Editor() {
                     <div className="relative">
                       <button
                         onClick={() => setShowAddMenu(showAddMenu === -1 ? null : -1)}
-                        className="px-2 py-1 text-xs bg-navy-light hover:bg-navy-light/80 rounded transition-colors"
+                        className="dropdown-trigger px-2 py-1 text-xs bg-navy-light hover:bg-navy-light/80 rounded transition-colors"
                       >
                         + Add
                       </button>
                       {showAddMenu === -1 && (
-                        <div className="absolute right-0 mt-1 bg-navy border border-navy-light/20 rounded shadow-lg z-10">
+                        <div className="dropdown-menu absolute right-0 mt-1 bg-navy border border-navy-light/20 rounded shadow-lg z-10">
                           <button
                             onClick={() => addNode(null, 'tone')}
                             className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
