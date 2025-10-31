@@ -19,27 +19,41 @@ import {
 import { useSound } from '../contexts/SoundContext';
 import Chat from '../components/Chat';
 
-// Editor-specific types for UI state
+// Editor-specific types for UI state with support for nested structures
+type EditorNode = EditorLayer | EditorGroup | EditorSequence;
+
 interface EditorLayer {
   id: number;
-  sound: SPASound;
+  type: 'layer';
+  sound: ToneElement | NoiseElement;
+}
+
+interface EditorGroup {
+  id: number;
+  type: 'group';
+  children: EditorNode[];
+}
+
+interface EditorSequence {
+  id: number;
+  type: 'sequence';
+  children: EditorNode[];
 }
 
 export default function Editor() {
-  const [layers, setLayers] = useState<EditorLayer[]>([]);
-  const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
+  const [rootNodes, setRootNodes] = useState<EditorNode[]>([]);
+  const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { playSound: playSoundEffect } = useSound();
   const [xmlOutput, setXmlOutput] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showAddLayerMenu, setShowAddLayerMenu] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
   const [importText, setImportText] = useState('');
-  const [showPresets, setShowPresets] = useState(true);
+  const [showPresets, setShowPresets] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
-  const [rawXmlMode, setRawXmlMode] = useState(false);
-  const [rawXml, setRawXml] = useState('');
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
-  const layerIdCounterRef = useRef(0);
+  const nodeIdCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPlaybackRef = useRef<Promise<void> | null>(null);
 
@@ -48,14 +62,14 @@ export default function Editor() {
 
   useEffect(() => {
     // Add initial layer
-    addLayer();
+    addNode(null, 'tone');
   }, []);
 
   useEffect(() => {
     updateXMLOutput();
-  }, [layers]);
+  }, [rootNodes]);
 
-  const getDefaultSound = (type: 'tone' | 'noise' = 'tone'): SPASound => {
+  const getDefaultSound = (type: 'tone' | 'noise' = 'tone'): ToneElement | NoiseElement => {
     if (type === 'tone') {
       return {
         type: 'tone',
@@ -95,48 +109,174 @@ export default function Editor() {
     }
   };
 
-  const addLayer = (type: 'tone' | 'noise' = 'tone') => {
+  const findNodeById = (nodes: EditorNode[], id: number): EditorNode | null => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.type === 'group' || node.type === 'sequence') {
+        const found = findNodeById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const _findParentNode = (nodes: EditorNode[], childId: number): EditorGroup | EditorSequence | null => {
+    for (const node of nodes) {
+      if (node.type === 'group' || node.type === 'sequence') {
+        if (node.children.some(child => child.id === childId)) {
+          return node;
+        }
+        const found = _findParentNode(node.children, childId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const addNode = (parentId: number | null, nodeType: 'tone' | 'noise' | 'group' | 'sequence') => {
     if (isPlaying) {
       stopSound();
     }
 
-    const newLayer: EditorLayer = {
-      id: layerIdCounterRef.current++,
-      sound: getDefaultSound(type),
+    const newNodeId = nodeIdCounterRef.current++;
+    let newNode: EditorNode;
+
+    if (nodeType === 'group') {
+      newNode = {
+        id: newNodeId,
+        type: 'group',
+        children: [],
+      };
+      setExpandedNodes(prev => new Set(Array.from(prev).concat(newNodeId)));
+    } else if (nodeType === 'sequence') {
+      newNode = {
+        id: newNodeId,
+        type: 'sequence',
+        children: [],
+      };
+      setExpandedNodes(prev => new Set(Array.from(prev).concat(newNodeId)));
+    } else {
+      newNode = {
+        id: newNodeId,
+        type: 'layer',
+        sound: getDefaultSound(nodeType),
+      };
+    }
+
+    if (parentId === null) {
+      setRootNodes([...rootNodes, newNode]);
+    } else {
+      setRootNodes(prevNodes => {
+        const updateNodes = (nodes: EditorNode[]): EditorNode[] => {
+          return nodes.map(node => {
+            if (node.id === parentId && (node.type === 'group' || node.type === 'sequence')) {
+              return {
+                ...node,
+                children: [...node.children, newNode],
+              };
+            }
+            if (node.type === 'group' || node.type === 'sequence') {
+              return {
+                ...node,
+                children: updateNodes(node.children),
+              };
+            }
+            return node;
+          });
+        };
+        return updateNodes(prevNodes);
+      });
+    }
+
+    setCurrentNodeId(newNodeId);
+    setShowAddMenu(null);
+  };
+
+  const removeNode = (id: number) => {
+    if (isPlaying) {
+      stopSound();
+    }
+
+    const removeFromNodes = (nodes: EditorNode[]): EditorNode[] => {
+      return nodes.filter(node => {
+        if (node.id === id) return false;
+        if (node.type === 'group' || node.type === 'sequence') {
+          node.children = removeFromNodes(node.children);
+        }
+        return true;
+      });
     };
 
-    setLayers([...layers, newLayer]);
-    setCurrentLayerId(newLayer.id);
-    setShowAddLayerMenu(false);
-  };
+    setRootNodes(removeFromNodes(rootNodes));
 
-  const removeLayer = (id: number) => {
-    if (isPlaying) {
-      stopSound();
-    }
-
-    setLayers(layers.filter((l) => l.id !== id));
-
-    if (currentLayerId === id) {
-      const remaining = layers.filter((l) => l.id !== id);
-      setCurrentLayerId(remaining.length > 0 ? remaining[0].id : null);
+    if (currentNodeId === id) {
+      setCurrentNodeId(null);
     }
   };
 
-  const _updateLayer = (id: number, updates: Partial<EditorLayer>) => {
-    setLayers(layers.map((l) => (l.id === id ? { ...l, ...updates } : l)));
+  const updateLayerSound = (id: number, soundUpdates: Partial<ToneElement | NoiseElement>) => {
+    const updateNodes = (nodes: EditorNode[]): EditorNode[] => {
+      return nodes.map(node => {
+        if (node.id === id && node.type === 'layer') {
+          return {
+            ...node,
+            sound: { ...node.sound, ...soundUpdates } as ToneElement | NoiseElement,
+          };
+        }
+        if (node.type === 'group' || node.type === 'sequence') {
+          return {
+            ...node,
+            children: updateNodes(node.children),
+          };
+        }
+        return node;
+      });
+    };
+
+    setRootNodes(updateNodes(rootNodes));
   };
 
-  const updateLayerSound = (id: number, soundUpdates: Partial<SPASound>) => {
-    setLayers(
-      layers.map((l) =>
-        l.id === id ? { ...l, sound: { ...l.sound, ...soundUpdates } as SPASound } : l
-      )
-    );
+  const toggleNodeExpansion = (id: number) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const nodeToXML = (node: EditorNode, indent: string = ''): string => {
+    if (node.type === 'layer') {
+      return soundToXML(node.sound);
+    } else if (node.type === 'group') {
+      if (node.children.length === 0) {
+        return `${indent}<group/>`;
+      }
+      let xml = `${indent}<group>\n`;
+      for (const child of node.children) {
+        xml += `${indent}  ${nodeToXML(child, indent + '  ')}\n`;
+      }
+      xml += `${indent}</group>`;
+      return xml;
+    } else if (node.type === 'sequence') {
+      if (node.children.length === 0) {
+        return `${indent}<sequence/>`;
+      }
+      let xml = `${indent}<sequence>\n`;
+      for (const child of node.children) {
+        xml += `${indent}  ${nodeToXML(child, indent + '  ')}\n`;
+      }
+      xml += `${indent}</sequence>`;
+      return xml;
+    }
+    return '';
   };
 
   const updateXMLOutput = () => {
-    if (layers.length === 0) {
+    if (rootNodes.length === 0) {
       setXmlOutput(`<?xml version="1.0" encoding="UTF-8"?>
 <spa xmlns="https://spa.audio/ns" version="1.0">
   <!-- Add layers to create your sound -->
@@ -144,39 +284,17 @@ export default function Editor() {
       return;
     }
 
-    let xml =
-      '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.0">\n';
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.0">\n';
 
-    // Check if any layer has an 'at' parameter to determine if we need a sequence
-    const hasTimingInfo = layers.some(
-      (layer) => (layer.sound as any).at && (layer.sound as any).at > 0
-    );
-
-    if (layers.length > 1) {
-      if (hasTimingInfo) {
-        // Use sequence for timed layers
-        xml += '  <sequence>\n';
-        layers.forEach((layer) => {
-          xml += '    ' + soundToXML(layer.sound) + '\n';
-        });
-        xml += '  </sequence>\n';
-      } else {
-        // Use group for simultaneous layers
-        xml += '  <group>\n';
-        layers.forEach((layer) => {
-          xml += '    ' + soundToXML(layer.sound) + '\n';
-        });
-        xml += '  </group>\n';
-      }
-    } else {
-      xml += '  ' + soundToXML(layers[0].sound) + '\n';
+    for (const node of rootNodes) {
+      xml += '  ' + nodeToXML(node, '  ') + '\n';
     }
 
     xml += '</spa>';
     setXmlOutput(xml);
   };
 
-  const soundToXML = (sound: SPASound): string => {
+  const soundToXML = (sound: ToneElement | NoiseElement): string => {
     let xml = '<';
 
     if (sound.type === 'tone') {
@@ -192,7 +310,6 @@ export default function Editor() {
 
       xml += ` dur="${tone.dur}"`;
 
-      // Add 'at' attribute if present
       if ((tone as any).at !== undefined && (tone as any).at !== 0) {
         xml += ` at="${(tone as any).at}"`;
       }
@@ -240,7 +357,6 @@ export default function Editor() {
       const noise = sound as NoiseElement;
       xml += `noise color="${noise.color}" dur="${noise.dur}"`;
 
-      // Add 'at' attribute if present
       if ((noise as any).at !== undefined && (noise as any).at !== 0) {
         xml += ` at="${(noise as any).at}"`;
       }
@@ -279,9 +395,6 @@ export default function Editor() {
       }
 
       xml += '/>';
-    } else {
-      console.error('Unexpected sound type in soundToXML:', sound.type);
-      xml = '<!-- Unknown sound type -->';
     }
 
     return xml;
@@ -299,15 +412,12 @@ export default function Editor() {
 
     setIsPlaying(true);
 
-    // Use raw XML if in raw mode, otherwise use generated XML
-    const xmlToPlay = rawXmlMode ? rawXml : xmlOutput;
-
     try {
-      currentPlaybackRef.current = playSPA(xmlToPlay);
+      currentPlaybackRef.current = playSPA(xmlOutput);
       await currentPlaybackRef.current;
     } catch (error) {
       console.error('Error playing sound:', error);
-      console.error('XML that caused error:', xmlToPlay);
+      console.error('XML that caused error:', xmlOutput);
     } finally {
       setIsPlaying(false);
       currentPlaybackRef.current = null;
@@ -321,69 +431,58 @@ export default function Editor() {
 
   const importFromText = () => {
     try {
-      // First validate the XML
       const doc = parseSPA(importText);
+      const newNodes: EditorNode[] = [];
+      let nodeId = 0;
 
-      // Try to convert to editor layers
-      const editorLayers: EditorLayer[] = [];
-      let layerId = 0;
-      let hasComplexStructure = false;
-
-      const processSound = (sound: SPASound, depth: number = 0): void => {
+      const processSoundToNode = (sound: SPASound): EditorNode => {
         if (sound.type === 'group') {
           const group = sound as GroupElement;
-          if (depth > 0 || group.sounds?.some((s) => s.type === 'sequence' || s.type === 'group')) {
-            // Nested groups or sequences inside groups - too complex for visual editor
-            hasComplexStructure = true;
-            return;
+          const groupNode: EditorGroup = {
+            id: nodeId++,
+            type: 'group',
+            children: [],
+          };
+          if (group.sounds) {
+            groupNode.children = group.sounds.map(s => processSoundToNode(s));
           }
-          group.sounds?.forEach((groupSound: SPASound) => {
-            processSound(groupSound, depth + 1);
-          });
+          setExpandedNodes(prev => new Set(Array.from(prev).concat(groupNode.id)));
+          return groupNode;
         } else if (sound.type === 'sequence') {
           const sequence = sound as SequenceElement;
-          if (depth > 0) {
-            // Nested sequences - too complex for visual editor
-            hasComplexStructure = true;
-            return;
-          }
-          sequence.elements?.forEach((timedSound: any) => {
-            // Add the 'at' timing to the sound object for the editor
-            const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
-            editorLayers.push({
-              id: layerId++,
-              sound: normalizeSound(soundWithTiming),
+          const sequenceNode: EditorSequence = {
+            id: nodeId++,
+            type: 'sequence',
+            children: [],
+          };
+          if (sequence.elements) {
+            sequenceNode.children = sequence.elements.map((timedSound: any) => {
+              const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
+              return processSoundToNode(soundWithTiming);
             });
-          });
+          }
+          setExpandedNodes(prev => new Set(Array.from(prev).concat(sequenceNode.id)));
+          return sequenceNode;
         } else {
-          editorLayers.push({
-            id: layerId++,
+          return {
+            id: nodeId++,
+            type: 'layer',
             sound: normalizeSound(sound),
-          });
+          };
         }
       };
 
-      doc.sounds.forEach((sound) => processSound(sound));
+      for (const sound of doc.sounds) {
+        newNodes.push(processSoundToNode(sound));
+      }
 
-      if (hasComplexStructure) {
-        // Use raw XML mode for complex structures
-        setRawXmlMode(true);
-        setRawXml(importText);
-        setShowImportModal(false);
-        setImportText('');
-        alert(
-          'This SPA file contains complex nested structures. Switched to raw XML mode for playback.'
-        );
-      } else if (editorLayers.length > 0) {
-        // Simple structure - use visual editor
+      if (newNodes.length > 0) {
         if (isPlaying) {
           stopSound();
         }
-        setRawXmlMode(false);
-        setRawXml('');
-        setLayers(editorLayers);
-        layerIdCounterRef.current = layerId;
-        setCurrentLayerId(editorLayers[0].id);
+        setRootNodes(newNodes);
+        nodeIdCounterRef.current = nodeId;
+        setCurrentNodeId(newNodes[0].id);
         setShowImportModal(false);
         setImportText('');
       }
@@ -399,47 +498,14 @@ export default function Editor() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      try {
-        const doc = parseSPA(content);
-
-        const editorLayers: EditorLayer[] = [];
-        let layerId = 0;
-
-        doc.sounds.forEach((sound: SPASound) => {
-          if (sound.type === 'group') {
-            const group = sound as GroupElement;
-            group.sounds?.forEach((groupSound: SPASound) => {
-              editorLayers.push({
-                id: layerId++,
-                sound: normalizeSound(groupSound),
-              });
-            });
-          } else {
-            editorLayers.push({
-              id: layerId++,
-              sound: normalizeSound(sound),
-            });
-          }
-        });
-
-        if (editorLayers.length > 0) {
-          if (isPlaying) {
-            stopSound();
-          }
-          setLayers(editorLayers);
-          layerIdCounterRef.current = editorLayers.length;
-          setCurrentLayerId(editorLayers[0].id);
-          setShowImportModal(false);
-        }
-      } catch (error) {
-        alert(`Failed to import SPA file: ${error}`);
-      }
+      setImportText(content);
+      importFromText();
     };
     reader.readAsText(file);
     event.target.value = '';
   };
 
-  const normalizeSound = (sound: SPASound): SPASound => {
+  const normalizeSound = (sound: SPASound): ToneElement | NoiseElement => {
     if (sound.type === 'tone') {
       return {
         ...sound,
@@ -457,14 +523,27 @@ export default function Editor() {
         repeatDelay: sound.repeatDelay,
         repeatDecay: sound.repeatDecay,
       } as NoiseElement;
-    } else if (sound.type === 'group') {
-      const group = sound as GroupElement;
-      return {
-        ...group,
-        sounds: group.sounds?.map(normalizeSound) || [],
-      } as GroupElement;
     }
-    return sound;
+    // For group or sequence, just return a default tone element
+    // This shouldn't happen as we only call this for actual sound elements
+    return {
+      type: 'tone',
+      wave: 'sine',
+      freq: 440,
+      dur: 0.5,
+      amp: 1,
+      envelope: {
+        attack: 0.01,
+        decay: 0.1,
+        sustain: 0.7,
+        release: 0.2,
+      },
+      repeat: 1,
+      repeatInterval: 0,
+      repeatDelay: 0,
+      repeatDecay: 0,
+      repeatPitchShift: 0,
+    } as ToneElement;
   };
 
   const loadPreset = async (category: string, preset: string) => {
@@ -477,43 +556,8 @@ export default function Editor() {
     if (presetPath) {
       try {
         const spaContent = await loadPresetFile(presetPath);
-        const doc = parseSPA(spaContent);
-
-        const editorLayers: EditorLayer[] = [];
-        let layerId = 0;
-
-        doc.sounds.forEach((sound: SPASound) => {
-          if (sound.type === 'group') {
-            const group = sound as GroupElement;
-            group.sounds?.forEach((groupSound: SPASound) => {
-              editorLayers.push({
-                id: layerId++,
-                sound: normalizeSound(groupSound),
-              });
-            });
-          } else if (sound.type === 'sequence') {
-            const sequence = sound as SequenceElement;
-            sequence.elements?.forEach((timedSound: any) => {
-              // Add the 'at' timing to the sound object for the editor
-              const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
-              editorLayers.push({
-                id: layerId++,
-                sound: normalizeSound(soundWithTiming),
-              });
-            });
-          } else {
-            editorLayers.push({
-              id: layerId++,
-              sound: normalizeSound(sound),
-            });
-          }
-        });
-
-        if (editorLayers.length > 0) {
-          layerIdCounterRef.current = layerId;
-          setLayers(editorLayers);
-          setCurrentLayerId(editorLayers[0].id);
-        }
+        setImportText(spaContent);
+        importFromText();
       } catch (error) {
         console.error(`Failed to load preset ${preset}:`, error);
         alert(`Failed to load preset: ${error}`);
@@ -523,7 +567,21 @@ export default function Editor() {
     }
   };
 
-  const currentLayer = layers.find((l) => l.id === currentLayerId);
+  const getAllLayers = (nodes: EditorNode[]): EditorLayer[] => {
+    const layers: EditorLayer[] = [];
+    for (const node of nodes) {
+      if (node.type === 'layer') {
+        layers.push(node);
+      } else if (node.type === 'group' || node.type === 'sequence') {
+        layers.push(...getAllLayers(node.children));
+      }
+    }
+    return layers;
+  };
+
+  const currentNode = currentNodeId ? findNodeById(rootNodes, currentNodeId) : null;
+  const currentLayer = currentNode?.type === 'layer' ? currentNode : null;
+  const allLayers = getAllLayers(rootNodes);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -537,7 +595,7 @@ export default function Editor() {
           return;
         }
         e.preventDefault();
-        if (layers.length > 0) {
+        if (rootNodes.length > 0) {
           playSound();
         }
       }
@@ -545,7 +603,158 @@ export default function Editor() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, layers, xmlOutput]);
+  }, [isPlaying, rootNodes, xmlOutput]);
+
+  // Tree-based layer display component
+  const LayerTree = ({ nodes, parentId = null, depth = 0 }: { nodes: EditorNode[], parentId?: number | null, depth?: number }) => {
+    const isRoot = parentId === null;
+
+    return (
+      <ul className={`${!isRoot ? 'ml-[calc(5px-1.5rem)] pl-0' : ''}`}>
+        {nodes.map((node, index) => {
+          const isExpanded = expandedNodes.has(node.id);
+          const isSelected = currentNodeId === node.id;
+          const isLast = index === nodes.length - 1;
+          const hasChildren = (node.type === 'group' || node.type === 'sequence') && node.children.length > 0;
+
+          let nodeLabel = '';
+          let nodeIcon = '';
+          if (node.type === 'layer') {
+            const sound = node.sound;
+            if (sound.type === 'tone') {
+              const toneSound = sound as ToneElement;
+              const freqValue = typeof toneSound.freq === 'number' ? toneSound.freq : 440;
+              nodeLabel = `${toneSound.wave} ${Math.round(freqValue)}Hz`;
+              nodeIcon = '♪';
+            } else {
+              nodeLabel = `${(sound as NoiseElement).color} noise`;
+              nodeIcon = '≈';
+            }
+          } else if (node.type === 'group') {
+            nodeLabel = 'Group';
+            nodeIcon = '⊕';
+          } else {
+            nodeLabel = 'Sequence';
+            nodeIcon = '→';
+          }
+
+          return (
+            <li
+              key={node.id}
+              className={`block relative ${!isRoot ? `border-l-2 ${isLast ? 'border-transparent' : 'border-gray-600'}` : ''}`}
+              style={{ paddingLeft: !isRoot ? 'calc(2 * 1.5rem - 5px - 2px)' : '0' }}
+            >
+              {!isRoot && (
+                <>
+                  {/* Horizontal line */}
+                  <span
+                    className="absolute block border-b-2 border-l-2 border-gray-600"
+                    style={{
+                      top: 'calc(1.5rem / -2)',
+                      left: '-2px',
+                      width: 'calc(1.5rem + 2px)',
+                      height: 'calc(1.5rem + 1px)',
+                    }}
+                  />
+                  {/* Node dot */}
+                  <span
+                    className="absolute block w-[10px] h-[10px] rounded-full bg-gray-600"
+                    style={{
+                      top: 'calc(1.5rem / 2 - 5px)',
+                      left: 'calc(1.5rem - 5px - 1px)',
+                    }}
+                  />
+                </>
+              )}
+
+              <div className="flex items-center gap-2 mb-1">
+                {hasChildren ? (
+                  <button
+                    onClick={() => toggleNodeExpansion(node.id)}
+                    className="relative cursor-pointer outline-none focus:outline-dotted focus:outline-1 focus:outline-black"
+                    style={{ marginLeft: !isRoot ? '0' : '0' }}
+                  >
+                    <span
+                      className="absolute block w-[10px] h-[10px] rounded-full bg-white border-2 border-gray-600 z-10"
+                      style={{
+                        top: 'calc(1.5rem / 2 - 5px)',
+                        left: !isRoot ? 'calc(1.5rem - 5px - 1px)' : '-12px',
+                      }}
+                    />
+                    <span className="text-gray-400 text-xs ml-3">
+                      {isExpanded ? '▼' : '▶'}
+                    </span>
+                  </button>
+                ) : null}
+
+                <button
+                  onClick={() => setCurrentNodeId(node.id)}
+                  className={`px-2 py-1 rounded text-sm flex items-center gap-2 transition-all ${
+                    isSelected
+                      ? 'bg-navy-light text-white shadow-lg'
+                      : 'bg-navy-dark hover:bg-navy-light/20 text-gray-300'
+                  } ${!hasChildren && !isRoot ? 'ml-6' : ''}`}
+                >
+                  <span className="text-base">{nodeIcon}</span>
+                  <span>{nodeLabel}</span>
+                </button>
+
+                {(node.type === 'group' || node.type === 'sequence') && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowAddMenu(showAddMenu === node.id ? null : node.id)}
+                      className="text-xs px-2 py-1 bg-navy-light/20 hover:bg-navy-light/40 rounded transition-colors"
+                    >
+                      +
+                    </button>
+                    {showAddMenu === node.id && (
+                      <div className="absolute left-0 top-8 bg-navy border border-navy-light/20 rounded shadow-lg z-20">
+                        <button
+                          onClick={() => addNode(node.id, 'tone')}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                        >
+                          Tone
+                        </button>
+                        <button
+                          onClick={() => addNode(node.id, 'noise')}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                        >
+                          Noise
+                        </button>
+                        <button
+                          onClick={() => addNode(node.id, 'group')}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                        >
+                          Group
+                        </button>
+                        <button
+                          onClick={() => addNode(node.id, 'sequence')}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                        >
+                          Sequence
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => removeNode(node.id)}
+                  className="text-red-500 hover:text-red-400 text-xs px-2 py-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {hasChildren && isExpanded && (
+                <LayerTree nodes={node.children} parentId={node.id} depth={depth + 1} />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-navy-dark text-white">
@@ -553,157 +762,21 @@ export default function Editor() {
         <title>SPA Sound Editor</title>
       </Head>
 
-      {/* Header */}
-      {/* 
-      <header className="bg-navy border-b border-navy-light/20 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-              onClick={() => playSoundEffect('ui-feedback/button-click')}
-              className="text-sm text-gray-400 hover:text-white"
-            >
-              ← Back
-            </Link>
-            <h1 className="text-xl font-bold bg-navy-dark bg-clip-text text-transparent">
-              SPA Sound Editor
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-              onClick={() => {
-                playSoundEffect('ui-feedback/button-click');
-                setShowImportModal(true);
-              }}
-              className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
-            >
-              Import
-            </button>
-            <button
-              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-              onClick={() => {
-                playSoundEffect('ui-feedback/button-click');
-                const blob = new Blob([rawXmlMode ? rawXml : xmlOutput], { type: 'text/xml' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'sound.spa';
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
-            >
-              Export
-            </button>
-          </div>
-        </div>
-      </header> 
-      */}
-
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-57px)]">
+      <div className="flex h-screen">
         <div className="w-[450px]">
           <Chat />
         </div>
-        {/* Presets Sidebar */}
-        {/* 
-        {showPresets && (
-          <div className="w-64 bg-navy border-r border-navy-light/10 overflow-y-auto flex-shrink-0">
-            <div className="sticky top-0 bg-navy p-3 border-b border-navy-light/10 flex items-center justify-between">
-              <h2 className="text-navy-light font-semibold">Presets</h2>
-              <button
-                onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                onClick={() => {
-                  playSoundEffect('ui-feedback/button-click');
-                  setShowPresets(false);
-                }}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-3">
-              {Object.entries(presetCategories).map(([category, presets]) => (
-                <div key={category} className="mb-3">
-                  <button
-                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                    onClick={() => {
-                      playSoundEffect('ui-feedback/tab-switch');
-                      setExpandedCategory(expandedCategory === category ? null : category);
-                    }}
-                    className="w-full flex items-center justify-between p-2 bg-navy-dark rounded hover:bg-navy-light/10 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-navy-light">{category}</span>
-                    <svg
-                      className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                  {expandedCategory === category && (
-                    <div className="space-y-0.5 ml-2 mt-1">
-                      {Object.keys(presets).map((presetName) => (
-                        <button
-                          key={presetName}
-                          onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                          onClick={() => {
-                            playSoundEffect('ui-feedback/button-click');
-                            loadPreset(category, presetName);
-                          }}
-                          className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate"
-                        >
-                          {presetName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )} 
-        */}
 
         {/* Main Content: Synth-style Layout */}
         <div className="flex-1 flex overflow-hidden w-full">
           {/* Left: Synth Controls */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Raw XML Mode Indicator */}
-            {rawXmlMode && (
-              <div className="bg-yellow-900/20 border border-yellow-600/50 px-4 py-2 flex items-center justify-between">
-                <span className="text-yellow-200 text-sm">
-                  ⚠️ Raw XML Mode - Complex structure loaded directly
-                </span>
-                <button
-                  onClick={() => {
-                    setRawXmlMode(false);
-                    setRawXml('');
-                    // Reset to simple editor
-                    setLayers([]);
-                    addLayer();
-                  }}
-                  className="text-xs px-2 py-1 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-600/50 rounded transition-colors"
-                >
-                  Clear & Exit Raw Mode
-                </button>
-              </div>
-            )}
-
             {/* Top Bar: Waveform */}
             <div className="flex gap-4">
               <div className="flex flex-col w-full h-48 bg-grey">
                 <div className="h-36 overflow-hidden relative">
-                  {layers.length > 0 ? (
+                  {allLayers.length > 0 ? (
                     <svg
                       width="100%"
                       height="96"
@@ -714,7 +787,7 @@ export default function Editor() {
                       {(() => {
                         const maxTime = Math.max(
                           1,
-                          ...layers.map((l) => {
+                          ...allLayers.map((l) => {
                             const s = l.sound;
                             const at = (s as any).at || 0;
                             const dur = s.type === 'tone' || s.type === 'noise' ? s.dur : 1;
@@ -722,8 +795,8 @@ export default function Editor() {
                           })
                         );
 
-                        return layers.map((layer) => {
-                          const isActive = layer.id === currentLayerId;
+                        return allLayers.map((layer) => {
+                          const isActive = layer.id === currentNodeId;
                           const sound = layer.sound;
                           const startTime = (sound as any).at || 0;
                           const duration =
@@ -800,7 +873,7 @@ export default function Editor() {
                           return (
                             <g
                               key={layer.id}
-                              onClick={() => setCurrentLayerId(layer.id)}
+                              onClick={() => setCurrentNodeId(layer.id)}
                               style={{ cursor: 'pointer' }}
                             >
                               <path
@@ -848,7 +921,7 @@ export default function Editor() {
                 <div className="m-3">
                   <button
                     onClick={playSound}
-                    disabled={!rawXmlMode && layers.length === 0}
+                    disabled={rootNodes.length === 0}
                     className={`md:rounded-lg transition-all ${
                       isPlaying ? 'text-green bg-transparent' : 'text-grey bg-green'
                     } disabled:bg-gray disabled:cursor-not-allowed`}
@@ -882,113 +955,100 @@ export default function Editor() {
 
             {/* Synth Control Panel */}
             <div className="flex">
-              <div className="flex flex-col min-w-0 select-none">
-                {/* TEMP CODE TO DEMONSTRATE LAYER LAYOUT */}
-                <div className="tree">
-                  <ul className="tree-padding tree-vertical-lines tree-horizontal-lines tree-summaries tree-markers tree-buttons">
-                    <li>
-                      <details open="true">
-                        <summary>Giant planets</summary>
-                        <ul>
-                          <li>
-                            <details open="true">
-                              <summary>Gas giants</summary>
-                              <ul>
-                                <li>Jupiter</li>
-                                <li>Saturn</li>
-                              </ul>
-                            </details>
-                          </li>
-                          <li>
-                            <details open="true">
-                              <summary>Ice giants</summary>
-                              <ul>
-                                <li>Uranus</li>
-                                <li>Neptune</li>
-                              </ul>
-                            </details>
-                          </li>
-                        </ul>
-                      </details>
-                    </li>
-                  </ul>
-                </div>
-                {/* ORIGINAL CODE FOR LAYER LAYOUT */}
-                {/* 
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
-                    Layers
-                  </h3>
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowAddLayerMenu(!showAddLayerMenu)}
-                      className="px-2 py-1 text-xs bg-navy-light hover:bg-navy-light/80 rounded transition-colors"
-                    >
-                      + Add
-                    </button>
-                    {showAddLayerMenu && (
-                      <div className="absolute right-0 mt-1 bg-navy border border-navy-light/20 rounded shadow-lg z-10">
-                        <button
-                          onClick={() => addLayer('tone')}
-                          className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
-                        >
-                          Tone
-                        </button>
-                        <button
-                          onClick={() => addLayer('noise')}
-                          className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
-                        >
-                          Noise
-                        </button>
-                      </div>
+              <div className="w-80 bg-navy-dark border-r border-navy-light/20 overflow-y-auto">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
+                      Sound Structure
+                    </h3>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowAddMenu(showAddMenu === -1 ? null : -1)}
+                        className="px-2 py-1 text-xs bg-navy-light hover:bg-navy-light/80 rounded transition-colors"
+                      >
+                        + Add
+                      </button>
+                      {showAddMenu === -1 && (
+                        <div className="absolute right-0 mt-1 bg-navy border border-navy-light/20 rounded shadow-lg z-10">
+                          <button
+                            onClick={() => addNode(null, 'tone')}
+                            className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                          >
+                            Tone
+                          </button>
+                          <button
+                            onClick={() => addNode(null, 'noise')}
+                            className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                          >
+                            Noise
+                          </button>
+                          <button
+                            onClick={() => addNode(null, 'group')}
+                            className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                          >
+                            Group
+                          </button>
+                          <button
+                            onClick={() => addNode(null, 'sequence')}
+                            className="block w-full text-left px-4 py-2 text-sm hover:bg-navy-light/10 transition-colors"
+                          >
+                            Sequence
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="tree">
+                    {rootNodes.length === 0 ? (
+                      <p className="text-gray-500 text-xs">No layers</p>
+                    ) : (
+                      <LayerTree nodes={rootNodes} />
                     )}
                   </div>
                 </div>
-                {layers.length === 0 ? (
-                  <p className="text-gray-500 text-xs">No layers</p>
-                ) : (
-                  <div className="flex gap-2 overflow-x-auto">
-                    {layers.map((layer) => (
-                      <div
-                        key={layer.id}
-                        className={`px-2 py-1 bg-navy-dark rounded cursor-pointer border transition-colors flex-shrink-0 ${
-                          currentLayerId === layer.id
-                            ? 'border-navy-light ring-1 ring-navy-light'
-                            : 'border-transparent hover:border-navy-light/50'
-                        }`}
-                        onClick={() => setCurrentLayerId(layer.id)}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-medium">
-                            {layer.sound.type === 'tone'
-                              ? `${(layer.sound as ToneElement).wave}`
-                              : `${(layer.sound as NoiseElement).color}`}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeLayer(layer.id);
-                            }}
-                            className="text-red-500 hover:text-red-400 text-xs"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )} 
-                */}
               </div>
+
               <div className="flex-1 overflow-y-auto p-4 pb-24 bg-navy">
-                {!showPresets && (
+                <div className="flex gap-4 mb-4">
+                  {!showPresets && (
+                    <button
+                      onClick={() => setShowPresets(true)}
+                      className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                    >
+                      Show Presets
+                    </button>
+                  )}
                   <button
-                    onClick={() => setShowPresets(true)}
-                    className="mb-3 px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                    onClick={() => setShowImportModal(true)}
+                    className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
                   >
-                    Show Presets
+                    Import
                   </button>
-                )}
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([xmlOutput], { type: 'text/xml' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'sound.spa';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                  >
+                    Export
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(xmlOutput);
+                    }}
+                    className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                  >
+                    Copy XML
+                  </button>
+                </div>
+
                 {currentLayer ? (
                   <div className="max-w-6xl">
                     {currentLayer.sound.type === 'tone' ? (
@@ -997,6 +1057,17 @@ export default function Editor() {
                       <NoiseParameters layer={currentLayer} updateLayerSound={updateLayerSound} />
                     )}
                   </div>
+                ) : currentNode ? (
+                  <div className="text-center mt-8">
+                    <p className="text-gray-400 mb-2">
+                      Selected: {currentNode.type === 'group' ? 'Group' : 'Sequence'}
+                    </p>
+                    <p className="text-gray-500 text-sm">
+                      {currentNode.type === 'group'
+                        ? 'Groups play all their children simultaneously'
+                        : 'Sequences play their children in order with timing'}
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-gray-500 text-center mt-8">Select a layer to edit</p>
                 )}
@@ -1004,29 +1075,62 @@ export default function Editor() {
             </div>
           </div>
 
-          {/* Right: XML Code Sidebar */}
-          {/* <div className="w-80 bg-navy border-l border-navy-light/10 flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-navy-light/10">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-navy-light font-semibold text-xs uppercase tracking-wider">
-                  SPA Code
-                </span>
+          {/* Presets Sidebar */}
+          {showPresets && (
+            <div className="w-64 bg-navy border-l border-navy-light/10 overflow-y-auto flex-shrink-0">
+              <div className="sticky top-0 bg-navy p-3 border-b border-navy-light/10 flex items-center justify-between">
+                <h2 className="text-navy-light font-semibold">Presets</h2>
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(rawXmlMode ? rawXml : xmlOutput);
-                  }}
-                  className="px-3 py-1.5 bg-navy-light hover:bg-navy-light/80 rounded text-xs font-medium transition-colors"
+                  onClick={() => setShowPresets(false)}
+                  className="text-gray-400 hover:text-white"
                 >
-                  Copy
+                  ✕
                 </button>
               </div>
+              <div className="p-3">
+                {Object.entries(presetCategories).map(([category, presets]) => (
+                  <div key={category} className="mb-3">
+                    <button
+                      onClick={() => {
+                        setExpandedCategory(expandedCategory === category ? null : category);
+                      }}
+                      className="w-full flex items-center justify-between p-2 bg-navy-dark rounded hover:bg-navy-light/10 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-navy-light">{category}</span>
+                      <svg
+                        className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                    {expandedCategory === category && (
+                      <div className="space-y-0.5 ml-2 mt-1">
+                        {Object.keys(presets).map((presetName) => (
+                          <button
+                            key={presetName}
+                            onClick={() => {
+                              loadPreset(category, presetName);
+                            }}
+                            className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate"
+                          >
+                            {presetName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <pre className="bg-navy-dark text-green p-3 rounded-lg font-mono text-xs border border-navy-light/10 whitespace-pre-wrap break-words">
-                {rawXmlMode ? rawXml : xmlOutput}
-              </pre>
-            </div>
-          </div> */}
+          )}
         </div>
       </div>
 
@@ -1179,7 +1283,6 @@ function Slider({
   onChange,
   min = 0,
   max = 1,
-  step = 0.01,
   displayValue,
 }: {
   label: string;
@@ -1187,7 +1290,6 @@ function Slider({
   onChange: (value: number) => void;
   min?: number;
   max?: number;
-  step?: number;
   displayValue?: string;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -1260,7 +1362,7 @@ function ToneParameters({
   updateLayerSound,
 }: {
   layer: EditorLayer;
-  updateLayerSound: (id: number, updates: Partial<SPASound>) => void;
+  updateLayerSound: (id: number, updates: Partial<ToneElement | NoiseElement>) => void;
 }) {
   const tone = layer.sound as ToneElement;
 
@@ -1641,7 +1743,7 @@ function NoiseParameters({
   updateLayerSound,
 }: {
   layer: EditorLayer;
-  updateLayerSound: (id: number, updates: Partial<SPASound>) => void;
+  updateLayerSound: (id: number, updates: Partial<ToneElement | NoiseElement>) => void;
 }) {
   const noise = layer.sound as NoiseElement;
 
