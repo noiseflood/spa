@@ -76,7 +76,7 @@ export default function Editor() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
   const [importText, setImportText] = useState('');
-  const [showPresets, setShowPresets] = useState(false);
+  const [showPresets, setShowPresets] = useState(true);
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -815,7 +815,8 @@ export default function Editor() {
           <Chat />
         </div>
         {/* OLD Presets Sidebar */}
-        {/* {showPresets && (
+        {/* 
+        {showPresets && (
           <div className="w-64 bg-surface border-r border-primary/10 overflow-y-auto flex-shrink-0">
             <div className="sticky top-0 bg-surface p-3 border-b border-primary/10 flex items-center justify-between">
               <h2 className="text-primary font-semibold">Presets</h2>
@@ -877,7 +878,8 @@ export default function Editor() {
               ))}
             </div>
           </div>
-        )} */}
+        )}
+        */}
 
         {/* Main Content: Synth-style Layout */}
         <div className="flex-1 flex overflow-hidden w-full">
