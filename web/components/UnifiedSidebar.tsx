@@ -39,6 +39,15 @@ export default function UnifiedSidebar({
     if (activeTab !== 'presets') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle arrow keys if a textarea or input is focused
+      const activeElement = document.activeElement as HTMLElement;
+      if (
+        activeElement &&
+        (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT')
+      ) {
+        return;
+      }
+
       const categories = Object.keys(presetCategories);
 
       if (!categories.length) return;
@@ -48,17 +57,34 @@ export default function UnifiedSidebar({
         playSoundEffect('ui-feedback/hover');
 
         if (!focusedItem) {
-          // Initialize focus on first preset of first category
-          const firstCategory = categories[0];
-          setExpandedCategory(firstCategory);
-          const firstPresets = Object.keys(presetCategories[firstCategory]);
-          if (firstPresets.length > 0) {
-            const firstPreset = firstPresets[0];
-            setFocusedItem({ type: 'preset', category: firstCategory, preset: firstPreset });
-            onLoadPreset(firstCategory, firstPreset); // Load the first preset
-            setActivePreset({ category: firstCategory, preset: firstPreset });
+          // Initialize focus - use activePreset if available, otherwise start from first preset
+          let targetCategory: string;
+          let targetPreset: string | null = null;
+
+          if (activePreset) {
+            // Start from the currently active preset
+            targetCategory = activePreset.category;
+            targetPreset = activePreset.preset;
+            setExpandedCategory(targetCategory);
           } else {
-            setFocusedItem({ type: 'category', category: firstCategory });
+            // No active preset, start from first preset of first category
+            targetCategory = categories[0];
+            setExpandedCategory(targetCategory);
+            const firstPresets = Object.keys(presetCategories[targetCategory]);
+            if (firstPresets.length > 0) {
+              targetPreset = firstPresets[0];
+            }
+          }
+
+          if (targetPreset) {
+            setFocusedItem({ type: 'preset', category: targetCategory, preset: targetPreset });
+            if (!activePreset) {
+              // Only load if there wasn't already an active preset
+              onLoadPreset(targetCategory, targetPreset);
+              setActivePreset({ category: targetCategory, preset: targetPreset });
+            }
+          } else {
+            setFocusedItem({ type: 'category', category: targetCategory });
           }
           return;
         }
