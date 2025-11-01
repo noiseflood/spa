@@ -72,9 +72,18 @@ function generatePresetCategories(dir) {
 }
 
 const categories = generatePresetCategories(presetsDir);
-const presetConfig = { categories };
-const presetsJsonPath = path.join(__dirname, '../presets/presets.json');
-fs.writeFileSync(presetsJsonPath, JSON.stringify(presetConfig, null, 2));
+
+// Also generate a simple list for index.tsx
+const allFiles = [];
+Object.values(categories).forEach(category => {
+  Object.values(category).forEach(filePath => {
+    allFiles.push(filePath.replace('.spa', ''));
+  });
+});
+
+// Write to public directory for static export
+const publicPresetsJsonPath = path.join(__dirname, '../public/presets.json');
+fs.writeFileSync(publicPresetsJsonPath, JSON.stringify(allFiles, null, 2));
 
 const totalPresets = Object.values(categories).reduce((sum, cat) => sum + Object.keys(cat).length, 0);
 console.log(`Generated presets.json with ${Object.keys(categories).length} categories and ${totalPresets} presets`);
