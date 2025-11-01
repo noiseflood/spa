@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { sendChatMessages } from '../lib/llmService';
 
 interface UnifiedSidebarProps {
   presetCategories: Record<string, Record<string, string>>;
@@ -237,21 +238,27 @@ export default function UnifiedSidebar({
     }
   }, [focusedItem]);
 
-  const handleSendMessage = () => {
-    if (inputValue.trim()) {
-      setChatMessages([...chatMessages, { role: 'user', content: inputValue }]);
-      // TODO: Integrate with actual AI backend
-      setTimeout(() => {
-        setChatMessages((prev) => [
-          ...prev,
+  const handleSendMessage = async () => {
+    if (inputValue.trim() && apiKey) {
+      const userMessage = { role: 'user' as const, content: inputValue };
+      const updatedMessages = [...chatMessages, userMessage];
+
+      setChatMessages(updatedMessages);
+      setInputValue('');
+
+      try {
+        const responseMessages = await sendChatMessages(updatedMessages, apiKey);
+        setChatMessages(responseMessages);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        setChatMessages([
+          ...updatedMessages,
           {
             role: 'assistant',
-            content:
-              'I understand you want to work with SPA audio. This feature is coming soon! For now, try exploring the presets to see examples of different sound effects.',
+            content: 'Sorry, I encountered an error processing your request. Please try again.',
           },
         ]);
-      }, 500);
-      setInputValue('');
+      }
     }
   };
 
