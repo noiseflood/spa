@@ -77,6 +77,7 @@ export default function Editor() {
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
   const [importText, setImportText] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [activeEditorTab, setActiveEditorTab] = useState<'editor' | 'code'>('editor');
   const audioContextRef = useRef<AudioContext | null>(null);
   const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1070,8 +1071,8 @@ export default function Editor() {
             </div>
 
             {/* Synth Control Panel */}
-            <div className="flex h-full">
-              <div className="w-80 border-r border-navy-light/20 overflow-y-auto">
+            <div className="flex h-full overflow-hidden">
+              <div className="w-80 flex-shrink-0 border-r border-navy-light/20 overflow-y-auto">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
@@ -1125,59 +1126,102 @@ export default function Editor() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 pb-24">
-                <div className="flex gap-4 mb-4">
-                  <button
-                    onClick={() => setShowImportModal(true)}
-                    className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
-                  >
-                    Import
-                  </button>
-                  <button
-                    onClick={() => {
-                      const blob = new Blob([xmlOutput], { type: 'text/xml' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'sound.spa';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
-                  >
-                    Export
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(xmlOutput);
-                    }}
-                    className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
-                  >
-                    Copy XML
-                  </button>
+              <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {/* Tab Header and Action Buttons */}
+                <div className="flex justify-between items-center border-b border-navy-light/20">
+                  <div className="flex">
+                    <button
+                      onClick={() => setActiveEditorTab('editor')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                        activeEditorTab === 'editor'
+                          ? 'text-white border-green'
+                          : 'text-gray-400 hover:text-white border-transparent'
+                      }`}
+                    >
+                      Editor
+                    </button>
+                    <button
+                      onClick={() => setActiveEditorTab('code')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                        activeEditorTab === 'code'
+                          ? 'text-white border-green'
+                          : 'text-gray-400 hover:text-white border-transparent'
+                      }`}
+                    >
+                      Code
+                    </button>
+                  </div>
+                  <div className="flex gap-2 px-4">
+                    <button
+                      onClick={() => setShowImportModal(true)}
+                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                    >
+                      Import
+                    </button>
+                    <button
+                      onClick={() => {
+                        const blob = new Blob([xmlOutput], { type: 'text/xml' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'sound.spa';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                    >
+                      Export
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(xmlOutput);
+                      }}
+                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                    >
+                      Copy SPA
+                    </button>
+                  </div>
                 </div>
 
-                {currentLayer ? (
-                  <div className="max-w-6xl">
-                    {currentLayer.sound.type === 'tone' ? (
-                      <ToneParameters layer={currentLayer} updateLayerSound={updateLayerSound} />
+                {/* Tab Content */}
+                {activeEditorTab === 'editor' ? (
+                  <div className="flex-1 overflow-y-auto p-4 pb-24">
+                    {currentLayer ? (
+                      <div className="max-w-6xl">
+                        {currentLayer.sound.type === 'tone' ? (
+                          <ToneParameters
+                            layer={currentLayer}
+                            updateLayerSound={updateLayerSound}
+                          />
+                        ) : (
+                          <NoiseParameters
+                            layer={currentLayer}
+                            updateLayerSound={updateLayerSound}
+                          />
+                        )}
+                      </div>
+                    ) : currentNode ? (
+                      <div className="text-center mt-8">
+                        <p className="text-gray-400 mb-2">
+                          Selected: {currentNode.type === 'group' ? 'Group' : 'Sequence'}
+                        </p>
+                        <p className="text-gray-500 text-sm">
+                          {currentNode.type === 'group'
+                            ? 'Groups play all their children simultaneously'
+                            : 'Sequences play their children in order with timing'}
+                        </p>
+                      </div>
                     ) : (
-                      <NoiseParameters layer={currentLayer} updateLayerSound={updateLayerSound} />
+                      <p className="text-gray-500 text-center mt-8">Select a layer to edit</p>
                     )}
                   </div>
-                ) : currentNode ? (
-                  <div className="text-center mt-8">
-                    <p className="text-gray-400 mb-2">
-                      Selected: {currentNode.type === 'group' ? 'Group' : 'Sequence'}
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                      {currentNode.type === 'group'
-                        ? 'Groups play all their children simultaneously'
-                        : 'Sequences play their children in order with timing'}
-                    </p>
-                  </div>
                 ) : (
-                  <p className="text-gray-500 text-center mt-8">Select a layer to edit</p>
+                  /* Code View */
+                  <div className="flex-1 bg-grey p-4 overflow-auto min-w-0">
+                    <pre className="text-green-bright font-mono text-sm whitespace-pre-wrap break-all">
+                      {xmlOutput}
+                    </pre>
+                  </div>
                 )}
               </div>
             </div>
