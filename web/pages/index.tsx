@@ -197,7 +197,7 @@ export default function Home() {
               className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95"
               title="Click to play sound"
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-navy-dark bg-clip-text text-transparent animate-glow tracking-tighter select-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-green-bright bg-clip-text text-transparent animate-glow tracking-tighter select-none">
                 &lt;spa name=&quot;{displayedName}
                 <span className="animate-pulse">
                   {displayedName.length < (currentPreset?.name.length || 0) ? '|' : ''}

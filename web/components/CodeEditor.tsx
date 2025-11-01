@@ -21,8 +21,17 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
   const PROTECTED_FOOTER = '</spa>';
 
   // Ensure the value always has proper structure with indentation
-  const ensureStructure = (code: string): string => {
-    const lines = code.split('\n');
+  const ensureStructure = (code: string, autoIndent: boolean = true): string => {
+    const lines = code.split('\n').filter((line, index, arr) => {
+      // Remove empty lines at the end (except if it's the only line after content)
+      if (index === arr.length - 1 && line === '') return false;
+      return true;
+    });
+
+    // Ensure we have at least 3 lines (header1, header2, footer)
+    while (lines.length < 3) {
+      lines.push('');
+    }
 
     // Check if first two lines are correct
     if (lines[0] !== PROTECTED_HEADER_1) {
@@ -32,25 +41,35 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
       lines[1] = PROTECTED_HEADER_2;
     }
 
-    // Check if last line is correct
-    const lastLineIndex = lines.length - 1;
-    if (lines[lastLineIndex] !== PROTECTED_FOOTER) {
-      // Find if </spa> exists somewhere
-      const spaCloseIndex = lines.findIndex(line => line.trim() === PROTECTED_FOOTER);
-      if (spaCloseIndex !== -1 && spaCloseIndex !== lastLineIndex) {
-        // Remove it from wrong position
-        lines.splice(spaCloseIndex, 1);
-      }
-      // Ensure it's at the end
-      if (lines[lines.length - 1] !== PROTECTED_FOOTER) {
-        lines.push(PROTECTED_FOOTER);
+    // Find and remove any </spa> that's not at the end
+    for (let i = 2; i < lines.length - 1; i++) {
+      if (lines[i].trim() === PROTECTED_FOOTER) {
+        lines.splice(i, 1);
+        i--; // Adjust index after removal
       }
     }
 
-    // Ensure content lines are indented (lines between header and footer)
-    for (let i = 2; i < lines.length - 1; i++) {
-      if (lines[i].trim() && !lines[i].startsWith('  ')) {
-        lines[i] = '  ' + lines[i].trimStart();
+    // Ensure the last line is the closing tag
+    if (lines[lines.length - 1] !== PROTECTED_FOOTER) {
+      // If the last line has content, add the footer as a new line
+      if (lines[lines.length - 1].trim()) {
+        lines.push(PROTECTED_FOOTER);
+      } else {
+        // Replace empty last line with footer
+        lines[lines.length - 1] = PROTECTED_FOOTER;
+      }
+    }
+
+    // Only auto-indent when explicitly requested (not during typing)
+    if (autoIndent) {
+      // Ensure content lines are indented (lines between header and footer)
+      for (let i = 2; i < lines.length - 1; i++) {
+        const trimmed = lines[i].trim();
+        if (trimmed && !lines[i].startsWith('  ')) {
+          lines[i] = '  ' + trimmed;
+        } else if (!trimmed) {
+          lines[i] = '';
+        }
       }
     }
 
@@ -141,6 +160,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
   // Handle code changes
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newCode = e.target.value;
+    const cursorPosition = e.target.selectionStart;
     const lines = newCode.split('\n');
     const oldLines = code.split('\n');
 
@@ -179,12 +199,20 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
     setCode(correctedCode);
     setIsEditing(true);
 
-    // Debounced validation
+    // Restore cursor position after React re-render
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }, 0);
+
+    // Debounced validation - don't restructure while typing
     clearTimeout((window as any).codeValidationTimeout);
     (window as any).codeValidationTimeout = setTimeout(() => {
+      // Only validate, don't restructure during typing
       validateCode(correctedCode);
       setIsEditing(false);
-    }, 500);
+    }, 1000); // Increased timeout to reduce interruptions
   };
 
   // Handle paste events to clean up pasted content
@@ -295,7 +323,17 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
       e.preventDefault();
       const end = textarea.selectionEnd;
       const newCode = code.substring(0, start) + '  ' + code.substring(end);
-      handleCodeChange({ target: { value: newCode } } as any);
+
+      // Create a synthetic event with the new value
+      const syntheticEvent = {
+        target: {
+          value: newCode,
+          selectionStart: start + 2,
+          selectionEnd: start + 2
+        }
+      } as React.ChangeEvent<HTMLTextAreaElement>;
+
+      handleCodeChange(syntheticEvent);
 
       // Set cursor position after tab
       setTimeout(() => {
@@ -303,12 +341,19 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
           textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
         }
       }, 0);
+      return;
     }
 
-    // Ctrl/Cmd + Z for undo (revert to last valid)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && error) {
-      e.preventDefault();
-      handleReset();
+    // Don't prevent Ctrl/Cmd + Z - let browser handle undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      // Let the browser's native undo work
+      return;
+    }
+
+    // Don't prevent Ctrl/Cmd + Shift + Z (redo)
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
+      // Let the browser's native redo work
+      return;
     }
 
     // Ctrl/Cmd + Enter to format (if valid)
@@ -463,7 +508,37 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
         </div>
 
         {/* Code Area */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-auto">
+          {/* Textarea - transparent text but fully functional for selection */}
+          <textarea
+            ref={textareaRef}
+            value={code}
+            onChange={handleCodeChange}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onScroll={handleScroll}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            className="absolute w-full p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none"
+            style={{
+              tabSize: 2,
+              fontFamily: "'Roboto Mono', monospace",
+              lineHeight: '1.5rem',
+              whiteSpace: 'pre',
+              overflowWrap: 'normal',
+              wordBreak: 'normal',
+              color: 'transparent',
+              caretColor: 'var(--color-green-bright)',
+              zIndex: 1,
+              WebkitTextFillColor: 'transparent',
+              minHeight: '100%',
+              height: 'auto',
+              paddingBottom: '24px', // Extra padding for last line
+            }}
+            placeholder=""
+          />
+
           {/* Text display layer */}
           <div
             className="absolute inset-0 p-3 pointer-events-none font-mono text-sm leading-6"
@@ -474,6 +549,8 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
               whiteSpace: 'pre',
               overflowWrap: 'normal',
               wordBreak: 'normal',
+              zIndex: 2,
+              minHeight: `${(lineCount + 1) * 24}px`,
             }}
           >
             {code.split('\n').map((line, lineIndex) => {
@@ -487,6 +564,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
                     backgroundColor: isProtected ? 'rgba(13, 17, 23, 0.2)' : 'transparent',
                     borderLeft: isProtected ? '2px solid var(--color-navy-light)' : 'none',
                     paddingLeft: isProtected ? '10px' : '0',
+                    marginLeft: isProtected ? '-10px' : '0',
                   }}
                 >
                   {line || '\u00A0'}
@@ -494,32 +572,6 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
               );
             })}
           </div>
-
-          {/* Textarea - transparent text but fully functional for selection */}
-          <textarea
-            ref={textareaRef}
-            value={code}
-            onChange={handleCodeChange}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onScroll={handleScroll}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            className="absolute inset-0 w-full h-full p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none overflow-x-auto"
-            style={{
-              tabSize: 2,
-              fontFamily: "'Roboto Mono', monospace",
-              lineHeight: '1.5rem',
-              whiteSpace: 'pre',
-              overflowWrap: 'normal',
-              wordBreak: 'normal',
-              color: 'transparent',
-              caretColor: 'var(--color-green-bright)',
-              zIndex: 2,
-            }}
-            placeholder=""
-          />
 
           {/* Error underline overlay */}
           {error && (
