@@ -71,7 +71,7 @@ import { renderSPA, playSPA } from '@spa-audio/core';
 
 // Play a simple click sound
 await playSPA(`
-  <spa xmlns="https://spa.audio/ns" version="1.0">
+  <spa xmlns="https://spa.audio/ns" version="1.1">
     <tone wave="sine" freq="800" dur="0.05"
           envelope="0,0.02,0,0.03"/>
   </spa>
@@ -89,7 +89,7 @@ function Button() {
     <button>
       Click Me
       <SPASound autoPlay>
-        {`<spa xmlns="https://spa.audio/ns" version="1.0">
+        {`<spa xmlns="https://spa.audio/ns" version="1.1">
           <tone wave="sine" freq="800" dur="0.05"/>
         </spa>`}
       </SPASound>
@@ -113,7 +113,7 @@ Visual designer and documentation website.
 
 **Example:**
 ```xml
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="800" dur="0.05" envelope="0,0.02,0,0.03"/>
 </spa>
 ```
@@ -158,13 +158,13 @@ Can you compose a sound effect that sounds like a tidal wave?
 
 ```xml
 <!-- Button Click -->
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="800" dur="0.05"
         envelope="0,0.02,0,0.03"/>
 </spa>
 
 <!-- Laser Effect -->
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <group>
     <tone wave="saw" dur="0.3"
           freq.start="1200" freq.end="200" freq.curve="exp"
@@ -174,7 +174,7 @@ Can you compose a sound effect that sounds like a tidal wave?
 </spa>
 
 <!-- Success Chime -->
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <group>
     <tone wave="sine" freq="523" dur="0.15"/>
     <tone wave="sine" freq="659" dur="0.3"/>
@@ -182,14 +182,14 @@ Can you compose a sound effect that sounds like a tidal wave?
 </spa>
 
 <!-- Heartbeat (NEW: Using repeat!) -->
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="60" dur="0.1"
         repeat="100" repeat.interval="0.8"
         envelope="0.01,0.05,0.3,0.1"/>
 </spa>
 
 <!-- Echo Effect (NEW: With decay and pitch shift!) -->
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="440" dur="0.2"
         repeat="8" repeat.interval="0.15"
         repeat.decay="0.3" repeat.pitchShift="-2"
@@ -197,7 +197,7 @@ Can you compose a sound effect that sounds like a tidal wave?
 </spa>
 
 <!-- Musical Melody (NEW: Using sequence!) -->
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <sequence>
     <tone wave="sine" freq="261.63" dur="0.2" at="0"/>
     <tone wave="sine" freq="329.63" dur="0.2" at="0.25"/>

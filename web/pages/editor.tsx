@@ -888,7 +888,7 @@ export default function Editor() {
         {/* Main Content: Synth-style Layout */}
         <div className="flex-1 flex overflow-hidden w-full">
           {/* Left: Synth Controls */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden bg-navy">
             {/* Top Bar: Waveform */}
             <div className="flex gap-4">
               <div className="flex flex-col w-full h-48 bg-grey">
@@ -1070,7 +1070,7 @@ export default function Editor() {
             </div>
 
             {/* Synth Control Panel */}
-            <div className="flex">
+            <div className="flex h-full">
               <div className="w-80 bg-navy-dark border-r border-navy-light/20 overflow-y-auto">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
@@ -1125,7 +1125,7 @@ export default function Editor() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 pb-24 bg-navy">
+              <div className="flex-1 overflow-y-auto p-4 pb-24">
                 <div className="flex gap-4 mb-4">
                   <button
                     onClick={() => setShowImportModal(true)}
@@ -1182,7 +1182,6 @@ export default function Editor() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 

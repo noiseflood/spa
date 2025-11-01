@@ -1,6 +1,6 @@
 # SPA Documentation
 
-Welcome to the SPA (Sound Prompt Audio) documentation. SPA is a declarative language for generating audio using XML-based syntax.
+Welcome to the SPA (Synthetic Parametric Audio) documentation. SPA is a declarative language for generating audio using XML-based syntax.
 
 ## Documentation Index
 
@@ -20,8 +20,8 @@ Welcome to the SPA (Sound Prompt Audio) documentation. SPA is a declarative lang
 ### Quick Example
 
 ```xml
-<spa xmlns="https://spa.audio/ns" version="1.0">
-  <tone wave="sine" freq="440" dur="500ms" amp="0.5" />
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <tone wave="sine" freq="440" dur="1.0" amp="0.5" />
 </spa>
 ```
 

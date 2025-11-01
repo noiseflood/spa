@@ -1,0 +1,539 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spa.audio/schema/spa-v1.1.schema.json",
+  "title": "SPA (Synthetic Parametric Audio) v1.1",
+  "description": "JSON Schema for validating SPA audio format XML documents",
+  "type": "object",
+  "required": ["spa"],
+  "properties": {
+    "spa": {
+      "type": "object",
+      "description": "Root element of SPA document",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": ["1.1", "1.0"],
+          "description": "SPA specification version (1.1 recommended)"
+        },
+        "xmlns": {
+          "type": "string",
+          "pattern": "^https?://spa\\.audio/ns$",
+          "description": "XML namespace (optional, https preferred)"
+        },
+        "defs": {
+          "$ref": "#/definitions/defs"
+        },
+        "elements": {
+          "type": "array",
+          "description": "Sound elements (tone, noise, group, sequence)",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/definitions/tone" },
+              { "$ref": "#/definitions/noise" },
+              { "$ref": "#/definitions/group" },
+              { "$ref": "#/definitions/sequence" }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "defs": {
+      "type": "object",
+      "description": "Reusable definitions",
+      "properties": {
+        "envelopes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envelopeDef" }
+        }
+      }
+    },
+    "envelopeDef": {
+      "type": "object",
+      "description": "Reusable envelope definition",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$"
+        },
+        "attack": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Attack time in seconds"
+        },
+        "decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Decay time in seconds"
+        },
+        "sustain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Sustain level (0-1)"
+        },
+        "release": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Release time in seconds"
+        }
+      }
+    },
+    "tone": {
+      "type": "object",
+      "description": "Oscillator element for generating periodic waveforms",
+      "required": ["wave", "freq", "dur"],
+      "properties": {
+        "wave": {
+          "type": "string",
+          "enum": ["sine", "square", "triangle", "saw", "pulse"],
+          "description": "Waveform type"
+        },
+        "freq": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 20000,
+              "description": "Frequency in Hz"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20000
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20000
+                },
+                "curve": {
+                  "$ref": "#/definitions/curveType"
+                }
+              },
+              "required": ["start", "end"]
+            }
+          ]
+        },
+        "dur": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 60,
+              "description": "Duration in seconds"
+            },
+            {
+              "type": "string",
+              "pattern": "^\\d+(\\.\\d+)?(ms|s)$",
+              "description": "Duration with unit (e.g., '500ms', '1.5s')"
+            }
+          ]
+        },
+        "amp": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 1.0,
+              "description": "Amplitude/volume (0-1)"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "end": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "curve": {
+                  "$ref": "#/definitions/curveType"
+                }
+              },
+              "required": ["start", "end"]
+            }
+          ]
+        },
+        "envelope": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(\\d+(\\.\\d+)?),(\\d+(\\.\\d+)?),(\\d+(\\.\\d+)?),(\\d+(\\.\\d+)?)$",
+              "description": "ADSR envelope as comma-separated values"
+            },
+            {
+              "type": "string",
+              "pattern": "^#[a-zA-Z][a-zA-Z0-9_-]*$",
+              "description": "Reference to envelope definition"
+            }
+          ]
+        },
+        "pan": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "default": 0,
+          "description": "Stereo panning (-1 left, 0 center, 1 right)"
+        },
+        "filter": {
+          "type": "string",
+          "enum": ["lowpass", "highpass", "bandpass"],
+          "description": "Filter type"
+        },
+        "cutoff": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 20000,
+              "description": "Filter cutoff frequency in Hz"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20000
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20000
+                },
+                "curve": {
+                  "$ref": "#/definitions/curveType"
+                }
+              },
+              "required": ["start", "end"]
+            }
+          ]
+        },
+        "resonance": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 20,
+          "default": 1.0,
+          "description": "Filter resonance/Q factor"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Optional identifier"
+        },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time in seconds when this element starts (for use in sequences or root-level timing)"
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of repetitions"
+        },
+        "repeat.interval": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "description": "Time between repetitions in seconds"
+        },
+        "repeat.delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Initial delay before first repetition in seconds"
+        },
+        "repeat.decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Volume reduction per repeat (0=no decay, 1=silent after first)"
+        },
+        "repeat.pitchShift": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 12,
+          "default": 0,
+          "description": "Semitone shift per repeat"
+        }
+      }
+    },
+    "noise": {
+      "type": "object",
+      "description": "Noise generator element",
+      "required": ["color", "dur"],
+      "properties": {
+        "color": {
+          "type": "string",
+          "enum": ["white", "pink", "brown"],
+          "description": "Noise color/type"
+        },
+        "dur": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 60,
+              "description": "Duration in seconds"
+            },
+            {
+              "type": "string",
+              "pattern": "^\\d+(\\.\\d+)?(ms|s)$",
+              "description": "Duration with unit"
+            }
+          ]
+        },
+        "amp": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 1.0,
+              "description": "Amplitude/volume (0-1)"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "end": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "curve": {
+                  "$ref": "#/definitions/curveType"
+                }
+              },
+              "required": ["start", "end"]
+            }
+          ]
+        },
+        "envelope": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(\\d+(\\.\\d+)?),(\\d+(\\.\\d+)?),(\\d+(\\.\\d+)?),(\\d+(\\.\\d+)?)$",
+              "description": "ADSR envelope as comma-separated values"
+            },
+            {
+              "type": "string",
+              "pattern": "^#[a-zA-Z][a-zA-Z0-9_-]*$",
+              "description": "Reference to envelope definition"
+            }
+          ]
+        },
+        "pan": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "default": 0,
+          "description": "Stereo panning"
+        },
+        "filter": {
+          "type": "string",
+          "enum": ["lowpass", "highpass", "bandpass"],
+          "description": "Filter type"
+        },
+        "cutoff": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 20000,
+              "description": "Filter cutoff frequency in Hz"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20000
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20000
+                },
+                "curve": {
+                  "$ref": "#/definitions/curveType"
+                }
+              },
+              "required": ["start", "end"]
+            }
+          ]
+        },
+        "resonance": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 20,
+          "default": 1.0,
+          "description": "Filter resonance/Q factor"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Optional identifier"
+        },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time in seconds when this element starts (for use in sequences or root-level timing)"
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of repetitions"
+        },
+        "repeat.interval": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "description": "Time between repetitions in seconds"
+        },
+        "repeat.delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Initial delay before first repetition in seconds"
+        },
+        "repeat.decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Volume reduction per repeat (0=no decay, 1=silent after first)"
+        },
+        "repeat.pitchShift": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 12,
+          "default": 0,
+          "description": "Semitone shift per repeat"
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "description": "Container for layering multiple sounds",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Optional identifier"
+        },
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time in seconds when this element starts (for use in sequences or root-level timing)"
+        },
+        "elements": {
+          "type": "array",
+          "description": "Child sound elements",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/definitions/tone" },
+              { "$ref": "#/definitions/noise" },
+              { "$ref": "#/definitions/group" }
+            ]
+          }
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of repetitions"
+        },
+        "repeat.interval": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "description": "Time between repetitions in seconds"
+        },
+        "repeat.delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Initial delay before first repetition in seconds"
+        },
+        "repeat.decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Volume reduction per repeat (0=no decay, 1=silent after first)"
+        },
+        "repeat.pitchShift": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 12,
+          "default": 0,
+          "description": "Semitone shift per repeat"
+        }
+      },
+      "required": ["elements"]
+    },
+    "sequence": {
+      "type": "object",
+      "description": "Container for sequenced sounds with precise timing",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Optional identifier"
+        },
+        "elements": {
+          "type": "array",
+          "description": "Sequenced sound elements with timing",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/definitions/tone" },
+              { "$ref": "#/definitions/noise" },
+              { "$ref": "#/definitions/group" }
+            ]
+          }
+        },
+        "loop": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to loop the entire sequence"
+        },
+        "tempo": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "description": "Optional BPM for beat-based timing"
+        }
+      },
+      "required": ["elements"]
+    },
+    "curveType": {
+      "type": "string",
+      "enum": ["linear", "exp", "log", "smooth"],
+      "default": "linear",
+      "description": "Interpolation curve type"
+    }
+  }
+}

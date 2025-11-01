@@ -13,7 +13,7 @@
 ## Your First Sound (30 seconds)
 
 ```xml
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="800" dur="0.05" envelope="0,0.02,0,0.03"/>
 </spa>
 ```
@@ -149,13 +149,13 @@ npm install spa-audio
 import { playSPA, renderSPA } from 'spa-audio';
 
 // Play directly
-await playSPA('<spa xmlns="https://spa.audio/ns" version="1.0">...</spa>');
+await playSPA('<spa xmlns="https://spa.audio/ns" version="1.1">...</spa>');
 
 // Or from file
 await playSPA.fromURL('/sounds/click.spa');
 
 // Get AudioBuffer
-const buffer = await renderSPA('<spa xmlns="https://spa.audio/ns" version="1.0">...</spa>');
+const buffer = await renderSPA('<spa xmlns="https://spa.audio/ns" version="1.1">...</spa>');
 ```
 
 ### React
@@ -178,7 +178,7 @@ import { SPASound } from 'spa-react';
   import { playSPA } from 'https://cdn.skypack.dev/spa-audio';
   
   document.getElementById('btn').addEventListener('click', () => {
-    playSPA('<spa xmlns="https://spa.audio/ns" version="1.0"><tone wave="sine" freq="800" dur="0.05"/></spa>');
+    playSPA('<spa xmlns="https://spa.audio/ns" version="1.1"><tone wave="sine" freq="800" dur="0.05"/></spa>');
   });
 </script>
 ```
@@ -224,7 +224,7 @@ freq.start="440" freq.end="880" freq.curve="exp"
 ```javascript
 // Change pitch based on user action
 const freq = 400 + (score * 10);
-playSPA(`<spa xmlns="https://spa.audio/ns" version="1.0">
+playSPA(`<spa xmlns="https://spa.audio/ns" version="1.1">
   <tone wave="sine" freq="${freq}" dur="0.1"/>
 </spa>`);
 ```
@@ -238,11 +238,11 @@ const dur = 0.04 + Math.random() * 0.02;
 
 ### Reusable Envelopes
 ```xml
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <defs>
     <envelope id="pluck" attack="0.01" decay="0.2" sustain="0.3" release="0.5"/>
   </defs>
-  
+
   <tone wave="sine" freq="440" dur="1.0" envelope="#pluck"/>
   <tone wave="sine" freq="554" dur="1.0" envelope="#pluck"/>
 </spa>
@@ -295,7 +295,7 @@ const dur = 0.04 + Math.random() * 0.02;
 ## Quick Reference Card
 
 ```xml
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <!-- Basic tone -->
   <tone wave="sine|square|triangle|saw" 
         freq="440" 
