@@ -294,9 +294,7 @@ export default function Home() {
 
           {/* Example Section */}
           <section className="py-16 text-center">
-            <h2 className="text-3xl font-bold text-green-bright mb-8">
-              Simple as XML
-            </h2>
+            <h2 className="text-3xl font-bold text-green-bright mb-8">Simple as XML</h2>
             <div className="max-w-2xl mx-auto bg-navy-dark rounded-xl p-8 border border-navy-light/20">
               <pre className="text-green-bright font-mono text-sm sm:text-base text-left overflow-x-auto">
                 <code>{`<spa xmlns="https://spa.audio/ns" version="1.0">
@@ -311,9 +309,7 @@ export default function Home() {
 
           {/* Use Cases */}
           <section className="py-16">
-            <h2 className="text-3xl font-bold text-center text-green-bright mb-12">
-              Perfect For
-            </h2>
+            <h2 className="text-3xl font-bold text-center text-green-bright mb-12">Perfect For</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div
                 onMouseEnter={() => playSound('ui-feedback/hover')}
