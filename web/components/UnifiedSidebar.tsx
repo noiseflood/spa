@@ -33,6 +33,9 @@ export default function UnifiedSidebar({
     },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
   // Keyboard navigation for presets
   useEffect(() => {
@@ -259,6 +262,40 @@ export default function UnifiedSidebar({
     'Build a swoosh transition',
   ];
 
+  // Check for API key in localStorage on mount
+  useEffect(() => {
+    const storedKey = localStorage.getItem('anthropic_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+    } else {
+      setShowApiKeyInput(true);
+    }
+  }, []);
+
+  const handleSaveApiKey = () => {
+    if (apiKeyInput.trim()) {
+      localStorage.setItem('anthropic_api_key', apiKeyInput.trim());
+      setApiKey(apiKeyInput.trim());
+      setShowApiKeyInput(false);
+      setApiKeyInput('');
+      playSoundEffect('ui-feedback/button-click');
+    }
+  };
+
+  const handleClearApiKey = () => {
+    localStorage.removeItem('anthropic_api_key');
+    setApiKey(null);
+    setShowApiKeyInput(true);
+    setChatMessages([
+      {
+        role: 'assistant',
+        content:
+          '👋 Welcome to the SPA Sound Editor!\n\n💡 New here? Start with the **Presets** tab above to explore ready-made sounds and learn how the editor works.\n\nI can help you:\n• Create custom sound effects\n• Modify existing presets\n• Understand how different parameters affect sounds\n• Build complex layered compositions\n\nJust describe the sound you want to create!',
+      },
+    ]);
+    playSoundEffect('ui-feedback/button-click');
+  };
+
   return (
     <div className="w-[450px] bg-navy-medium border-r-2 border-navy-light flex flex-col h-full">
       {/* Tab Header */}
@@ -450,34 +487,91 @@ export default function UnifiedSidebar({
 
           {/* Input Area */}
           <div className="p-4 border-t border-navy-light/20">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Ask about sounds or describe what you want..."
-                className="flex-1 px-3 py-2 bg-navy-dark text-white rounded border border-navy-light/20 focus:outline-none focus:border-green text-sm"
-              />
-              <button
-                onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                onClick={() => {
-                  playSoundEffect('ui-feedback/button-click');
-                  handleSendMessage();
-                }}
-                className="px-4 py-2 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-sm"
-              >
-                Send
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-500 mt-2">
-              Tip: Check the Presets tab for examples and inspiration!
-            </p>
+            {showApiKeyInput ? (
+              <div className="space-y-3">
+                <div className="text-xs text-gray-400 mb-2">
+                  <p className="font-semibold text-white mb-1">🔑 API Key Required</p>
+                  <p>To use the AI Assistant, please enter your Anthropic API key.</p>
+                  <p className="mt-1">
+                    Get your key from:{' '}
+                    <a
+                      href="https://console.anthropic.com/settings/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green hover:underline"
+                    >
+                      console.anthropic.com
+                    </a>
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveApiKey();
+                      }
+                    }}
+                    placeholder="sk-ant-api..."
+                    className="flex-1 px-3 py-2 bg-navy-dark text-white rounded border border-navy-light/20 focus:outline-none focus:border-green text-sm font-mono"
+                  />
+                  <button
+                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                    onClick={handleSaveApiKey}
+                    disabled={!apiKeyInput.trim()}
+                    className="px-4 py-2 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Your API key is stored locally in your browser and never sent to our servers.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    placeholder="Ask about sounds or describe what you want..."
+                    className="flex-1 px-3 py-2 bg-navy-dark text-white rounded border border-navy-light/20 focus:outline-none focus:border-green text-sm"
+                  />
+                  <button
+                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                    onClick={() => {
+                      playSoundEffect('ui-feedback/button-click');
+                      handleSendMessage();
+                    }}
+                    className="px-4 py-2 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-sm"
+                  >
+                    Send
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-gray-500">
+                    Tip: Check the Presets tab for examples and inspiration!
+                  </p>
+                  <button
+                    onClick={handleClearApiKey}
+                    className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                    title="Clear API key"
+                  >
+                    Clear Key
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
