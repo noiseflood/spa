@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // output: 'export', // Commented out for development - static export mode conflicts with error pages
   eslint: {
     ignoreDuringBuilds: true,
   },
