@@ -5,22 +5,22 @@ A declarative XML format for procedural sound effects on the web.
 
 ---
 
-## 🏗️ Monorepo Structure
+## Monorepo Structure
 
 This is a monorepo managed with pnpm workspaces containing all SPA packages:
 
 ```
 spa/
 ├── packages/
-│   ├── core/              # @spa-audio/core - Core JS library (parser + renderer)
-│   └── react/             # @spa-audio/react - React component integration
+│   ├── core/             # @spa-audio/core - Core JS library (parser + renderer)
+│   └── react/            # @spa-audio/react - React component integration
 ├── apps/
-│   └── web/               # @spa-audio/web - Website with visual designer
-├── docs/                  # Documentation
+│   └── web/              # @spa-audio/web - Website with visual designer
+├── docs/                 # Documentation
 │   ├── SPEC.md           # Technical specification
 │   ├── QUICKSTART.md     # 5-minute tutorial
 │   └── ROADMAP.md        # Implementation roadmap
-├── examples/              # Example .spa files
+├── examples/             # Example .spa files
 │   ├── ui/               # UI sounds
 │   ├── forms/            # Form validation
 │   ├── game/             # Game effects
@@ -28,7 +28,7 @@ spa/
 └── schema/               # JSON Schema for validation
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+
@@ -37,7 +37,7 @@ spa/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/spa.git
+git clone https://github.com/noiseflood/spa.git
 cd spa
 
 # Install dependencies
@@ -57,7 +57,7 @@ pnpm web:dev    # Website with visual designer
 pnpm core:test  # Run core library tests
 ```
 
-## 📦 Packages
+## Packages
 
 ### @spa-audio/core
 Core JavaScript library for parsing and rendering SPA files.
@@ -122,7 +122,7 @@ Visual designer and documentation website.
 - **Equivalent WAV:** 9.6 KB
 - **Savings:** 120x smaller
 
-## 🎯 Why SPA?
+## Purpose
 
 ### 1. Tiny File Sizes
 50-100x smaller than WAV/MP3 for simple sounds
@@ -147,14 +147,14 @@ Here is a comprehensive guide to composing audio in SPA:
 Can you compose a sound effect that sounds like a tidal wave?
 ```
 
-## 📚 Documentation
+## Docs
 
 - [Technical Specification](docs/SPEC.md) - Complete format reference
 - [Quick Start Guide](docs/QUICKSTART.md) - Learn SPA in 5 minutes
 - [Roadmap](docs/ROADMAP.md) - Development timeline
 - [Build Instructions](docs/BUILD_INSTRUCTIONS.md) - Detailed implementation guide
 
-## 🎵 Example Sounds
+## Example SPA Files
 
 ```xml
 <!-- Button Click -->
@@ -207,7 +207,7 @@ Can you compose a sound effect that sounds like a tidal wave?
 </spa>
 ```
 
-## 🛠️ Development
+## Dev
 
 ### Commands
 ```bash
@@ -225,40 +225,40 @@ pnpm --filter @spa-audio/web dev       # Run website locally
 pnpm --filter @spa-audio/react build   # Build React component
 ```
 
-## 📈 Roadmap
+## Roadmap
+
+### In progress
+- [ ] AI integration
 
 ### Phase 1: MVP (Weeks 1-4)
-- ✅ Core library (parser + renderer)
-- ✅ Basic website with visual designer
-- ✅ 20+ example sounds
-- ⬜ npm package published
+- [x] Core library (parser + renderer)
+- [x] Basic website with visual designer
+- [x] 20+ example sounds
+- [x] npm package published
 
 ### Phase 2: Polish (Weeks 5-8)
-- ⬜ VS Code extension
-- ⬜ Vue integration
-- ⬜ CLI tools
-- ⬜ 50+ example sounds
+- [x] 50+ example sounds
+- [ ] VS Code extension
+- [ ] CLI tools
 
 ### Phase 3: Growth (Months 3-6)
-- ⬜ Community sound library
-- ⬜ AI integration
-- ⬜ Browser DevTools support
-- ⬜ W3C proposal
+- [ ] Community sound library
+- [ ] Browser DevTools support
+- [ ] W3C proposal
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our contributing guidelines (coming soon).
 
-## 📄 License
+## License
 
 MIT
 
-## 🔗 Links
+## Links
 
-- [Website](https://spa.audio) (coming soon)
-- [NPM Package](https://www.npmjs.com/package/@spa-audio/core) (coming soon)
-- [Discord Community](https://discord.gg/spa-audio) (coming soon)
+- [Website](https://spa.audio)
+- [NPM Packages](https://www.npmjs.com/org/spa-audio)
 
 ---
 
-**Let's make web audio better.** 🔊
+**UNMUTE THE INTERNET**

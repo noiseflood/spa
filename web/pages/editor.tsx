@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import {
   parseSPA,
@@ -18,6 +17,7 @@ import {
 } from '../utils/presetLoader';
 import { useSound } from '../contexts/SoundContext';
 import UnifiedSidebar from '../components/UnifiedSidebar';
+import CodeEditor from '../components/CodeEditor';
 
 // Editor-specific types for UI state with support for nested structures
 type EditorNode = EditorLayer | EditorGroup | EditorSequence;
@@ -78,6 +78,7 @@ export default function Editor() {
   const [importText, setImportText] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [activeEditorTab, setActiveEditorTab] = useState<'editor' | 'code'>('editor');
+  const [hasCodeError, setHasCodeError] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,10 +86,6 @@ export default function Editor() {
 
   // Get preset categories
   const presetCategories = getPresetCategories();
-
-  useEffect(() => {
-    updateXMLOutput();
-  }, [rootNodes]);
 
   const getDefaultSound = (type: 'tone' | 'noise' = 'tone'): ToneElement | NoiseElement => {
     if (type === 'tone') {
@@ -299,7 +296,7 @@ export default function Editor() {
     return '';
   };
 
-  const updateXMLOutput = () => {
+  const updateXMLOutput = useCallback(() => {
     if (rootNodes.length === 0) {
       setXmlOutput(`<?xml version="1.0" encoding="UTF-8"?>
 <spa xmlns="https://spa.audio/ns" version="1.1">
@@ -317,7 +314,12 @@ export default function Editor() {
 
     xml += '</spa>';
     setXmlOutput(xml);
-  };
+  }, [rootNodes]);
+
+  // Update XML whenever nodes change
+  useEffect(() => {
+    updateXMLOutput();
+  }, [updateXMLOutput]);
 
   const soundToXML = (sound: ToneElement | NoiseElement): string => {
     let xml = '<';
@@ -447,7 +449,7 @@ export default function Editor() {
     return xml;
   };
 
-  const playSound = async () => {
+  const playSound = useCallback(async () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
@@ -469,7 +471,7 @@ export default function Editor() {
       setIsPlaying(false);
       currentPlaybackRef.current = null;
     }
-  };
+  }, [xmlOutput, isPlaying]);
 
   const stopSound = () => {
     setIsPlaying(false);
@@ -662,6 +664,82 @@ export default function Editor() {
     }
   };
 
+  const handleCodeChange = (newCode: string) => {
+    // This will be called when valid code is entered in the CodeEditor
+    try {
+      const doc = parseSPA(newCode);
+      const newNodes: EditorNode[] = [];
+      let nodeId = 0;
+
+      const processSoundToNode = (sound: SPASound): EditorNode => {
+        if (sound.type === 'group') {
+          const group = sound as GroupElement;
+          const groupNode: EditorGroup = {
+            id: nodeId++,
+            type: 'group',
+            children: [],
+          };
+          if (group.sounds) {
+            groupNode.children = group.sounds.map((s) => processSoundToNode(s));
+          }
+          setExpandedNodes((prev) => new Set(Array.from(prev).concat(groupNode.id)));
+          return groupNode;
+        } else if (sound.type === 'sequence') {
+          const sequence = sound as SequenceElement;
+          const sequenceNode: EditorSequence = {
+            id: nodeId++,
+            type: 'sequence',
+            children: [],
+          };
+          if (sequence.elements) {
+            sequenceNode.children = sequence.elements.map(
+              (timedSound: { sound: SPASound; at: number }) => {
+                const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
+                return processSoundToNode(soundWithTiming);
+              }
+            );
+          }
+          setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
+          return sequenceNode;
+        } else {
+          return {
+            id: nodeId++,
+            type: 'layer',
+            sound: normalizeSound(sound),
+          };
+        }
+      };
+
+      for (const sound of doc.sounds) {
+        newNodes.push(processSoundToNode(sound));
+      }
+
+      if (newNodes.length > 0) {
+        if (isPlaying) {
+          stopSound();
+        }
+        setRootNodes(newNodes);
+        nodeIdCounterRef.current = nodeId;
+        // Find and select the first tone/noise layer
+        const firstLayer = newNodes.find((n) => n.type === 'layer');
+        setCurrentNodeId(firstLayer ? firstLayer.id : newNodes[0].id);
+      } else {
+        // If empty, set default node
+        setRootNodes(getInitialNodes());
+        setCurrentNodeId(0);
+      }
+
+      setHasCodeError(false);
+    } catch (error) {
+      console.error('Failed to parse code:', error);
+      // Don't update nodes if parse fails - CodeEditor handles the error display
+    }
+  };
+
+  const handleCodeValidChange = (valid: boolean) => {
+    setHasCodeError(!valid);
+  };
+
   const getAllLayers = (nodes: EditorNode[]): EditorLayer[] => {
     const layers: EditorLayer[] = [];
     for (const node of nodes) {
@@ -708,11 +786,18 @@ export default function Editor() {
           playSound();
         }
       }
+
+      // Prevent Escape from closing modals if code has errors
+      if (e.key === 'Escape' && hasCodeError && activeEditorTab === 'code') {
+        e.preventDefault();
+        e.stopPropagation();
+        alert('Please fix the errors in the Code view before leaving.');
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, rootNodes, xmlOutput]);
+  }, [isPlaying, rootNodes, xmlOutput, hasCodeError, activeEditorTab, playSound]);
 
   // Tree-based layer display component
   const LayerTree = ({
@@ -1131,12 +1216,21 @@ export default function Editor() {
                 <div className="flex justify-between items-center border-b border-navy-light/20">
                   <div className="flex">
                     <button
-                      onClick={() => setActiveEditorTab('editor')}
+                      onClick={() => {
+                        if (!hasCodeError) {
+                          setActiveEditorTab('editor');
+                        } else {
+                          alert('Please fix the errors in the Code view before switching tabs.');
+                        }
+                      }}
                       className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                         activeEditorTab === 'editor'
                           ? 'text-white border-green'
-                          : 'text-gray-400 hover:text-white border-transparent'
+                          : hasCodeError
+                            ? 'text-red-400 hover:text-red-300 border-transparent cursor-not-allowed'
+                            : 'text-gray-400 hover:text-white border-transparent'
                       }`}
+                      disabled={hasCodeError}
                     >
                       Editor
                     </button>
@@ -1144,11 +1238,13 @@ export default function Editor() {
                       onClick={() => setActiveEditorTab('code')}
                       className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                         activeEditorTab === 'code'
-                          ? 'text-white border-green'
+                          ? hasCodeError
+                            ? 'text-red-400 border-red-500'
+                            : 'text-white border-green'
                           : 'text-gray-400 hover:text-white border-transparent'
                       }`}
                     >
-                      Code
+                      Code {hasCodeError && <span className="text-red-400">●</span>}
                     </button>
                   </div>
                   <div className="flex gap-2 px-4">
@@ -1217,11 +1313,12 @@ export default function Editor() {
                   </div>
                 ) : (
                   /* Code View */
-                  <div className="flex-1 bg-grey p-4 overflow-auto min-w-0">
-                    <pre className="text-green-bright font-mono text-sm whitespace-pre-wrap break-all">
-                      {xmlOutput}
-                    </pre>
-                  </div>
+                  <CodeEditor
+                    value={xmlOutput}
+                    onChange={handleCodeChange}
+                    onValidChange={handleCodeValidChange}
+                    className="flex-1"
+                  />
                 )}
               </div>
             </div>

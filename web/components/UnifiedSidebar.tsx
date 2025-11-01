@@ -120,22 +120,7 @@ export default function UnifiedSidebar({
           }
         } else {
           // ArrowUp
-          if (focusedItem.type === 'category') {
-            // This shouldn't happen with new navigation, but handle it anyway
-            // Move to previous category and select last preset
-            const prevIndex =
-              currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
-            const prevCategory = categories[prevIndex];
-            setExpandedCategory(prevCategory);
-            const prevPresets = Object.keys(presetCategories[prevCategory]);
-            if (prevPresets.length > 0) {
-              const lastPreset = prevPresets[prevPresets.length - 1];
-              setFocusedItem({ type: 'preset', category: prevCategory, preset: lastPreset });
-              onLoadPreset(prevCategory, lastPreset); // Load the preset
-            } else {
-              setFocusedItem({ type: 'category', category: prevCategory });
-            }
-          } else {
+          if (focusedItem.type === 'preset') {
             // Currently on a preset
             const presets = Object.keys(presetCategories[focusedItem.category]);
             const currentPresetIndex = presets.indexOf(focusedItem.preset!);
@@ -150,20 +135,42 @@ export default function UnifiedSidebar({
               });
               onLoadPreset(focusedItem.category, prevPreset); // Load the preset
             } else {
-              // This is the first preset in the category
+              // This is the first preset in the current category
               // Move to previous category and select its last preset
               const prevIndex =
                 currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
               const prevCategory = categories[prevIndex];
-              setExpandedCategory(prevCategory);
               const prevPresets = Object.keys(presetCategories[prevCategory]);
+
+              // Always expand the previous category and navigate to last preset
+              setExpandedCategory(prevCategory);
+
               if (prevPresets.length > 0) {
+                // Select the last preset of the previous category
                 const lastPreset = prevPresets[prevPresets.length - 1];
                 setFocusedItem({ type: 'preset', category: prevCategory, preset: lastPreset });
                 onLoadPreset(prevCategory, lastPreset); // Load the preset
               } else {
+                // No presets in previous category, just focus the category
                 setFocusedItem({ type: 'category', category: prevCategory });
               }
+            }
+          } else {
+            // Currently on a category (shouldn't happen with current navigation, but handle it)
+            // Move to previous category and select its last preset
+            const prevIndex =
+              currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
+            const prevCategory = categories[prevIndex];
+            const prevPresets = Object.keys(presetCategories[prevCategory]);
+
+            setExpandedCategory(prevCategory);
+
+            if (prevPresets.length > 0) {
+              const lastPreset = prevPresets[prevPresets.length - 1];
+              setFocusedItem({ type: 'preset', category: prevCategory, preset: lastPreset });
+              onLoadPreset(prevCategory, lastPreset); // Load the preset
+            } else {
+              setFocusedItem({ type: 'category', category: prevCategory });
             }
           }
         }
