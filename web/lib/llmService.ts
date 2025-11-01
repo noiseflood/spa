@@ -3,27 +3,14 @@
  * System prompt is loaded from /public/system-prompt.md at runtime
  */
 
+import Anthropic from '@anthropic-ai/sdk';
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-interface AnthropicMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface AnthropicTool {
-  name: string;
-  description: string;
-  input_schema: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required: string[];
-  };
-}
-
-const TOOLS: AnthropicTool[] = [
+const TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_spa_editor',
     description: 'Updates the SPA sound editor with new XML markup. Use this when the user asks you to create, modify, or generate a sound effect. The XML must be complete and valid SPA format.',
@@ -109,12 +96,18 @@ export async function sendChatMessages(
   );
 
   // Convert messages to Anthropic format
-  const anthropicMessages: AnthropicMessage[] = conversationMessages.map((msg) => ({
+  const anthropicMessages: Anthropic.MessageParam[] = conversationMessages.map((msg) => ({
     role: msg.role,
     content: msg.content,
   }));
 
   try {
+    // Initialize Anthropic client with dangerouslyAllowBrowser for client-side usage
+    const client = new Anthropic({
+      apiKey,
+      dangerouslyAllowBrowser: true,
+    });
+
     // Load the system prompt at runtime
     let systemPrompt = await getSystemPrompt();
 
@@ -123,165 +116,132 @@ export async function sendChatMessages(
       systemPrompt += `\n\n## Current Editor State\n\nThe user currently has the following SPA XML in their editor:\n\n\`\`\`xml\n${currentSPA}\n\`\`\`\n\nWhen the user asks you to modify, adjust, or improve the sound, use this as the starting point. When generating new XML with the update_spa_editor tool, include your modifications to this existing code.`;
     }
 
-    // Call Anthropic API directly from the browser using the CORS header
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
+    // First API call
+    let response = await client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: anthropicMessages,
+      tools: TOOLS,
+    });
+
+    const MAX_RETRIES = 3;
+    let attempt = 0;
+
+    // Retry loop for tool execution
+    while (attempt < MAX_RETRIES) {
+      // Check if Claude wants to use a tool
+      const toolUseBlock = response.content.find(
+        (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
+      );
+
+      if (!toolUseBlock || !onEditorUpdate) {
+        // No tool use - extract text response
+        const textBlock = response.content.find(
+          (block): block is Anthropic.TextBlock => block.type === 'text'
+        );
+        const assistantMessage = textBlock?.text || 'Sorry, I could not generate a response.';
+
+        return [
+          ...messages,
+          {
+            role: 'assistant',
+            content: assistantMessage,
+          },
+        ];
+      }
+
+      attempt++;
+
+      // Execute the tool
+      const toolInput = toolUseBlock.input as { xml?: string; explanation?: string };
+
+      // Debug logging
+      console.log('Tool use block:', toolUseBlock);
+      console.log('Tool input:', toolInput);
+      console.log('XML value:', toolInput.xml);
+      console.log('Explanation value:', toolInput.explanation);
+
+      const result = onEditorUpdate(toolInput.xml || '', toolInput.explanation || '');
+
+      // Build tool result messages
+      const toolResultMessages: Anthropic.MessageParam[] = [
+        ...anthropicMessages,
+        {
+          role: 'assistant',
+          content: response.content,
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: toolUseBlock.id,
+              content: result.success
+                ? 'Successfully updated the editor with the new SPA XML.'
+                : `Failed to update the editor. Error: ${result.error || 'The XML may be invalid.'}. Please try again with corrected XML.`,
+            },
+          ],
+        },
+      ];
+
+      // Make another request to get Claude's response
+      response = await client.messages.create({
         model: 'claude-sonnet-4-5',
         max_tokens: 2048,
         system: systemPrompt,
-        messages: anthropicMessages,
+        messages: toolResultMessages,
         tools: TOOLS,
-      }),
-    });
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `Anthropic API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`
-      );
-    }
+      // If tool execution succeeded, return the final message
+      if (result.success) {
+        const textBlock = response.content.find(
+          (block): block is Anthropic.TextBlock => block.type === 'text'
+        );
+        const finalMessage = textBlock?.text || toolInput.explanation || '';
 
-    const data = await response.json();
-
-    // Check if Claude wants to use a tool
-    let toolUseBlock = data.content?.find((block: any) => block.type === 'tool_use');
-
-    if (toolUseBlock && onEditorUpdate) {
-      const MAX_RETRIES = 3;
-      let attempt = 0;
-      let currentMessages = anthropicMessages;
-      let currentResponse = data;
-
-      // Retry loop for tool execution
-      while (attempt < MAX_RETRIES) {
-        attempt++;
-        toolUseBlock = currentResponse.content?.find((block: any) => block.type === 'tool_use');
-
-        if (!toolUseBlock) {
-          // No more tool use - Claude gave up or provided a text response
-          break;
-        }
-
-        const toolInput = toolUseBlock.input;
-
-        // Execute the tool (update the editor)
-        const result = onEditorUpdate(toolInput.xml, toolInput.explanation);
-
-        // Build tool result messages
-        const toolResultMessages: AnthropicMessage[] = [
-          ...currentMessages,
+        return [
+          ...messages,
           {
             role: 'assistant',
-            content: JSON.stringify(currentResponse.content),
-          },
-          {
-            role: 'user',
-            content: JSON.stringify([
-              {
-                type: 'tool_result',
-                tool_use_id: toolUseBlock.id,
-                content: result.success
-                  ? 'Successfully updated the editor with the new SPA XML.'
-                  : `Failed to update the editor. Error: ${result.error || 'The XML may be invalid.'}. Please try again with corrected XML.`,
-              },
-            ]),
+            content: finalMessage,
           },
         ];
-
-        // Make another request to get Claude's response
-        const followUpResponse = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-5',
-            max_tokens: 2048,
-            system: systemPrompt,
-            messages: toolResultMessages,
-            tools: TOOLS,
-          }),
-        });
-
-        if (!followUpResponse.ok) {
-          const errorData = await followUpResponse.json().catch(() => ({}));
-          throw new Error(
-            `Anthropic API error: ${followUpResponse.status} ${followUpResponse.statusText} - ${JSON.stringify(errorData)}`
-          );
-        }
-
-        const followUpData = await followUpResponse.json();
-
-        // If tool execution succeeded, return the final message
-        if (result.success) {
-          const finalMessage =
-            followUpData.content?.find((block: any) => block.type === 'text')?.text ||
-            toolInput.explanation;
-
-          return [
-            ...messages,
-            {
-              role: 'assistant',
-              content: finalMessage,
-            },
-          ];
-        }
-
-        // Tool execution failed - check if Claude wants to retry
-        const hasAnotherToolUse = followUpData.content?.some(
-          (block: any) => block.type === 'tool_use'
-        );
-
-        if (hasAnotherToolUse) {
-          // Claude is trying again - continue the loop
-          currentMessages = toolResultMessages;
-          currentResponse = followUpData;
-        } else {
-          // Claude gave up - return the text response
-          const finalMessage =
-            followUpData.content?.find((block: any) => block.type === 'text')?.text ||
-            `I apologize, but I couldn't generate valid SPA XML after ${attempt} attempt(s). ${result.error || 'Please try describing the sound differently.'}`;
-
-          return [
-            ...messages,
-            {
-              role: 'assistant',
-              content: finalMessage,
-            },
-          ];
-        }
       }
 
-      // Exceeded max retries
-      return [
-        ...messages,
-        {
-          role: 'assistant',
-          content: `I apologize, but I couldn't generate valid SPA XML after ${MAX_RETRIES} attempts. Please try describing the sound differently or check the SPA specification.`,
-        },
-      ];
+      // Check if Claude wants to retry
+      const hasAnotherToolUse = response.content.some((block) => block.type === 'tool_use');
+
+      if (!hasAnotherToolUse) {
+        // Claude gave up - return the text response
+        const textBlock = response.content.find(
+          (block): block is Anthropic.TextBlock => block.type === 'text'
+        );
+        const finalMessage =
+          textBlock?.text ||
+          `I apologize, but I couldn't generate valid SPA XML after ${attempt} attempt(s). ${result.error || 'Please try describing the sound differently.'}`;
+
+        return [
+          ...messages,
+          {
+            role: 'assistant',
+            content: finalMessage,
+          },
+        ];
+      }
+
+      // Continue loop for another retry
+      anthropicMessages.length = 0;
+      anthropicMessages.push(...toolResultMessages);
     }
 
-    // No tool use - extract regular text response
-    const textBlock = data.content?.find((block: any) => block.type === 'text');
-    const assistantMessage = textBlock?.text || 'Sorry, I could not generate a response.';
-
-    // Return the updated messages array
+    // Exceeded max retries
     return [
       ...messages,
       {
         role: 'assistant',
-        content: assistantMessage,
+        content: `I apologize, but I couldn't generate valid SPA XML after ${MAX_RETRIES} attempts. Please try describing the sound differently or check the SPA specification.`,
       },
     ];
   } catch (error) {
