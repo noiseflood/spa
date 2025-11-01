@@ -26,6 +26,7 @@ export default function UnifiedSidebar({
     preset: string;
   } | null>(null);
   const presetsContainerRef = useRef<HTMLDivElement>(null);
+  const hasInitializedCategory = useRef(false);
   const [chatMessages, setChatMessages] = useState<
     { role: 'user' | 'assistant'; content: string }[]
   >([
@@ -39,6 +40,65 @@ export default function UnifiedSidebar({
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
+  // Load active tab from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('spa_sidebar_tab');
+    if (saved === 'presets' || saved === 'chat') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveTab(saved);
+    }
+  }, []);
+
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('spa_sidebar_tab', activeTab);
+  }, [activeTab]);
+
+  // Load API key from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('anthropic_api_key');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setApiKey(saved);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowApiKeyInput(!saved);
+  }, []);
+
+  // Load expanded category from localStorage on mount, or default to first category
+  useEffect(() => {
+    // Only initialize once
+    if (hasInitializedCategory.current) return;
+
+    const categories = Object.keys(presetCategories);
+    if (categories.length === 0) return;
+
+    const saved = localStorage.getItem('spa_expanded_category');
+    if (saved && categories.includes(saved)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExpandedCategory(saved);
+    } else {
+      // Default to first category if no saved state
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExpandedCategory(categories[0]);
+    }
+
+    // Mark as initialized AFTER setting state to allow this first change to be saved
+    hasInitializedCategory.current = true;
+  }, [presetCategories]);
+
+  // Save expanded category to localStorage when it changes (but only after initialization)
+  useEffect(() => {
+    // Only save if we've initialized (prevents removing saved value on mount)
+    if (!hasInitializedCategory.current) {
+      return;
+    }
+
+    if (expandedCategory) {
+      localStorage.setItem('spa_expanded_category', expandedCategory);
+    } else {
+      localStorage.removeItem('spa_expanded_category');
+    }
+  }, [expandedCategory]);
 
   // Keyboard navigation for presets
   useEffect(() => {
@@ -296,16 +356,6 @@ export default function UnifiedSidebar({
     'Design a success chime',
     'Build a swoosh transition',
   ];
-
-  // Check for API key in localStorage on mount
-  useEffect(() => {
-    const storedKey = localStorage.getItem('anthropic_api_key');
-    if (storedKey) {
-      setApiKey(storedKey);
-    } else {
-      setShowApiKeyInput(true);
-    }
-  }, []);
 
   const handleSaveApiKey = () => {
     if (apiKeyInput.trim()) {

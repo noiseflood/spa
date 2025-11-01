@@ -42,6 +42,23 @@ interface EditorSequence {
 }
 
 export default function Editor() {
+  // Helper function to collect all group and sequence node IDs
+  const getAllGroupAndSequenceIds = useCallback((nodes: EditorNode[]): number[] => {
+    const ids: number[] = [];
+    const traverse = (nodeList: EditorNode[]) => {
+      for (const node of nodeList) {
+        if (node.type === 'group' || node.type === 'sequence') {
+          ids.push(node.id);
+          if (node.children) {
+            traverse(node.children);
+          }
+        }
+      }
+    };
+    traverse(nodes);
+    return ids;
+  }, []);
+
   // Initialize with a default tone layer
   const getInitialNodes = (): EditorNode[] => {
     const initialNode: EditorLayer = {
@@ -85,6 +102,7 @@ export default function Editor() {
   const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPlaybackRef = useRef<Promise<void> | null>(null);
+  const hasInitializedExpandedNodes = useRef(false);
 
   // Initialize preset categories on mount
   useEffect(() => {
@@ -92,6 +110,87 @@ export default function Editor() {
       setPresetCategories(categories);
     });
   }, []);
+
+  // Load active editor tab from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('spa_editor_tab');
+    if (saved === 'editor' || saved === 'code') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveEditorTab(saved);
+    }
+  }, []);
+
+  // Save active editor tab to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('spa_editor_tab', activeEditorTab);
+  }, [activeEditorTab]);
+
+  // Load saved SPA code from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('spa_editor_nodes');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setRootNodes(parsed);
+          // Find the highest node ID to set the counter correctly
+          const findMaxId = (nodes: EditorNode[]): number => {
+            let maxId = 0;
+            for (const node of nodes) {
+              if (node.id > maxId) maxId = node.id;
+              if ('children' in node && node.children) {
+                const childMaxId = findMaxId(node.children);
+                if (childMaxId > maxId) maxId = childMaxId;
+              }
+            }
+            return maxId;
+          };
+          nodeIdCounterRef.current = findMaxId(parsed) + 1;
+        }
+      } catch (e) {
+        console.error('Failed to load saved SPA code:', e);
+      }
+    }
+  }, []);
+
+  // Save SPA code to localStorage when rootNodes change
+  useEffect(() => {
+    localStorage.setItem('spa_editor_nodes', JSON.stringify(rootNodes));
+  }, [rootNodes]);
+
+  // Load expanded nodes from localStorage on mount, or default to all groups/sequences expanded
+  useEffect(() => {
+    // Only initialize once
+    if (hasInitializedExpandedNodes.current) return;
+    hasInitializedExpandedNodes.current = true;
+
+    const saved = localStorage.getItem('spa_expanded_nodes');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setExpandedNodes(new Set(parsed));
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to load expanded nodes:', e);
+      }
+    }
+
+    // Default to all groups and sequences expanded if no saved state
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedNodes(new Set(getAllGroupAndSequenceIds(rootNodes)));
+  }, [rootNodes, getAllGroupAndSequenceIds]);
+
+  // Save expanded nodes to localStorage when they change (but not on initial load)
+  useEffect(() => {
+    // Only save if we've initialized
+    if (hasInitializedExpandedNodes.current) {
+      localStorage.setItem('spa_expanded_nodes', JSON.stringify(Array.from(expandedNodes)));
+    }
+  }, [expandedNodes]);
 
   const getDefaultSound = (type: 'tone' | 'noise' = 'tone'): ToneElement | NoiseElement => {
     if (type === 'tone') {
@@ -1319,7 +1418,9 @@ export default function Editor() {
                       Editor
                     </button>
                     <button
-                      onClick={() => setActiveEditorTab('code')}
+                      onClick={() => {
+                        setActiveEditorTab('code');
+                      }}
                       className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                         activeEditorTab === 'code'
                           ? hasCodeError
