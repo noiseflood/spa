@@ -1071,7 +1071,7 @@ export default function Editor() {
 
             {/* Synth Control Panel */}
             <div className="flex h-full">
-              <div className="w-80 bg-navy-dark border-r border-navy-light/20 overflow-y-auto">
+              <div className="w-80 border-r border-navy-light/20 overflow-y-auto">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">

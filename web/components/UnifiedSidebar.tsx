@@ -13,7 +13,11 @@ export default function UnifiedSidebar({
 }: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
-  const [focusedItem, setFocusedItem] = useState<{ type: 'category' | 'preset'; category: string; preset?: string } | null>(null);
+  const [focusedItem, setFocusedItem] = useState<{
+    type: 'category' | 'preset';
+    category: string;
+    preset?: string;
+  } | null>(null);
   const presetsContainerRef = useRef<HTMLDivElement>(null);
   const [chatMessages, setChatMessages] = useState<
     { role: 'user' | 'assistant'; content: string }[]
@@ -63,7 +67,11 @@ export default function UnifiedSidebar({
               const presets = Object.keys(presetCategories[focusedItem.category]);
               if (presets.length > 0) {
                 const firstPreset = presets[0];
-                setFocusedItem({ type: 'preset', category: focusedItem.category, preset: firstPreset });
+                setFocusedItem({
+                  type: 'preset',
+                  category: focusedItem.category,
+                  preset: firstPreset,
+                });
                 onLoadPreset(focusedItem.category, firstPreset); // Load the preset
               }
             } else {
@@ -89,7 +97,11 @@ export default function UnifiedSidebar({
             if (currentPresetIndex < presets.length - 1) {
               // Move to next preset
               const nextPreset = presets[currentPresetIndex + 1];
-              setFocusedItem({ type: 'preset', category: focusedItem.category, preset: nextPreset });
+              setFocusedItem({
+                type: 'preset',
+                category: focusedItem.category,
+                preset: nextPreset,
+              });
               onLoadPreset(focusedItem.category, nextPreset); // Load the preset
             } else {
               // Move to next category, expand it, and select first preset
@@ -111,7 +123,8 @@ export default function UnifiedSidebar({
           if (focusedItem.type === 'category') {
             // This shouldn't happen with new navigation, but handle it anyway
             // Move to previous category and select last preset
-            const prevIndex = currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
+            const prevIndex =
+              currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
             const prevCategory = categories[prevIndex];
             setExpandedCategory(prevCategory);
             const prevPresets = Object.keys(presetCategories[prevCategory]);
@@ -130,12 +143,17 @@ export default function UnifiedSidebar({
             if (currentPresetIndex > 0) {
               // Move to previous preset in same category
               const prevPreset = presets[currentPresetIndex - 1];
-              setFocusedItem({ type: 'preset', category: focusedItem.category, preset: prevPreset });
+              setFocusedItem({
+                type: 'preset',
+                category: focusedItem.category,
+                preset: prevPreset,
+              });
               onLoadPreset(focusedItem.category, prevPreset); // Load the preset
             } else {
               // This is the first preset in the category
               // Move to previous category and select its last preset
-              const prevIndex = currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
+              const prevIndex =
+                currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
               const prevCategory = categories[prevIndex];
               setExpandedCategory(prevCategory);
               const prevPresets = Object.keys(presetCategories[prevCategory]);
@@ -172,7 +190,9 @@ export default function UnifiedSidebar({
         if (focusedItem.type === 'category') {
           // Toggle category expansion
           playSoundEffect('ui-feedback/tab-switch');
-          setExpandedCategory(expandedCategory === focusedItem.category ? null : focusedItem.category);
+          setExpandedCategory(
+            expandedCategory === focusedItem.category ? null : focusedItem.category
+          );
         } else {
           // Load preset
           playSoundEffect('ui-feedback/button-click');
@@ -221,7 +241,7 @@ export default function UnifiedSidebar({
   ];
 
   return (
-    <div className="w-[450px] bg-navy border-r border-navy-light/20 flex flex-col h-full">
+    <div className="w-[450px] bg-navy-medium border-r-2 border-navy-light flex flex-col h-full">
       {/* Tab Header */}
       <div className="flex border-b border-navy-light/20">
         <button
@@ -267,7 +287,8 @@ export default function UnifiedSidebar({
             </div>
 
             {Object.entries(presetCategories).map(([category, presets]) => {
-              const isFocused = focusedItem?.type === 'category' && focusedItem.category === category;
+              const isFocused =
+                focusedItem?.type === 'category' && focusedItem.category === category;
               return (
                 <div key={category} className="mb-3">
                   <button
@@ -303,7 +324,8 @@ export default function UnifiedSidebar({
                   {expandedCategory === category && (
                     <div className="space-y-0.5 ml-2 mt-1">
                       {Object.keys(presets).map((presetName) => {
-                        const isPresetFocused = focusedItem?.type === 'preset' &&
+                        const isPresetFocused =
+                          focusedItem?.type === 'preset' &&
                           focusedItem.category === category &&
                           focusedItem.preset === presetName;
                         return (
@@ -320,7 +342,9 @@ export default function UnifiedSidebar({
                               setFocusedItem({ type: 'preset', category, preset: presetName });
                             }}
                             className={`w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between ${
-                              isPresetFocused ? 'ring-2 ring-green ring-offset-2 ring-offset-navy bg-navy-light/20 text-white' : ''
+                              isPresetFocused
+                                ? 'ring-2 ring-green ring-offset-2 ring-offset-navy bg-navy-light/20 text-white'
+                                : ''
                             }`}
                           >
                             <span>{presetName}</span>
