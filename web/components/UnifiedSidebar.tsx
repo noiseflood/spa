@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { sendChatMessages } from '../lib/llmService';
+import { sendChatMessages, EditorUpdateCallback } from '../lib/llmService';
 
 interface UnifiedSidebarProps {
   presetCategories: Record<string, Record<string, string>>;
   onLoadPreset: (category: string, preset: string) => void;
   playSoundEffect: (sound: string) => void;
+  onEditorUpdate?: EditorUpdateCallback;
 }
 
 export default function UnifiedSidebar({
   presetCategories,
   onLoadPreset,
   playSoundEffect,
+  onEditorUpdate,
 }: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -273,7 +275,7 @@ export default function UnifiedSidebar({
       setInputValue('');
 
       try {
-        const responseMessages = await sendChatMessages(updatedMessages, apiKey);
+        const responseMessages = await sendChatMessages(updatedMessages, apiKey, onEditorUpdate);
         setChatMessages(responseMessages);
       } catch (error) {
         console.error('Error sending message:', error);
