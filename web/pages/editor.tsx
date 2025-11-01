@@ -18,6 +18,7 @@ import {
 import { useSound } from '../contexts/SoundContext';
 import UnifiedSidebar from '../components/UnifiedSidebar';
 import CodeEditor from '../components/CodeEditor';
+import { EditorUpdateCallback } from '../lib/llmService';
 
 // Editor-specific types for UI state with support for nested structures
 type EditorNode = EditorLayer | EditorGroup | EditorSequence;
@@ -741,6 +742,83 @@ export default function Editor() {
     }
   };
 
+  /**
+   * Callback for AI Assistant to update the editor
+   */
+  const handleAIEditorUpdate: EditorUpdateCallback = (xml: string, explanation: string) => {
+    try {
+      const doc = parseSPA(xml);
+      const newNodes: EditorNode[] = [];
+      let nodeId = 0;
+
+      const processSoundToNode = (sound: SPASound): EditorNode => {
+        if (sound.type === 'group') {
+          const group = sound as GroupElement;
+          const groupNode: EditorGroup = {
+            id: nodeId++,
+            type: 'group',
+            children: [],
+          };
+          if (group.sounds) {
+            groupNode.children = group.sounds.map((s) => processSoundToNode(s));
+          }
+          setExpandedNodes((prev) => new Set(Array.from(prev).concat(groupNode.id)));
+          return groupNode;
+        } else if (sound.type === 'sequence') {
+          const sequence = sound as SequenceElement;
+          const sequenceNode: EditorSequence = {
+            id: nodeId++,
+            type: 'sequence',
+            children: [],
+          };
+          if (sequence.elements) {
+            sequenceNode.children = sequence.elements.map(
+              (timedSound: { sound: SPASound; at: number }) => {
+                const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
+                return processSoundToNode(soundWithTiming);
+              }
+            );
+          }
+          setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
+          return sequenceNode;
+        } else {
+          return {
+            id: nodeId++,
+            type: 'layer',
+            sound: normalizeSound(sound),
+          };
+        }
+      };
+
+      for (const sound of doc.sounds) {
+        newNodes.push(processSoundToNode(sound));
+      }
+
+      if (newNodes.length > 0) {
+        if (isPlaying) {
+          stopSound();
+        }
+        setRootNodes(newNodes);
+        nodeIdCounterRef.current = nodeId;
+        // Find and select the first tone/noise layer
+        const firstLayer = newNodes.find((n) => n.type === 'layer');
+        setCurrentNodeId(firstLayer ? firstLayer.id : newNodes[0].id);
+        // Switch to editor tab to show the result
+        setActiveEditorTab('editor');
+        // Log for debugging
+        console.log('AI updated editor:', explanation);
+        return true; // Success
+      } else {
+        // Empty XML
+        console.warn('AI generated empty SPA XML');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to update editor from AI:', error);
+      return false; // Failure
+    }
+  };
+
   const handleCodeValidChange = (valid: boolean) => {
     setHasCodeError(!valid);
   };
@@ -974,6 +1052,7 @@ export default function Editor() {
           presetCategories={presetCategories}
           onLoadPreset={loadPreset}
           playSoundEffect={playSoundEffect}
+          onEditorUpdate={handleAIEditorUpdate}
         />
 
         {/* Main Content: Synth-style Layout */}
