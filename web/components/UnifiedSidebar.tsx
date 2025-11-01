@@ -447,6 +447,17 @@ export default function UnifiedSidebar({
     playSoundEffect('ui-feedback/button-click');
   };
 
+  const handleClearChat = () => {
+    setChatMessages([
+      {
+        role: 'assistant',
+        content:
+          '👋 Welcome to the SPA Sound Editor!\n\n💡 New here? Start with the **Presets** tab above to explore ready-made sounds and learn how the editor works.\n\nI can help you:\n• Create custom sound effects\n• Modify existing presets\n• Understand how different parameters affect sounds\n• Build complex layered compositions\n\nJust describe the sound you want to create!',
+      },
+    ]);
+    playSoundEffect('ui-feedback/button-click');
+  };
+
   return (
     <div className="w-[450px] bg-navy-medium border-r-2 border-navy-light flex flex-col h-full">
       {/* Tab Header */}
@@ -713,13 +724,22 @@ export default function UnifiedSidebar({
                   <p className="text-[10px] text-gray-500">
                     Tip: Check the Presets tab for examples and inspiration!
                   </p>
-                  <button
-                    onClick={handleClearApiKey}
-                    className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
-                    title="Clear API key"
-                  >
-                    Clear Key
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleClearChat}
+                      className="text-[10px] text-gray-400 hover:text-gray-300 transition-colors"
+                      title="Clear chat history"
+                    >
+                      Clear Chat
+                    </button>
+                    <button
+                      onClick={handleClearApiKey}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                      title="Clear API key"
+                    >
+                      Clear Key
+                    </button>
+                  </div>
                 </div>
               </>
             )}
