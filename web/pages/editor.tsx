@@ -3,6 +3,7 @@ import Head from 'next/head';
 import {
   parseSPA,
   playSPA,
+  stopAllSounds,
   type SPASound,
   type ToneElement,
   type NoiseElement,
@@ -579,13 +580,15 @@ export default function Editor() {
   }, [xmlOutput, isPlaying]);
 
   const stopSound = () => {
+    stopAllSounds();
     setIsPlaying(false);
     currentPlaybackRef.current = null;
   };
 
-  const importFromText = () => {
+  const importFromText = (textToImport?: string) => {
+    const text = textToImport ?? importText;
     try {
-      const doc = parseSPA(importText);
+      const doc = parseSPA(text);
       const newNodes: EditorNode[] = [];
       let nodeId = 0;
 
@@ -654,11 +657,30 @@ export default function Editor() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      setImportText(content);
-      importFromText();
+      importFromText(content);
     };
     reader.readAsText(file);
     event.target.value = '';
+  };
+
+  const handleFileDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      importFromText(content);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   const normalizeSound = (sound: SPASound): ToneElement | NoiseElement => {
@@ -1546,9 +1568,11 @@ export default function Editor() {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleFileDrop}
+                  onDragOver={handleDragOver}
                   className="w-full py-3 bg-navy border-2 border-dashed border-navy-light/40 rounded-lg hover:border-navy-light transition-colors"
                 >
-                  Click to select a .spa file
+                  Click to select a .spa file or drag & drop
                 </button>
               </div>
 
@@ -1561,7 +1585,7 @@ export default function Editor() {
                   className="w-full h-48 bg-navy text-white p-4 rounded-lg border border-navy-light/20 font-mono text-sm"
                 />
                 <button
-                  onClick={importFromText}
+                  onClick={() => importFromText()}
                   disabled={!importText.trim()}
                   className="w-full py-3 bg-navy-light hover:bg-navy-light/80 disabled:bg-navy disabled:text-gray-500 rounded-lg font-semibold transition-colors"
                 >
