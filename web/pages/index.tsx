@@ -5,8 +5,24 @@ import { playSPA } from '@spa-audio/core';
 import { useSound } from '../contexts/SoundContext';
 import MuteButton from '../components/MuteButton';
 
+// Cookie helper functions
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
+function setCookie(name: string, value: string, days: number = 365) {
+  if (typeof document === 'undefined') return;
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+}
+
 export default function Home() {
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false); // Default to false, will be determined by cookie
   const [visibleWords, setVisibleWords] = useState(0);
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([]);
   const [currentPreset, setCurrentPreset] = useState<{ path: string; name: string } | null>(null);
@@ -14,6 +30,30 @@ export default function Home() {
   const [isTyping, setIsTyping] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const { playSound } = useSound();
+
+  // Check if intro should be shown based on cookie
+  useEffect(() => {
+    const lastVisit = getCookie('spa_last_visit');
+    const now = Date.now();
+
+    if (!lastVisit) {
+      // First visit - show intro
+      setShowIntro(true);
+    } else {
+      // Check if 10 minutes (600000ms) have passed since last visit
+      const timeSinceLastVisit = now - parseInt(lastVisit, 10);
+      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+      if (timeSinceLastVisit >= tenMinutes) {
+        setShowIntro(true);
+      } else {
+        setShowIntro(false);
+      }
+    }
+
+    // Update the last visit timestamp
+    setCookie('spa_last_visit', now.toString());
+  }, []);
 
   // Animate intro text and transition to homepage
   useEffect(() => {
@@ -167,7 +207,7 @@ export default function Home() {
 
       <MuteButton />
 
-      <div className="min-h-screen bg-navy text-gray-200">
+      <div className="min-h-screen bg-navy text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
           <header className="font-mono flex flex-col text-center items-center justify-between h-[70vh]">
@@ -177,7 +217,7 @@ export default function Home() {
               className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95"
               title="Click to play sound"
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-green-bright bg-clip-text text-transparent animate-glow tracking-tighter select-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-green-bright animate-glow tracking-tighter select-none">
                 &lt;spa name=&quot;{displayedName}
                 <span className="animate-pulse">
                   {displayedName.length < (currentPreset?.name.length || 0) ? '|' : ''}
@@ -186,14 +226,14 @@ export default function Home() {
               </h1>
             </div>
             <div className="h-full">
-              <p className="text-2xl text-gray-400 font-light mb-8">The SVG of Sound Effects</p>
+              <p className="text-2xl text-white/60 font-light mb-8">The SVG of Sound Effects</p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/editor"
                   onMouseEnter={() => playSound('ui-feedback/hover')}
                   onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-bright text-navy font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-navy-dark text-green-bright border-2 border-green-bright font-semibold text-lg rounded-lg shadow-lg hover:bg-green-bright hover:text-navy-dark hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
@@ -204,7 +244,7 @@ export default function Home() {
                   href="/getting-started"
                   onMouseEnter={() => playSound('ui-feedback/hover')}
                   onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-navy border-2 border-navy-light text-gray-200 font-semibold text-lg rounded-lg hover:bg-navy-light hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-navy-dark border-2 border-navy-light text-white font-semibold text-lg rounded-lg hover:bg-navy-light hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
@@ -219,22 +259,22 @@ export default function Home() {
           <section className="grid md:grid-cols-3 gap-8 py-16">
             <div
               onMouseEnter={() => playSound('ui-feedback/hover')}
-              className="bg-navy p-8 rounded-xl border border-navy-light/10 hover:border-navy-light/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+              className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
             >
               <div className="text-4xl mb-4">🎵</div>
-              <h3 className="text-xl font-semibold text-navy-light mb-2">Declarative Audio</h3>
-              <p className="text-gray-400">
+              <h3 className="text-xl font-semibold text-green-bright mb-2">Declarative Audio</h3>
+              <p className="text-white/60">
                 Define sounds with simple XML tags. No complex audio programming required.
               </p>
             </div>
 
             <div
               onMouseEnter={() => playSound('ui-feedback/hover')}
-              className="bg-navy p-8 rounded-xl border border-navy-light/10 hover:border-navy-light/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+              className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
             >
               <div className="text-4xl mb-4">🤖</div>
-              <h3 className="text-xl font-semibold text-navy-light mb-2">AI-Friendly</h3>
-              <p className="text-gray-400">
+              <h3 className="text-xl font-semibold text-green-bright mb-2">AI-Friendly</h3>
+              <p className="text-white/60">
                 Designed for AI to read, write, and understand. Generate sounds with natural
                 language.
               </p>
@@ -242,11 +282,11 @@ export default function Home() {
 
             <div
               onMouseEnter={() => playSound('ui-feedback/hover')}
-              className="bg-navy p-8 rounded-xl border border-navy-light/10 hover:border-navy-light/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+              className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
             >
               <div className="text-4xl mb-4">⚡</div>
-              <h3 className="text-xl font-semibold text-navy-light mb-2">Web-Native</h3>
-              <p className="text-gray-400">
+              <h3 className="text-xl font-semibold text-green-bright mb-2">Web-Native</h3>
+              <p className="text-white/60">
                 Runs directly in browsers using Web Audio API. No plugins or downloads needed.
               </p>
             </div>
@@ -254,82 +294,82 @@ export default function Home() {
 
           {/* Example Section */}
           <section className="py-16 text-center">
-            <h2 className="text-3xl font-bold bg-navy-dark bg-clip-text text-transparent mb-8">
+            <h2 className="text-3xl font-bold text-green-bright mb-8">
               Simple as XML
             </h2>
-            <div className="max-w-2xl mx-auto bg-navy rounded-xl p-8 border border-navy-light/20">
-              <pre className="text-green font-mono text-sm sm:text-base text-left overflow-x-auto">
+            <div className="max-w-2xl mx-auto bg-navy-dark rounded-xl p-8 border border-navy-light/20">
+              <pre className="text-green-bright font-mono text-sm sm:text-base text-left overflow-x-auto">
                 <code>{`<spa xmlns="https://spa.audio/ns" version="1.0">
   <tone wave="sine" freq="440" dur="0.5" />
 </spa>`}</code>
               </pre>
             </div>
-            <p className="text-gray-400 mt-4">
+            <p className="text-white/60 mt-4">
               Create a 440Hz sine wave (A note) that plays for half a second
             </p>
           </section>
 
           {/* Use Cases */}
           <section className="py-16">
-            <h2 className="text-3xl font-bold text-center bg-navy-dark bg-clip-text text-transparent mb-12">
+            <h2 className="text-3xl font-bold text-center text-green-bright mb-12">
               Perfect For
             </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy p-6 rounded-lg border-l-4 border-navy-light hover:bg-navy-light/5 transition-colors cursor-pointer"
+                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
               >
-                <strong className="text-navy-light block mb-2">UI Sound Effects</strong>
-                <p className="text-gray-400 text-sm">Button clicks, notifications, transitions</p>
+                <strong className="text-green-bright block mb-2">UI Sound Effects</strong>
+                <p className="text-white/60 text-sm">Button clicks, notifications, transitions</p>
               </div>
               <div
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy p-6 rounded-lg border-l-4 border-navy-light hover:bg-navy-light/5 transition-colors cursor-pointer"
+                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
               >
-                <strong className="text-navy-light block mb-2">Game Audio</strong>
-                <p className="text-gray-400 text-sm">Procedural sound effects, dynamic music</p>
+                <strong className="text-green-bright block mb-2">Game Audio</strong>
+                <p className="text-white/60 text-sm">Procedural sound effects, dynamic music</p>
               </div>
               <div
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy p-6 rounded-lg border-l-4 border-navy-light hover:bg-navy-light/5 transition-colors cursor-pointer"
+                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
               >
-                <strong className="text-navy-light block mb-2">AI Applications</strong>
-                <p className="text-gray-400 text-sm">Generate context-aware audio on the fly</p>
+                <strong className="text-green-bright block mb-2">AI Applications</strong>
+                <p className="text-white/60 text-sm">Generate context-aware audio on the fly</p>
               </div>
               <div
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy p-6 rounded-lg border-l-4 border-navy-light hover:bg-navy-light/5 transition-colors cursor-pointer"
+                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
               >
-                <strong className="text-navy-light block mb-2">Education</strong>
-                <p className="text-gray-400 text-sm">Teach audio synthesis concepts visually</p>
+                <strong className="text-green-bright block mb-2">Education</strong>
+                <p className="text-white/60 text-sm">Teach audio synthesis concepts visually</p>
               </div>
             </div>
           </section>
 
           {/* Footer */}
-          <footer className="py-12 mt-16 border-t border-navy-light/10 text-center">
-            <p className="text-gray-400 mb-4">
+          <footer className="py-12 mt-16 border-t border-navy-light/20 text-center">
+            <p className="text-white/60 mb-4">
               SPA - Synthetic Parametric Audio | Open Source | MIT License
             </p>
             <div className="flex gap-8 justify-center">
               <a
                 href="https://github.com/noiseflood/spa"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="text-navy-light hover:text-green transition-colors"
+                className="text-white/60 hover:text-green-bright transition-colors"
               >
                 GitHub
               </a>
               <Link
                 href="/docs"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="text-navy-light hover:text-green transition-colors"
+                className="text-white/60 hover:text-green-bright transition-colors"
               >
                 Documentation
               </Link>
               <Link
                 href="/examples"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="text-navy-light hover:text-green transition-colors"
+                className="text-white/60 hover:text-green-bright transition-colors"
               >
                 Examples
               </Link>
