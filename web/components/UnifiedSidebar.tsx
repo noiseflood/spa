@@ -6,6 +6,7 @@ interface UnifiedSidebarProps {
   onLoadPreset: (category: string, preset: string) => void;
   playSoundEffect: (sound: string) => void;
   onEditorUpdate?: EditorUpdateCallback;
+  currentSPA?: string;
 }
 
 export default function UnifiedSidebar({
@@ -13,6 +14,7 @@ export default function UnifiedSidebar({
   onLoadPreset,
   playSoundEffect,
   onEditorUpdate,
+  currentSPA,
 }: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -335,7 +337,7 @@ export default function UnifiedSidebar({
       setInputValue('');
 
       try {
-        const responseMessages = await sendChatMessages(updatedMessages, apiKey, onEditorUpdate);
+        const responseMessages = await sendChatMessages(updatedMessages, apiKey, onEditorUpdate, currentSPA);
         setChatMessages(responseMessages);
       } catch (error) {
         console.error('Error sending message:', error);

@@ -45,7 +45,7 @@ const TOOLS: AnthropicTool[] = [
 ];
 
 export interface EditorUpdateCallback {
-  (xml: string, explanation: string): boolean;
+  (xml: string, explanation: string): { success: boolean; error?: string };
 }
 
 // Cache for the system prompt
@@ -90,12 +90,14 @@ Always ensure your XML is valid and follows the SPA specification exactly.`;
  * @param messages Array of chat messages
  * @param apiKey Anthropic API key
  * @param onEditorUpdate Optional callback to update the editor when tool is used
+ * @param currentSPA Optional current SPA XML in the editor for context
  * @returns Updated messages array with assistant response
  */
 export async function sendChatMessages(
   messages: Message[],
   apiKey: string,
-  onEditorUpdate?: EditorUpdateCallback
+  onEditorUpdate?: EditorUpdateCallback,
+  currentSPA?: string
 ): Promise<Message[]> {
   // Filter out the initial welcome message if it's still there
   const conversationMessages = messages.filter(
@@ -114,7 +116,12 @@ export async function sendChatMessages(
 
   try {
     // Load the system prompt at runtime
-    const systemPrompt = await getSystemPrompt();
+    let systemPrompt = await getSystemPrompt();
+
+    // Add current SPA context if provided
+    if (currentSPA && currentSPA.trim()) {
+      systemPrompt += `\n\n## Current Editor State\n\nThe user currently has the following SPA XML in their editor:\n\n\`\`\`xml\n${currentSPA}\n\`\`\`\n\nWhen the user asks you to modify, adjust, or improve the sound, use this as the starting point. When generating new XML with the update_spa_editor tool, include your modifications to this existing code.`;
+    }
 
     // Call Anthropic API directly from the browser using the CORS header
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -144,69 +151,123 @@ export async function sendChatMessages(
     const data = await response.json();
 
     // Check if Claude wants to use a tool
-    const toolUseBlock = data.content?.find((block: any) => block.type === 'tool_use');
+    let toolUseBlock = data.content?.find((block: any) => block.type === 'tool_use');
 
     if (toolUseBlock && onEditorUpdate) {
-      // Claude wants to use the update_spa_editor tool
-      const toolInput = toolUseBlock.input;
+      const MAX_RETRIES = 3;
+      let attempt = 0;
+      let currentMessages = anthropicMessages;
+      let currentResponse = data;
 
-      // Execute the tool (update the editor)
-      const success = onEditorUpdate(toolInput.xml, toolInput.explanation);
+      // Retry loop for tool execution
+      while (attempt < MAX_RETRIES) {
+        attempt++;
+        toolUseBlock = currentResponse.content?.find((block: any) => block.type === 'tool_use');
 
-      // Send tool result back to Claude to get final response
-      const toolResultMessages: AnthropicMessage[] = [
-        ...anthropicMessages,
-        {
-          role: 'assistant',
-          content: JSON.stringify(data.content),
-        },
-        {
-          role: 'user',
-          content: JSON.stringify([
+        if (!toolUseBlock) {
+          // No more tool use - Claude gave up or provided a text response
+          break;
+        }
+
+        const toolInput = toolUseBlock.input;
+
+        // Execute the tool (update the editor)
+        const result = onEditorUpdate(toolInput.xml, toolInput.explanation);
+
+        // Build tool result messages
+        const toolResultMessages: AnthropicMessage[] = [
+          ...currentMessages,
+          {
+            role: 'assistant',
+            content: JSON.stringify(currentResponse.content),
+          },
+          {
+            role: 'user',
+            content: JSON.stringify([
+              {
+                type: 'tool_result',
+                tool_use_id: toolUseBlock.id,
+                content: result.success
+                  ? 'Successfully updated the editor with the new SPA XML.'
+                  : `Failed to update the editor. Error: ${result.error || 'The XML may be invalid.'}. Please try again with corrected XML.`,
+              },
+            ]),
+          },
+        ];
+
+        // Make another request to get Claude's response
+        const followUpResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-5',
+            max_tokens: 2048,
+            system: systemPrompt,
+            messages: toolResultMessages,
+            tools: TOOLS,
+          }),
+        });
+
+        if (!followUpResponse.ok) {
+          const errorData = await followUpResponse.json().catch(() => ({}));
+          throw new Error(
+            `Anthropic API error: ${followUpResponse.status} ${followUpResponse.statusText} - ${JSON.stringify(errorData)}`
+          );
+        }
+
+        const followUpData = await followUpResponse.json();
+
+        // If tool execution succeeded, return the final message
+        if (result.success) {
+          const finalMessage =
+            followUpData.content?.find((block: any) => block.type === 'text')?.text ||
+            toolInput.explanation;
+
+          return [
+            ...messages,
             {
-              type: 'tool_result',
-              tool_use_id: toolUseBlock.id,
-              content: success
-                ? 'Successfully updated the editor with the new SPA XML.'
-                : 'Failed to update the editor. The XML may be invalid.',
+              role: 'assistant',
+              content: finalMessage,
             },
-          ]),
-        },
-      ];
+          ];
+        }
 
-      // Make another request to get Claude's final text response
-      const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 2048,
-          system: systemPrompt,
-          messages: toolResultMessages,
-          tools: TOOLS,
-        }),
-      });
-
-      if (!finalResponse.ok) {
-        const errorData = await finalResponse.json().catch(() => ({}));
-        throw new Error(
-          `Anthropic API error: ${finalResponse.status} ${finalResponse.statusText} - ${JSON.stringify(errorData)}`
+        // Tool execution failed - check if Claude wants to retry
+        const hasAnotherToolUse = followUpData.content?.some(
+          (block: any) => block.type === 'tool_use'
         );
+
+        if (hasAnotherToolUse) {
+          // Claude is trying again - continue the loop
+          currentMessages = toolResultMessages;
+          currentResponse = followUpData;
+        } else {
+          // Claude gave up - return the text response
+          const finalMessage =
+            followUpData.content?.find((block: any) => block.type === 'text')?.text ||
+            `I apologize, but I couldn't generate valid SPA XML after ${attempt} attempt(s). ${result.error || 'Please try describing the sound differently.'}`;
+
+          return [
+            ...messages,
+            {
+              role: 'assistant',
+              content: finalMessage,
+            },
+          ];
+        }
       }
 
-      const finalData = await finalResponse.json();
-      const finalMessage = finalData.content?.find((block: any) => block.type === 'text')?.text || toolInput.explanation;
-
+      // Exceeded max retries
       return [
         ...messages,
         {
           role: 'assistant',
-          content: finalMessage,
+          content: `I apologize, but I couldn't generate valid SPA XML after ${MAX_RETRIES} attempts. Please try describing the sound differently or check the SPA specification.`,
         },
       ];
     }
