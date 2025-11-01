@@ -17,7 +17,7 @@ import {
   getPresetPath,
 } from '../utils/presetLoader';
 import { useSound } from '../contexts/SoundContext';
-import Chat from '../components/Chat';
+import UnifiedSidebar from '../components/UnifiedSidebar';
 
 // Editor-specific types for UI state with support for nested structures
 type EditorNode = EditorLayer | EditorGroup | EditorSequence;
@@ -76,8 +76,6 @@ export default function Editor() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
   const [importText, setImportText] = useState('');
-  const [showPresets, setShowPresets] = useState(true);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
   const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
@@ -303,14 +301,14 @@ export default function Editor() {
   const updateXMLOutput = () => {
     if (rootNodes.length === 0) {
       setXmlOutput(`<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="https://spa.audio/ns" version="1.0">
+<spa xmlns="https://spa.audio/ns" version="1.1">
   <!-- Add layers to create your sound -->
 </spa>`);
       return;
     }
 
     let xml =
-      '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.0">\n';
+      '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.1">\n';
 
     for (const node of rootNodes) {
       xml += '  ' + nodeToXML(node, '  ') + '\n';
@@ -352,7 +350,16 @@ export default function Editor() {
       }
 
       if (tone.filter && typeof tone.filter === 'object') {
-        xml += ` filter="${tone.filter.type}" cutoff="${tone.filter.cutoff}"`;
+        xml += ` filter="${tone.filter.type}"`;
+
+        // Handle cutoff automation
+        if (typeof tone.filter.cutoff === 'object' && 'start' in tone.filter.cutoff) {
+          const cutoff = tone.filter.cutoff as AutomationCurve;
+          xml += ` cutoff.start="${cutoff.start}" cutoff.end="${cutoff.end}" cutoff.curve="${cutoff.curve}"`;
+        } else {
+          xml += ` cutoff="${tone.filter.cutoff}"`;
+        }
+
         if (tone.filter.resonance !== undefined && tone.filter.resonance !== 1) {
           xml += ` resonance="${tone.filter.resonance}"`;
         }
@@ -387,7 +394,11 @@ export default function Editor() {
         xml += ` at="${(noise as any).at}"`;
       }
 
-      if (noise.amp !== undefined && noise.amp !== 1) {
+      // Handle amp automation for noise
+      if (typeof noise.amp === 'object' && 'start' in noise.amp) {
+        const amp = noise.amp as AutomationCurve;
+        xml += ` amp.start="${amp.start}" amp.end="${amp.end}" amp.curve="${amp.curve}"`;
+      } else if (noise.amp !== undefined && noise.amp !== 1) {
         xml += ` amp="${noise.amp}"`;
       }
 
@@ -396,7 +407,16 @@ export default function Editor() {
       }
 
       if (noise.filter && typeof noise.filter === 'object') {
-        xml += ` filter="${noise.filter.type}" cutoff="${noise.filter.cutoff}"`;
+        xml += ` filter="${noise.filter.type}"`;
+
+        // Handle cutoff automation
+        if (typeof noise.filter.cutoff === 'object' && 'start' in noise.filter.cutoff) {
+          const cutoff = noise.filter.cutoff as AutomationCurve;
+          xml += ` cutoff.start="${cutoff.start}" cutoff.end="${cutoff.end}" cutoff.curve="${cutoff.curve}"`;
+        } else {
+          xml += ` cutoff="${noise.filter.cutoff}"`;
+        }
+
         if (noise.filter.resonance !== undefined && noise.filter.resonance !== 1) {
           xml += ` resonance="${noise.filter.resonance}"`;
         }
@@ -508,7 +528,9 @@ export default function Editor() {
         }
         setRootNodes(newNodes);
         nodeIdCounterRef.current = nodeId;
-        setCurrentNodeId(newNodes[0].id);
+        // Find and select the first tone/noise layer instead of a group
+        const firstLayer = getAllLayers(newNodes)[0];
+        setCurrentNodeId(firstLayer ? firstLayer.id : newNodes[0].id);
         setShowImportModal(false);
         setImportText('');
       }
@@ -532,23 +554,16 @@ export default function Editor() {
   };
 
   const normalizeSound = (sound: SPASound): ToneElement | NoiseElement => {
-    if (sound.type === 'tone') {
+    // Just pass through all properties, ensuring repeat defaults
+    if (sound.type === 'tone' || sound.type === 'noise') {
       return {
         ...sound,
-        repeat: sound.repeat ?? (sound.repeatInterval ? 1 : undefined),
-        repeatInterval: sound.repeatInterval,
-        repeatDelay: sound.repeatDelay,
-        repeatDecay: sound.repeatDecay,
-        repeatPitchShift: sound.repeatPitchShift,
-      } as ToneElement;
-    } else if (sound.type === 'noise') {
-      return {
-        ...sound,
-        repeat: sound.repeat ?? (sound.repeatInterval ? 1 : undefined),
-        repeatInterval: sound.repeatInterval,
-        repeatDelay: sound.repeatDelay,
-        repeatDecay: sound.repeatDecay,
-      } as NoiseElement;
+        repeat: sound.repeat ?? 1,
+        repeatInterval: sound.repeatInterval ?? 0,
+        repeatDelay: sound.repeatDelay ?? 0,
+        repeatDecay: sound.repeatDecay ?? 0,
+        repeatPitchShift: (sound.type === 'tone' ? sound.repeatPitchShift : undefined) ?? 0,
+      } as ToneElement | NoiseElement;
     }
     // For group or sequence, just return a default tone element
     // This shouldn't happen as we only call this for actual sound elements
@@ -582,8 +597,61 @@ export default function Editor() {
     if (presetPath) {
       try {
         const spaContent = await loadPresetFile(presetPath);
-        setImportText(spaContent);
-        importFromText();
+        // Parse and load the preset directly instead of going through importText state
+        const doc = parseSPA(spaContent);
+        const newNodes: EditorNode[] = [];
+        let nodeId = 0;
+
+        const processSoundToNode = (sound: SPASound): EditorNode => {
+          if (sound.type === 'group') {
+            const group = sound as GroupElement;
+            const groupNode: EditorGroup = {
+              id: nodeId++,
+              type: 'group',
+              children: [],
+            };
+            if (group.sounds) {
+              groupNode.children = group.sounds.map((s) => processSoundToNode(s));
+            }
+            setExpandedNodes((prev) => new Set(Array.from(prev).concat(groupNode.id)));
+            return groupNode;
+          } else if (sound.type === 'sequence') {
+            const sequence = sound as SequenceElement;
+            const sequenceNode: EditorSequence = {
+              id: nodeId++,
+              type: 'sequence',
+              children: [],
+            };
+            if (sequence.elements) {
+              sequenceNode.children = sequence.elements.map(
+                (timedSound: { sound: SPASound; at: number }) => {
+                  const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
+                  return processSoundToNode(soundWithTiming);
+                }
+              );
+            }
+            setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
+            return sequenceNode;
+          } else {
+            return {
+              id: nodeId++,
+              type: 'layer',
+              sound: normalizeSound(sound),
+            };
+          }
+        };
+
+        for (const sound of doc.sounds) {
+          newNodes.push(processSoundToNode(sound));
+        }
+
+        if (newNodes.length > 0) {
+          setRootNodes(newNodes);
+          nodeIdCounterRef.current = nodeId;
+          // Find and select the first tone/noise layer instead of a group
+          const firstLayer = getAllLayers(newNodes)[0];
+          setCurrentNodeId(firstLayer ? firstLayer.id : newNodes[0].id);
+        }
       } catch (error) {
         console.error(`Failed to load preset ${preset}:`, error);
         alert(`Failed to load preset: ${error}`);
@@ -811,75 +879,11 @@ export default function Editor() {
 
       {/* Main Content */}
       <div className="flex h-screen">
-        <div className="w-[450px]">
-          <Chat />
-        </div>
-        {/* OLD Presets Sidebar */}
-        {/* 
-        {showPresets && (
-          <div className="w-64 bg-surface border-r border-primary/10 overflow-y-auto flex-shrink-0">
-            <div className="sticky top-0 bg-surface p-3 border-b border-primary/10 flex items-center justify-between">
-              <h2 className="text-primary font-semibold">Presets</h2>
-              <button
-                onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                onClick={() => {
-                  playSoundEffect('ui-feedback/button-click');
-                  setShowPresets(false);
-                }}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-3">
-              {Object.entries(presetCategories).map(([category, presets]) => (
-                <div key={category} className="mb-3">
-                  <button
-                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                    onClick={() => {
-                      playSoundEffect('ui-feedback/tab-switch');
-                      setExpandedCategory(expandedCategory === category ? null : category);
-                    }}
-                    className="w-full flex items-center justify-between p-2 bg-background rounded hover:bg-primary/10 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-primary">{category}</span>
-                    <svg
-                      className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                  {expandedCategory === category && (
-                    <div className="space-y-0.5 ml-2 mt-1">
-                      {Object.keys(presets).map((presetName) => (
-                        <button
-                          key={presetName}
-                          onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                          onClick={() => {
-                            playSoundEffect('ui-feedback/button-click');
-                            loadPreset(category, presetName);
-                          }}
-                          className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-primary/20 hover:text-white rounded transition-colors truncate"
-                        >
-                          {presetName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        */}
+        <UnifiedSidebar
+          presetCategories={presetCategories}
+          onLoadPreset={loadPreset}
+          playSoundEffect={playSoundEffect}
+        />
 
         {/* Main Content: Synth-style Layout */}
         <div className="flex-1 flex overflow-hidden w-full">
@@ -1123,14 +1127,6 @@ export default function Editor() {
 
               <div className="flex-1 overflow-y-auto p-4 pb-24 bg-navy">
                 <div className="flex gap-4 mb-4">
-                  {!showPresets && (
-                    <button
-                      onClick={() => setShowPresets(true)}
-                      className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
-                    >
-                      Show Presets
-                    </button>
-                  )}
                   <button
                     onClick={() => setShowImportModal(true)}
                     className="px-3 py-1.5 text-sm bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
@@ -1187,62 +1183,6 @@ export default function Editor() {
             </div>
           </div>
 
-          {/* Presets Sidebar */}
-          {showPresets && (
-            <div className="w-64 bg-navy border-l border-navy-light/10 overflow-y-auto flex-shrink-0">
-              <div className="sticky top-0 bg-navy p-3 border-b border-navy-light/10 flex items-center justify-between">
-                <h2 className="text-navy-light font-semibold">Presets</h2>
-                <button
-                  onClick={() => setShowPresets(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-3">
-                {Object.entries(presetCategories).map(([category, presets]) => (
-                  <div key={category} className="mb-3">
-                    <button
-                      onClick={() => {
-                        setExpandedCategory(expandedCategory === category ? null : category);
-                      }}
-                      className="w-full flex items-center justify-between p-2 bg-navy-dark rounded hover:bg-navy-light/10 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-navy-light">{category}</span>
-                      <svg
-                        className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </button>
-                    {expandedCategory === category && (
-                      <div className="space-y-0.5 ml-2 mt-1">
-                        {Object.keys(presets).map((presetName) => (
-                          <button
-                            key={presetName}
-                            onClick={() => {
-                              loadPreset(category, presetName);
-                            }}
-                            className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate"
-                          >
-                            {presetName}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
