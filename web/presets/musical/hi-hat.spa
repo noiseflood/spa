@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <noise color="white" dur="0.05" amp="0.4" filter="highpass" cutoff="8000" envelope="0.001,0.002,0.3,0.02"/>
+</spa>

@@ -6,6 +6,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/generate-presets.js",
     "build": "next build",
+    "export": "next export",
     "start": "next start",
     "lint": "next lint"
   },

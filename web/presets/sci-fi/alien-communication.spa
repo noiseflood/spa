@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <sequence>
+    <tone wave="triangle" freq="800" dur="0.1" amp="0.3" filter="bandpass" cutoff="1000" resonance="3" repeat="3" repeatInterval="0.15" repeatPitchShift="100"/>
+    <tone wave="sine" freq="1200" dur="0.08" at="0.6" amp="0.25" repeat="2" repeatInterval="0.12" repeatPitchShift="-150"/>
+    <noise color="white" dur="0.05" at="1" amp="0.15" filter="bandpass" cutoff="2500" resonance="4" repeat="4" repeatInterval="0.08"/>
+  </sequence>
+</spa>

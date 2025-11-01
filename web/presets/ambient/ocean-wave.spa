@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <group>
+    <noise color="brown" dur="3" amp.start="0.15" amp.end="0.35" amp.curve="sine" filter="lowpass" cutoff.start="500" cutoff.end="1500" cutoff.curve="sine" envelope="0.5,0.8,0.7,1.5"/>
+    <noise color="white" dur="3" amp.start="0.05" amp.end="0.15" amp.curve="sine" filter="bandpass" cutoff="2000" resonance="0.5" envelope="0.6,0.7,0.6,1.2"/>
+    <tone wave="sine" freq="40" dur="3" amp="0.08" envelope="0.8,1,0.8,1"/>
+  </group>
+</spa>

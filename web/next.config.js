@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'export', // Commented out for development - static export mode conflicts with error pages
+  // Only enable static export for production builds (Cloudflare Pages)
+  // Check for CLOUDFLARE_BUILD env var or if explicitly building for production
+  output: process.env.CLOUDFLARE_BUILD === 'true' ? 'export' : undefined,
   eslint: {
     ignoreDuringBuilds: true,
   },

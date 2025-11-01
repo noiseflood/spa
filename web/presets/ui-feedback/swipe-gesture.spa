@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <group>
+    <noise color="white" dur="0.12" amp.start="0.4" amp.end="0" amp.curve="exponential" filter="highpass" cutoff="2000" envelope="0.001,0.02,0.3,0.08"/>
+    <tone wave="sine" freq.start="400" freq.end="800" freq.curve="exponential" dur="0.12" amp="0.2" pan.start="-0.5" pan.end="0.5" pan.curve="linear"/>
+  </group>
+</spa>

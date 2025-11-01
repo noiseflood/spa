@@ -1,5 +1,10 @@
 {
   "categories": {
+    "Ambient": {
+      "Forest Birds": "ambient/forest-birds.spa",
+      "Ocean Wave": "ambient/ocean-wave.spa",
+      "Rain Drops": "ambient/rain-drops.spa"
+    },
     "Complex": {
       "Tidal Wave": "complex/tidal-wave.spa"
     },
@@ -15,23 +20,45 @@
     },
     "Game": {
       "Coin Collect": "game/coin-collect.spa",
+      "Damage Hit": "game/damage-hit.spa",
       "Explosion": "game/explosion.spa",
       "Game Over": "game/game-over.spa",
+      "Health Pickup": "game/health-pickup.spa",
       "Hit": "game/hit.spa",
       "Jump": "game/jump.spa",
       "Land": "game/land.spa",
       "Laser": "game/laser.spa",
       "Level Complete": "game/level-complete.spa",
       "Pickup": "game/pickup.spa",
+      "Power Up": "game/power-up.spa",
       "Powerup": "game/powerup.spa"
     },
+    "Mechanical": {
+      "Gear Click": "mechanical/gear-click.spa",
+      "Hydraulic Hiss": "mechanical/hydraulic-hiss.spa",
+      "Motor Start": "mechanical/motor-start.spa"
+    },
+    "Musical": {
+      "Bass Drop": "musical/bass-drop.spa",
+      "Drum Kick": "musical/drum-kick.spa",
+      "Hi Hat": "musical/hi-hat.spa",
+      "Piano Chord": "musical/piano-chord.spa",
+      "Synth Arpeggio": "musical/synth-arpeggio.spa"
+    },
+    "Nature": {
+      "Cricket Chirp": "nature/cricket-chirp.spa",
+      "Thunder": "nature/thunder.spa",
+      "Wind Gust": "nature/wind-gust.spa"
+    },
     "Notifications": {
+      "Achievement Unlock": "notifications/achievement-unlock.spa",
       "Achievement": "notifications/achievement.spa",
       "Alert": "notifications/alert.spa",
       "Error": "notifications/error.spa",
       "Info": "notifications/info.spa",
       "Message Received": "notifications/message-received.spa",
       "Message Sent": "notifications/message-sent.spa",
+      "Reminder": "notifications/reminder.spa",
       "Success": "notifications/success.spa",
       "Warning": "notifications/warning.spa"
     },
@@ -51,15 +78,24 @@
       "8bit Jump": "retro/8bit-jump.spa",
       "8bit Shoot": "retro/8bit-shoot.spa",
       "Arcade Blip": "retro/arcade-blip.spa",
+      "Arcade Token": "retro/arcade-token.spa",
       "Retro Powerup": "retro/retro-powerup.spa"
+    },
+    "Sci Fi": {
+      "Alien Communication": "sci-fi/alien-communication.spa",
+      "Laser Blast": "sci-fi/laser-blast.spa",
+      "Teleport": "sci-fi/teleport.spa",
+      "Warp Drive": "sci-fi/warp-drive.spa"
     },
     "Ui Feedback": {
       "Button Click": "ui-feedback/button-click.spa",
       "Dropdown Expand": "ui-feedback/dropdown-expand.spa",
       "Hover": "ui-feedback/hover.spa",
+      "Long Press": "ui-feedback/long-press.spa",
       "Modal Close": "ui-feedback/modal-close.spa",
       "Modal Open": "ui-feedback/modal-open.spa",
       "Slider Move": "ui-feedback/slider-move.spa",
+      "Swipe Gesture": "ui-feedback/swipe-gesture.spa",
       "Tab Switch": "ui-feedback/tab-switch.spa",
       "Toggle Off": "ui-feedback/toggle-off.spa",
       "Toggle On": "ui-feedback/toggle-on.spa",

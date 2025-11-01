@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <tone wave="sine" freq.start="100" freq.end="30" freq.curve="exponential" dur="1" amp.start="0.6" amp.end="0.3" amp.curve="exponential" filter="lowpass" cutoff="200" envelope="0.01,0.05,0.9,0.3"/>
+</spa>

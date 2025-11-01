@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <sequence>
+    <tone wave="sine" freq="2500" dur="0.1" amp="0.15" envelope="0.02,0.03,0.5,0.04" repeat="2" repeatInterval="0.12" repeatPitchShift="200"/>
+    <tone wave="triangle" freq="3000" dur="0.08" at="0.5" amp="0.1" envelope="0.01,0.02,0.6,0.03" repeat="3" repeatInterval="0.1" repeatPitchShift="-100"/>
+    <tone wave="sine" freq="2800" dur="0.12" at="1.2" amp="0.12" envelope="0.015,0.025,0.55,0.05" repeat="2" repeatInterval="0.15"/>
+  </sequence>
+</spa>

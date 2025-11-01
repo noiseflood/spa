@@ -12,11 +12,15 @@ export default function UnifiedSidebar({
   playSoundEffect,
 }: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
-  const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [focusedItem, setFocusedItem] = useState<{
     type: 'category' | 'preset';
     category: string;
     preset?: string;
+  } | null>(null);
+  const [activePreset, setActivePreset] = useState<{
+    category: string;
+    preset: string;
   } | null>(null);
   const presetsContainerRef = useRef<HTMLDivElement>(null);
   const [chatMessages, setChatMessages] = useState<
@@ -52,6 +56,7 @@ export default function UnifiedSidebar({
             const firstPreset = firstPresets[0];
             setFocusedItem({ type: 'preset', category: firstCategory, preset: firstPreset });
             onLoadPreset(firstCategory, firstPreset); // Load the first preset
+            setActivePreset({ category: firstCategory, preset: firstPreset });
           } else {
             setFocusedItem({ type: 'category', category: firstCategory });
           }
@@ -73,6 +78,7 @@ export default function UnifiedSidebar({
                   preset: firstPreset,
                 });
                 onLoadPreset(focusedItem.category, firstPreset); // Load the preset
+                setActivePreset({ category: focusedItem.category, preset: firstPreset });
               }
             } else {
               // Move to next category
@@ -85,6 +91,7 @@ export default function UnifiedSidebar({
                 const firstPreset = nextPresets[0];
                 setFocusedItem({ type: 'preset', category: nextCategory, preset: firstPreset });
                 onLoadPreset(nextCategory, firstPreset); // Load the preset
+                setActivePreset({ category: nextCategory, preset: firstPreset });
               } else {
                 setFocusedItem({ type: 'category', category: nextCategory });
               }
@@ -103,6 +110,7 @@ export default function UnifiedSidebar({
                 preset: nextPreset,
               });
               onLoadPreset(focusedItem.category, nextPreset); // Load the preset
+              setActivePreset({ category: focusedItem.category, preset: nextPreset });
             } else {
               // Move to next category, expand it, and select first preset
               const nextIndex = (currentCategoryIndex + 1) % categories.length;
@@ -113,6 +121,7 @@ export default function UnifiedSidebar({
                 const firstPreset = nextPresets[0];
                 setFocusedItem({ type: 'preset', category: nextCategory, preset: firstPreset });
                 onLoadPreset(nextCategory, firstPreset); // Load the preset
+                setActivePreset({ category: nextCategory, preset: firstPreset });
               } else {
                 setFocusedItem({ type: 'category', category: nextCategory });
               }
@@ -134,6 +143,7 @@ export default function UnifiedSidebar({
                 preset: prevPreset,
               });
               onLoadPreset(focusedItem.category, prevPreset); // Load the preset
+              setActivePreset({ category: focusedItem.category, preset: prevPreset });
             } else {
               // This is the first preset in the current category
               // Move to previous category and select its last preset
@@ -150,6 +160,7 @@ export default function UnifiedSidebar({
                 const lastPreset = prevPresets[prevPresets.length - 1];
                 setFocusedItem({ type: 'preset', category: prevCategory, preset: lastPreset });
                 onLoadPreset(prevCategory, lastPreset); // Load the preset
+                setActivePreset({ category: prevCategory, preset: lastPreset });
               } else {
                 // No presets in previous category, just focus the category
                 setFocusedItem({ type: 'category', category: prevCategory });
@@ -204,6 +215,7 @@ export default function UnifiedSidebar({
           // Load preset
           playSoundEffect('ui-feedback/button-click');
           onLoadPreset(focusedItem.category, focusedItem.preset!);
+          setActivePreset({ category: focusedItem.category, preset: focusedItem.preset! });
         }
       }
     };
@@ -335,6 +347,9 @@ export default function UnifiedSidebar({
                           focusedItem?.type === 'preset' &&
                           focusedItem.category === category &&
                           focusedItem.preset === presetName;
+                        const isActive =
+                          activePreset?.category === category &&
+                          activePreset?.preset === presetName;
                         return (
                           <button
                             key={presetName}
@@ -347,16 +362,26 @@ export default function UnifiedSidebar({
                               playSoundEffect('ui-feedback/button-click');
                               onLoadPreset(category, presetName);
                               setFocusedItem({ type: 'preset', category, preset: presetName });
+                              setActivePreset({ category, preset: presetName });
+                              // Ensure category stays expanded when preset is selected
+                              if (expandedCategory !== category) {
+                                setExpandedCategory(category);
+                              }
                             }}
-                            className={`w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between ${
+                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between ${
                               isPresetFocused
                                 ? 'ring-2 ring-green ring-offset-2 ring-offset-navy bg-navy-light/20 text-white'
-                                : ''
+                                : isActive
+                                ? 'bg-green/20 text-green border-l-2 border-green font-medium'
+                                : 'text-gray-300'
                             }`}
                           >
-                            <span>{presetName}</span>
+                            <span className="flex items-center gap-1">
+                              {isActive && <span className="text-green">●</span>}
+                              <span>{presetName}</span>
+                            </span>
                             <span className="text-[10px] text-gray-500 group-hover:text-gray-300">
-                              Load →
+                              {isActive ? 'Active' : 'Load →'}
                             </span>
                           </button>
                         );

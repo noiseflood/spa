@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <sequence>
+    <tone wave="sawtooth" freq="261.63" dur="0.1" amp="0.3" filter="lowpass" cutoff="2000" envelope="0.001,0.01,0.7,0.02"/>
+    <tone wave="sawtooth" freq="329.63" dur="0.1" at="0.1" amp="0.3" filter="lowpass" cutoff="2000" envelope="0.001,0.01,0.7,0.02"/>
+    <tone wave="sawtooth" freq="392" dur="0.1" at="0.2" amp="0.3" filter="lowpass" cutoff="2000" envelope="0.001,0.01,0.7,0.02"/>
+    <tone wave="sawtooth" freq="523.25" dur="0.1" at="0.3" amp="0.3" filter="lowpass" cutoff="2000" envelope="0.001,0.01,0.7,0.02"/>
+  </sequence>
+</spa>

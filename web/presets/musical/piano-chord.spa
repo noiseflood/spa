@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <group>
+    <tone wave="triangle" freq="261.63" dur="1" amp="0.3" envelope="0.002,0.1,0.7,0.5"/>
+    <tone wave="triangle" freq="329.63" dur="1" amp="0.25" envelope="0.003,0.1,0.7,0.5"/>
+    <tone wave="triangle" freq="392" dur="1" amp="0.25" envelope="0.004,0.1,0.7,0.5"/>
+    <tone wave="sine" freq="523.25" dur="0.8" amp="0.15" envelope="0.005,0.1,0.6,0.4"/>
+  </group>
+</spa>

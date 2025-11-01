@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <group>
+    <noise color="white" dur="0.05" amp="0.08" filter="highpass" cutoff="4000" envelope="0.001,0.002,0.3,0.02" repeat="20" repeatInterval="0.15" repeatDecay="0.1"/>
+    <noise color="pink" dur="0.04" amp="0.06" filter="bandpass" cutoff="3000" envelope="0.001,0.001,0.4,0.015" repeat="15" repeatInterval="0.2" repeatDelay="0.1"/>
+    <tone wave="sine" freq="800" dur="0.02" amp="0.03" envelope="0.001,0.001,0.2,0.01" repeat="10" repeatInterval="0.3" repeatPitchShift="50"/>
+  </group>
+</spa>

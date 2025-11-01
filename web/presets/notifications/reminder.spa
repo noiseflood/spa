@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <tone wave="triangle" freq="660" dur="0.15" amp="0.35" envelope="0.01,0.02,0.8,0.05" repeat="2" repeatInterval="0.2"/>
+</spa>

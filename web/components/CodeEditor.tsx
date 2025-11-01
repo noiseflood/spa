@@ -41,7 +41,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
     return code.split('\n').length;
   }, [code]);
 
-  // Sync scroll between textarea and line numbers
+  // Sync scroll between textarea and line numbers (both vertical and horizontal)
   const handleScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
@@ -127,15 +127,26 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
       return;
     }
 
-    // Check if footer was modified
-    const lastLineIndex = lines.length - 1;
-    const currentLastLineIndex = currentLines.length - 1;
-    if (lines[lastLineIndex]?.trim() !== '</spa>' && currentLines[currentLastLineIndex]?.trim() === '</spa>') {
-      // Restore footer
-      lines[lastLineIndex] = currentLines[currentLastLineIndex];
-      const restoredCode = lines.join('\n');
-      setCode(restoredCode);
-      return;
+    // Check if footer was modified - find the line with </spa>
+    let currentSpaLineIndex = -1;
+    for (let i = currentLines.length - 1; i >= 0; i--) {
+      // Use regex to match </spa> with any whitespace
+      if (currentLines[i].match(/^\s*<\/spa>\s*$/)) {
+        currentSpaLineIndex = i;
+        break;
+      }
+    }
+
+    // If we found the </spa> line and it was modified
+    if (currentSpaLineIndex !== -1 && lines[currentSpaLineIndex] !== undefined) {
+      // Check if the </spa> line was changed or removed
+      if (!lines[currentSpaLineIndex].match(/^\s*<\/spa>\s*$/)) {
+        // Restore the </spa> line
+        lines[currentSpaLineIndex] = currentLines[currentSpaLineIndex];
+        const restoredCode = lines.join('\n');
+        setCode(restoredCode);
+        return;
+      }
     }
 
     setCode(newCode);
@@ -239,7 +250,30 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
 
   // Check if a line is protected
   const isProtectedLine = (lineNum: number): boolean => {
-    return lineNum === 1 || lineNum === 2 || lineNum === lineCount;
+    const lines = code.split('\n');
+
+    // First line should be XML declaration
+    if (lineNum === 1) {
+      return true; // XML declaration
+    }
+
+    // Second line should be opening spa tag
+    if (lineNum === 2) {
+      return true; // Opening <spa> tag
+    }
+
+    // Check if this specific line contains the closing spa tag
+    // We need to be very precise here - only the line with </spa> should be protected
+    const lineIndex = lineNum - 1; // Convert to 0-based index
+    if (lineIndex >= 0 && lineIndex < lines.length) {
+      const line = lines[lineIndex];
+      // Only protect the line if it contains ONLY the closing spa tag (with optional whitespace)
+      if (line.match(/^\s*<\/spa>\s*$/)) {
+        return true;
+      }
+    }
+
+    return false;
   };
 
   // Get line styles (for errors and protected lines)
@@ -337,22 +371,24 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
         </div>
 
         {/* Code Area */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-hidden">
           {/* Protected lines overlay */}
-          <div className="absolute inset-0 pointer-events-none p-3">
-            {code.split('\n').map((_, lineIndex) => {
+          <div className="absolute inset-0 pointer-events-none p-3 overflow-hidden">
+            {code.split('\n').map((line, lineIndex) => {
               const lineNum = lineIndex + 1;
               if (isProtectedLine(lineNum)) {
                 return (
                   <div
                     key={lineIndex}
-                    className="h-6 bg-navy-light/10 border-l-2 border-navy-light/30"
+                    className="bg-navy-light/10 border-l-2 border-navy-light/30"
                     style={{
                       position: 'absolute',
-                      top: `${lineIndex * 1.5}rem`,
+                      top: `${lineIndex * 24}px`, // Use px instead of rem for consistency
+                      height: '24px', // Match line-height exactly
                       left: 0,
                       right: 0,
                       paddingLeft: '12px',
+                      minWidth: `${Math.max(100, line.length * 8)}px`, // Extend overlay for long lines
                     }}
                   />
                 );
@@ -370,7 +406,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
-            className={`absolute inset-0 w-full h-full p-3 bg-transparent text-green-bright font-mono text-sm leading-6 resize-none focus:outline-none ${
+            className={`absolute inset-0 w-full h-full p-3 bg-transparent text-green-bright font-mono text-sm leading-6 resize-none focus:outline-none overflow-x-auto ${
               error ? 'text-red-400' : ''
             }`}
             style={{
@@ -378,6 +414,9 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
               fontFamily: "'Roboto Mono', monospace",
               lineHeight: '1.5rem',
               zIndex: 1,
+              whiteSpace: 'pre',
+              overflowWrap: 'normal',
+              wordBreak: 'normal',
             }}
             placeholder="<!-- Enter your SPA XML code here -->"
           />

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <tone wave="sine" freq="4500" dur="0.03" amp="0.15" envelope="0.001,0.005,0.6,0.005" repeat="8" repeatInterval="0.04" repeatDecay="0.05"/>
+</spa>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <sequence>
+    <tone wave="sine" freq.start="200" freq.end="2000" freq.curve="exponential" dur="0.5" amp.start="0.3" amp.end="0.1" amp.curve="linear" filter="bandpass" cutoff="1500" resonance="2" envelope="0.1,0.2,0.6,0.1"/>
+    <noise color="pink" dur="0.3" at="0.3" amp.start="0.4" amp.end="0" amp.curve="exponential" filter="highpass" cutoff="2000"/>
+    <tone wave="triangle" freq.start="2000" freq.end="200" freq.curve="exponential" dur="0.4" at="0.5" amp="0.25" pan.start="1" pan.end="-1" pan.curve="linear"/>
+  </sequence>
+</spa>

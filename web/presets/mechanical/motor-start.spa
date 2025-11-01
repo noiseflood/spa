@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spa xmlns="https://spa.audio/ns" version="1.1">
+  <group>
+    <tone wave="sawtooth" freq.start="50" freq.end="200" freq.curve="exponential" dur="1.5" amp.start="0.2" amp.end="0.4" amp.curve="exponential" filter="lowpass" cutoff="800" envelope="0.05,0.1,0.9,0.2"/>
+    <tone wave="square" freq="100" dur="1.5" amp="0.15" repeat="15" repeatInterval="0.1" repeatDecay="0.05"/>
+    <noise color="brown" dur="1.5" amp="0.1" filter="lowpass" cutoff="400"/>
+  </group>
+</spa>

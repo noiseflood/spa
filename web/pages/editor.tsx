@@ -11,9 +11,9 @@ import {
   type AutomationCurve,
 } from '@spa-audio/core';
 import {
-  getPresetCategories,
   loadPreset as loadPresetFile,
   getPresetPath,
+  initializePresets,
 } from '../utils/presetLoader';
 import { useSound } from '../contexts/SoundContext';
 import UnifiedSidebar from '../components/UnifiedSidebar';
@@ -79,13 +79,18 @@ export default function Editor() {
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [activeEditorTab, setActiveEditorTab] = useState<'editor' | 'code'>('editor');
   const [hasCodeError, setHasCodeError] = useState(false);
+  const [presetCategories, setPresetCategories] = useState<Record<string, Record<string, string>>>({});
   const audioContextRef = useRef<AudioContext | null>(null);
   const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPlaybackRef = useRef<Promise<void> | null>(null);
 
-  // Get preset categories
-  const presetCategories = getPresetCategories();
+  // Initialize preset categories on mount
+  useEffect(() => {
+    initializePresets().then(categories => {
+      setPresetCategories(categories);
+    });
+  }, []);
 
   const getDefaultSound = (type: 'tone' | 'noise' = 'tone'): ToneElement | NoiseElement => {
     if (type === 'tone') {
