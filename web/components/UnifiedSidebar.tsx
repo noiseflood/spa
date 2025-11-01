@@ -6,14 +6,21 @@ interface UnifiedSidebarProps {
   playSoundEffect: (sound: string) => void;
 }
 
-export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSoundEffect }: UnifiedSidebarProps) {
+export default function UnifiedSidebar({
+  presetCategories,
+  onLoadPreset,
+  playSoundEffect,
+}: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+  const [chatMessages, setChatMessages] = useState<
+    { role: 'user' | 'assistant'; content: string }[]
+  >([
     {
       role: 'assistant',
-      content: '👋 Welcome to the SPA Sound Editor!\n\n💡 New here? Start with the **Presets** tab above to explore ready-made sounds and learn how the editor works.\n\nI can help you:\n• Create custom sound effects\n• Modify existing presets\n• Understand how different parameters affect sounds\n• Build complex layered compositions\n\nJust describe the sound you want to create!'
-    }
+      content:
+        '👋 Welcome to the SPA Sound Editor!\n\n💡 New here? Start with the **Presets** tab above to explore ready-made sounds and learn how the editor works.\n\nI can help you:\n• Create custom sound effects\n• Modify existing presets\n• Understand how different parameters affect sounds\n• Build complex layered compositions\n\nJust describe the sound you want to create!',
+    },
   ]);
   const [inputValue, setInputValue] = useState('');
 
@@ -22,20 +29,24 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
       setChatMessages([...chatMessages, { role: 'user', content: inputValue }]);
       // TODO: Integrate with actual AI backend
       setTimeout(() => {
-        setChatMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'I understand you want to work with SPA audio. This feature is coming soon! For now, try exploring the presets to see examples of different sound effects.'
-        }]);
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content:
+              'I understand you want to work with SPA audio. This feature is coming soon! For now, try exploring the presets to see examples of different sound effects.',
+          },
+        ]);
       }, 500);
       setInputValue('');
     }
   };
 
   const suggestedPrompts = [
-    "Create a button click sound",
-    "Make an error notification",
-    "Design a success chime",
-    "Build a swoosh transition"
+    'Create a button click sound',
+    'Make an error notification',
+    'Design a success chime',
+    'Build a swoosh transition',
   ];
 
   return (
@@ -48,10 +59,10 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
             playSoundEffect('ui-feedback/tab-switch');
             setActiveTab('presets');
           }}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
             activeTab === 'presets'
               ? 'bg-navy-dark text-white border-b-2 border-green'
-              : 'text-gray-400 hover:text-white hover:bg-navy-dark/50'
+              : 'border-transparent text-gray-400 hover:text-white hover:bg-navy-dark/50'
           }`}
         >
           🎵 Presets
@@ -62,10 +73,10 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
             playSoundEffect('ui-feedback/tab-switch');
             setActiveTab('chat');
           }}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
             activeTab === 'chat'
               ? 'bg-navy-dark text-white border-b-2 border-green'
-              : 'text-gray-400 hover:text-white hover:bg-navy-dark/50'
+              : 'border-transparent text-gray-400 hover:text-white hover:bg-navy-dark/50'
           }`}
         >
           💬 AI Assistant
@@ -79,7 +90,8 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
             <div className="mb-4">
               <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">Sound Library</h3>
               <p className="text-xs text-gray-400">
-                Click any preset to load it into the editor. Great for learning and as starting points!
+                Click any preset to load it into the editor. Great for learning and as starting
+                points!
               </p>
             </div>
 
@@ -121,7 +133,9 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
                         className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between"
                       >
                         <span>{presetName}</span>
-                        <span className="text-[10px] text-gray-500 group-hover:text-gray-300">Load →</span>
+                        <span className="text-[10px] text-gray-500 group-hover:text-gray-300">
+                          Load →
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -141,9 +155,7 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
               >
                 <div
                   className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-green text-navy-dark'
-                      : 'bg-navy-dark text-gray-200'
+                    msg.role === 'user' ? 'bg-green text-navy-dark' : 'bg-navy-dark text-gray-200'
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -153,7 +165,7 @@ export default function UnifiedSidebar({ presetCategories, onLoadPreset, playSou
           </div>
 
           {/* Suggested Prompts (only show if no user messages yet) */}
-          {chatMessages.filter(m => m.role === 'user').length === 0 && (
+          {chatMessages.filter((m) => m.role === 'user').length === 0 && (
             <div className="px-4 pb-2">
               <p className="text-xs text-gray-500 mb-2">Try one of these:</p>
               <div className="flex flex-wrap gap-2">
