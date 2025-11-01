@@ -15,23 +15,61 @@ interface ParseError {
 }
 
 export default function CodeEditor({ value, onChange, onValidChange, className = '' }: CodeEditorProps) {
-  const [code, setCode] = useState(value);
+  // Protected lines that cannot be edited
+  const PROTECTED_HEADER_1 = '<?xml version="1.0" encoding="UTF-8"?>';
+  const PROTECTED_HEADER_2 = '<spa xmlns="https://spa.audio/ns" version="1.1">';
+  const PROTECTED_FOOTER = '</spa>';
+
+  // Ensure the value always has proper structure with indentation
+  const ensureStructure = (code: string): string => {
+    const lines = code.split('\n');
+
+    // Check if first two lines are correct
+    if (lines[0] !== PROTECTED_HEADER_1) {
+      lines[0] = PROTECTED_HEADER_1;
+    }
+    if (lines[1] !== PROTECTED_HEADER_2) {
+      lines[1] = PROTECTED_HEADER_2;
+    }
+
+    // Check if last line is correct
+    const lastLineIndex = lines.length - 1;
+    if (lines[lastLineIndex] !== PROTECTED_FOOTER) {
+      // Find if </spa> exists somewhere
+      const spaCloseIndex = lines.findIndex(line => line.trim() === PROTECTED_FOOTER);
+      if (spaCloseIndex !== -1 && spaCloseIndex !== lastLineIndex) {
+        // Remove it from wrong position
+        lines.splice(spaCloseIndex, 1);
+      }
+      // Ensure it's at the end
+      if (lines[lines.length - 1] !== PROTECTED_FOOTER) {
+        lines.push(PROTECTED_FOOTER);
+      }
+    }
+
+    // Ensure content lines are indented (lines between header and footer)
+    for (let i = 2; i < lines.length - 1; i++) {
+      if (lines[i].trim() && !lines[i].startsWith('  ')) {
+        lines[i] = '  ' + lines[i].trimStart();
+      }
+    }
+
+    return lines.join('\n');
+  };
+
+  const [code, setCode] = useState(() => ensureStructure(value));
   const [error, setError] = useState<ParseError | null>(null);
-  const [lastValidCode, setLastValidCode] = useState(value);
+  const [lastValidCode, setLastValidCode] = useState(() => ensureStructure(value));
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
-  // Protected lines that cannot be edited
-  const PROTECTED_HEADER = `<?xml version="1.0" encoding="UTF-8"?>
-<spa xmlns="https://spa.audio/ns" version="1.1">`;
-  const PROTECTED_FOOTER = `</spa>`;
-
   // Update code when value prop changes (from external source)
   useEffect(() => {
     if (!isEditing) {
-      setCode(value);
-      setLastValidCode(value);
+      const structuredCode = ensureStructure(value);
+      setCode(structuredCode);
+      setLastValidCode(structuredCode);
       setError(null);
     }
   }, [value, isEditing]);
@@ -41,7 +79,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
     return code.split('\n').length;
   }, [code]);
 
-  // Sync scroll between textarea and line numbers (both vertical and horizontal)
+  // Sync scroll between textarea and line numbers
   const handleScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
@@ -100,104 +138,171 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
     }
   };
 
-
   // Handle code changes
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newCode = e.target.value;
-
-    // Check if user is trying to edit protected areas
     const lines = newCode.split('\n');
-    const currentLines = code.split('\n');
+    const oldLines = code.split('\n');
 
-    // Check if header was modified
-    if (lines[0] !== currentLines[0] || lines[1] !== currentLines[1]) {
-      // Restore header
-      lines[0] = currentLines[0];
-      lines[1] = currentLines[1];
-      const restoredCode = lines.join('\n');
-      setCode(restoredCode);
-
-      // Move cursor to first editable line
-      setTimeout(() => {
-        if (textareaRef.current) {
-          const headerLength = PROTECTED_HEADER.length + 1;
-          textareaRef.current.setSelectionRange(headerLength, headerLength);
-        }
-      }, 0);
-      return;
+    // Prevent editing first two lines
+    if (lines[0] !== PROTECTED_HEADER_1) {
+      lines[0] = PROTECTED_HEADER_1;
+    }
+    if (lines[1] !== PROTECTED_HEADER_2) {
+      lines[1] = PROTECTED_HEADER_2;
     }
 
-    // Check if footer was modified - find the line with </spa>
-    let currentSpaLineIndex = -1;
-    for (let i = currentLines.length - 1; i >= 0; i--) {
-      // Use regex to match </spa> with any whitespace
-      if (currentLines[i].match(/^\s*<\/spa>\s*$/)) {
-        currentSpaLineIndex = i;
+    // Prevent removing or editing the last </spa> line
+    let hasClosingTag = false;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (lines[i].trim() === PROTECTED_FOOTER) {
+        hasClosingTag = true;
+        // If it's not the last line, move it there
+        if (i !== lines.length - 1) {
+          lines.splice(i, 1);
+          lines.push(PROTECTED_FOOTER);
+        }
         break;
       }
     }
 
-    // If we found the </spa> line and it was modified
-    if (currentSpaLineIndex !== -1 && lines[currentSpaLineIndex] !== undefined) {
-      // Check if the </spa> line was changed or removed
-      if (!lines[currentSpaLineIndex].match(/^\s*<\/spa>\s*$/)) {
-        // Restore the </spa> line
-        lines[currentSpaLineIndex] = currentLines[currentSpaLineIndex];
-        const restoredCode = lines.join('\n');
-        setCode(restoredCode);
-        return;
+    // If closing tag was removed, add it back
+    if (!hasClosingTag) {
+      if (lines[lines.length - 1].trim() === '') {
+        lines[lines.length - 1] = PROTECTED_FOOTER;
+      } else {
+        lines.push(PROTECTED_FOOTER);
       }
     }
 
-    setCode(newCode);
+    const correctedCode = lines.join('\n');
+    setCode(correctedCode);
     setIsEditing(true);
 
     // Debounced validation
     clearTimeout((window as any).codeValidationTimeout);
     (window as any).codeValidationTimeout = setTimeout(() => {
-      validateCode(newCode);
+      validateCode(correctedCode);
       setIsEditing(false);
     }, 500);
+  };
+
+  // Handle paste events to clean up pasted content
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    // Get current lines
+    const lines = code.split('\n');
+
+    // Calculate which line we're on
+    let currentLine = 0;
+    let charCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+      charCount += lines[i].length + 1;
+      if (charCount > start) {
+        currentLine = i;
+        break;
+      }
+    }
+
+    // Don't allow paste on protected lines
+    if (currentLine === 0 || currentLine === 1 || currentLine === lines.length - 1) {
+      return;
+    }
+
+    // If pasting a full SPA document, extract just the content
+    let contentToPaste = pastedText;
+    if (pastedText.includes('<?xml') && pastedText.includes('<spa') && pastedText.includes('</spa>')) {
+      const pastedLines = pastedText.split('\n');
+      const startIdx = pastedLines.findIndex(line => line.includes('<spa'));
+      const endIdx = pastedLines.findIndex(line => line.includes('</spa>'));
+      if (startIdx !== -1 && endIdx !== -1 && startIdx < endIdx) {
+        // Extract content and ensure proper indentation
+        contentToPaste = pastedLines
+          .slice(startIdx + 1, endIdx)
+          .map(line => {
+            const trimmed = line.trim();
+            return trimmed ? '  ' + trimmed : '';
+          })
+          .join('\n');
+      }
+    } else {
+      // Ensure pasted content is indented if it's XML content
+      if (contentToPaste.includes('<') && !contentToPaste.startsWith('  ')) {
+        contentToPaste = contentToPaste
+          .split('\n')
+          .map(line => {
+            const trimmed = line.trim();
+            return trimmed ? '  ' + trimmed : '';
+          })
+          .join('\n');
+      }
+    }
+
+    // Insert the content
+    const beforeSelection = code.substring(0, start);
+    const afterSelection = code.substring(end);
+    const newCode = beforeSelection + contentToPaste + afterSelection;
+
+    // Apply it through handleCodeChange to ensure protection
+    handleCodeChange({ target: { value: newCode } } as any);
+
+    // Set cursor position after pasted content
+    setTimeout(() => {
+      const newPosition = start + contentToPaste.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+    }, 0);
   };
 
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = e.currentTarget;
     const start = textarea.selectionStart;
-    const lines = code.split('\n');
 
-    // Calculate current line number
-    let currentLine = 1;
+    // Calculate current line
+    const lines = code.split('\n');
+    let currentLine = 0;
     let charCount = 0;
     for (let i = 0; i < lines.length; i++) {
-      charCount += lines[i].length + 1; // +1 for newline
+      charCount += lines[i].length + 1;
       if (charCount > start) {
-        currentLine = i + 1;
+        currentLine = i;
         break;
       }
     }
 
-    // Prevent editing protected lines with backspace/delete
-    if ((e.key === 'Backspace' || e.key === 'Delete') && isProtectedLine(currentLine)) {
-      e.preventDefault();
-      return;
+    // Prevent certain keys on protected lines
+    if (currentLine === 0 || currentLine === 1 || currentLine === lines.length - 1) {
+      if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter') {
+        // Allow navigation but not editing
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          // Move cursor to start of line 3 (first editable line)
+          const line1Length = lines[0].length + 1;
+          const line2Length = lines[1].length + 1;
+          textarea.setSelectionRange(line1Length + line2Length, line1Length + line2Length);
+        }
+        return;
+      }
     }
 
     // Tab handling for indentation
     if (e.key === 'Tab') {
       e.preventDefault();
-      if (!isProtectedLine(currentLine)) {
-        const end = textarea.selectionEnd;
-        const newCode = code.substring(0, start) + '  ' + code.substring(end);
-        setCode(newCode);
+      const end = textarea.selectionEnd;
+      const newCode = code.substring(0, start) + '  ' + code.substring(end);
+      handleCodeChange({ target: { value: newCode } } as any);
 
-        // Set cursor position after tab
-        setTimeout(() => {
-          if (textareaRef.current) {
-            textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
-          }
-        }, 0);
-      }
+      // Set cursor position after tab
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
+        }
+      }, 0);
     }
 
     // Ctrl/Cmd + Z for undo (revert to last valid)
@@ -235,14 +340,24 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
         .replace(/></g, '>\n<')
         .split('\n')
         .map((line, index) => {
-          const depth = (line.match(/</g) || []).length - (line.match(/\/>/g) || []).length;
-          const indent = '  '.repeat(Math.max(0, depth - 1));
-          return index === 0 ? line : indent + line;
+          if (index === 0) return line; // XML declaration
+          if (line.includes('<spa')) return line; // Opening spa tag
+          if (line.trim() === '</spa>') return line; // Closing spa tag
+
+          // For content lines, add proper indentation
+          const trimmed = line.trim();
+          if (trimmed) {
+            const depth = (trimmed.match(/</g) || []).length - (trimmed.match(/\/>/g) || []).length;
+            const indent = '  '.repeat(Math.max(1, depth)); // At least 1 level indent for content
+            return indent + trimmed;
+          }
+          return line;
         })
         .join('\n');
 
-      setCode(formatted);
-      onChange(formatted);
+      const structuredFormatted = ensureStructure(formatted);
+      setCode(structuredFormatted);
+      onChange(structuredFormatted);
     } catch (err) {
       console.error('Failed to format code:', err);
     }
@@ -250,30 +365,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
 
   // Check if a line is protected
   const isProtectedLine = (lineNum: number): boolean => {
-    const lines = code.split('\n');
-
-    // First line should be XML declaration
-    if (lineNum === 1) {
-      return true; // XML declaration
-    }
-
-    // Second line should be opening spa tag
-    if (lineNum === 2) {
-      return true; // Opening <spa> tag
-    }
-
-    // Check if this specific line contains the closing spa tag
-    // We need to be very precise here - only the line with </spa> should be protected
-    const lineIndex = lineNum - 1; // Convert to 0-based index
-    if (lineIndex >= 0 && lineIndex < lines.length) {
-      const line = lines[lineIndex];
-      // Only protect the line if it contains ONLY the closing spa tag (with optional whitespace)
-      if (line.match(/^\s*<\/spa>\s*$/)) {
-        return true;
-      }
-    }
-
-    return false;
+    return lineNum === 1 || lineNum === 2 || lineNum === lineCount;
   };
 
   // Get line styles (for errors and protected lines)
@@ -282,7 +374,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
       return 'bg-red-500/20 border-l-2 border-red-500';
     }
     if (isProtectedLine(lineNum)) {
-      return 'bg-navy-light/20 text-gray-500';
+      return 'bg-navy-light/10';
     }
     return '';
   };
@@ -372,56 +464,64 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
 
         {/* Code Area */}
         <div className="flex-1 relative overflow-hidden">
-          {/* Protected lines overlay */}
-          <div className="absolute inset-0 pointer-events-none p-3 overflow-hidden">
+          {/* Text display layer */}
+          <div
+            className="absolute inset-0 p-3 pointer-events-none font-mono text-sm leading-6"
+            style={{
+              tabSize: 2,
+              fontFamily: "'Roboto Mono', monospace",
+              lineHeight: '1.5rem',
+              whiteSpace: 'pre',
+              overflowWrap: 'normal',
+              wordBreak: 'normal',
+            }}
+          >
             {code.split('\n').map((line, lineIndex) => {
               const lineNum = lineIndex + 1;
-              if (isProtectedLine(lineNum)) {
-                return (
-                  <div
-                    key={lineIndex}
-                    className="bg-navy-light/10 border-l-2 border-navy-light/30"
-                    style={{
-                      position: 'absolute',
-                      top: `${lineIndex * 24}px`, // Use px instead of rem for consistency
-                      height: '24px', // Match line-height exactly
-                      left: 0,
-                      right: 0,
-                      paddingLeft: '12px',
-                      minWidth: `${Math.max(100, line.length * 8)}px`, // Extend overlay for long lines
-                    }}
-                  />
-                );
-              }
-              return null;
+              const isProtected = isProtectedLine(lineNum);
+              return (
+                <div
+                  key={lineIndex}
+                  className={isProtected ? 'text-green' : 'text-green-bright'}
+                  style={{
+                    backgroundColor: isProtected ? 'rgba(13, 17, 23, 0.2)' : 'transparent',
+                    borderLeft: isProtected ? '2px solid var(--color-navy-light)' : 'none',
+                    paddingLeft: isProtected ? '10px' : '0',
+                  }}
+                >
+                  {line || '\u00A0'}
+                </div>
+              );
             })}
           </div>
 
+          {/* Textarea - transparent text but fully functional for selection */}
           <textarea
             ref={textareaRef}
             value={code}
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onScroll={handleScroll}
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
-            className={`absolute inset-0 w-full h-full p-3 bg-transparent text-green-bright font-mono text-sm leading-6 resize-none focus:outline-none overflow-x-auto ${
-              error ? 'text-red-400' : ''
-            }`}
+            className="absolute inset-0 w-full h-full p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none overflow-x-auto"
             style={{
               tabSize: 2,
               fontFamily: "'Roboto Mono', monospace",
               lineHeight: '1.5rem',
-              zIndex: 1,
               whiteSpace: 'pre',
               overflowWrap: 'normal',
               wordBreak: 'normal',
+              color: 'transparent',
+              caretColor: 'var(--color-green-bright)',
+              zIndex: 2,
             }}
-            placeholder="<!-- Enter your SPA XML code here -->"
+            placeholder=""
           />
 
-          {/* Error underline overlay (if we can determine position) */}
+          {/* Error underline overlay */}
           {error && (
             <div className="absolute inset-0 pointer-events-none p-3">
               {code.split('\n').map((line, lineIndex) => {
