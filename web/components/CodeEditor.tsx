@@ -103,13 +103,6 @@ export default function CodeEditor({
     return code.split('\n').length;
   }, [code]);
 
-  // Sync scroll between textarea and line numbers
-  const handleScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  };
-
   // Validate and parse the XML
   const validateCode = (newCode: string) => {
     try {
@@ -389,27 +382,59 @@ export default function CodeEditor({
       const serializer = new XMLSerializer();
       let formatted = serializer.serializeToString(xmlDoc);
 
-      // Basic formatting - add newlines and indentation
-      formatted = formatted
-        .replace(/></g, '>\n<')
-        .split('\n')
-        .map((line, index) => {
-          if (index === 0) return line; // XML declaration
-          if (line.includes('<spa')) return line; // Opening spa tag
-          if (line.trim() === '</spa>') return line; // Closing spa tag
+      // Properly format XML with correct indentation
+      const lines: string[] = [];
+      let depth = 0;
 
-          // For content lines, add proper indentation
-          const trimmed = line.trim();
-          if (trimmed) {
-            const depth = (trimmed.match(/</g) || []).length - (trimmed.match(/\/>/g) || []).length;
-            const indent = '  '.repeat(Math.max(1, depth)); // At least 1 level indent for content
-            return indent + trimmed;
-          }
-          return line;
-        })
-        .join('\n');
+      // Split on tag boundaries
+      formatted = formatted.replace(/></g, '>\n<');
+      const tokens = formatted.split('\n');
 
-      const structuredFormatted = ensureStructure(formatted);
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i].trim();
+        if (!token) continue;
+
+        // XML declaration
+        if (token.startsWith('<?xml')) {
+          lines.push(token);
+          continue;
+        }
+
+        // Root spa tag
+        if (token.startsWith('<spa')) {
+          lines.push(token);
+          depth = 1;
+          continue;
+        }
+
+        // Closing spa tag
+        if (token === '</spa>') {
+          lines.push(token);
+          continue;
+        }
+
+        // Self-closing tag
+        if (token.endsWith('/>')) {
+          lines.push('  '.repeat(depth) + token);
+          continue;
+        }
+
+        // Opening tag
+        if (token.startsWith('<') && !token.startsWith('</')) {
+          lines.push('  '.repeat(depth) + token);
+          depth++;
+          continue;
+        }
+
+        // Closing tag
+        if (token.startsWith('</')) {
+          depth--;
+          lines.push('  '.repeat(depth) + token);
+          continue;
+        }
+      }
+
+      const structuredFormatted = lines.join('\n');
       setCode(structuredFormatted);
       onChange(structuredFormatted);
     } catch (err) {
@@ -488,125 +513,124 @@ export default function CodeEditor({
       </div>
 
       {/* Editor */}
-      <div className="flex-1 flex overflow-hidden bg-grey font-mono text-sm">
-        {/* Line Numbers */}
-        <div
-          ref={lineNumbersRef}
-          className="select-none px-3 py-3 text-right border-r border-navy-light/20 overflow-hidden"
-          style={{ minWidth: '4.5rem' }}
-        >
-          {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => {
-            const isProtected = isProtectedLine(lineNum);
-            return (
-              <div
-                key={lineNum}
-                className={`leading-6 flex items-center justify-end gap-1 ${
-                  isProtected ? 'text-gray-500' : 'text-gray-600'
-                } ${getLineStyle(lineNum)}`}
-              >
-                {isProtected && (
-                  <span className="text-gray-500" title="Protected line">
-                    🔒
-                  </span>
-                )}
-                <span>{lineNum}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Code Area */}
-        <div className="flex-1 relative overflow-auto">
-          {/* Textarea - transparent text but fully functional for selection */}
-          <textarea
-            ref={textareaRef}
-            value={code}
-            onChange={handleCodeChange}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onScroll={handleScroll}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            className="absolute w-full p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none"
-            style={{
-              tabSize: 2,
-              fontFamily: "'Roboto Mono', monospace",
-              lineHeight: '1.5rem',
-              whiteSpace: 'pre',
-              overflowWrap: 'normal',
-              wordBreak: 'normal',
-              color: 'transparent',
-              caretColor: 'var(--color-green-bright)',
-              zIndex: 1,
-              WebkitTextFillColor: 'transparent',
-              minHeight: '100%',
-              height: 'auto',
-              paddingBottom: '24px', // Extra padding for last line
-            }}
-            placeholder=""
-          />
-
-          {/* Text display layer */}
+      <div className="flex-1 overflow-auto bg-grey font-mono text-sm">
+        <div className="flex min-h-full pb-10">
+          {/* Line Numbers */}
           <div
-            className="absolute inset-0 p-3 pointer-events-none font-mono text-sm leading-6"
-            style={{
-              tabSize: 2,
-              fontFamily: "'Roboto Mono', monospace",
-              lineHeight: '1.5rem',
-              whiteSpace: 'pre',
-              overflowWrap: 'normal',
-              wordBreak: 'normal',
-              zIndex: 2,
-              minHeight: `${(lineCount + 1) * 24}px`,
-            }}
+            ref={lineNumbersRef}
+            className="select-none px-3 py-3 text-right border-r border-navy-light/20"
+            style={{ minWidth: '4.5rem' }}
           >
-            {code.split('\n').map((line, lineIndex) => {
-              const lineNum = lineIndex + 1;
+            {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => {
               const isProtected = isProtectedLine(lineNum);
               return (
                 <div
-                  key={lineIndex}
-                  className={isProtected ? 'text-green' : 'text-green-bright'}
-                  style={{
-                    backgroundColor: isProtected ? 'rgba(13, 17, 23, 0.2)' : 'transparent',
-                    borderLeft: isProtected ? '2px solid var(--color-navy-light)' : 'none',
-                    paddingLeft: isProtected ? '10px' : '0',
-                    marginLeft: isProtected ? '-10px' : '0',
-                  }}
+                  key={lineNum}
+                  className={`leading-6 flex items-center justify-end gap-1 ${
+                    isProtected ? 'text-gray-500' : 'text-gray-600'
+                  } ${getLineStyle(lineNum)}`}
                 >
-                  {line || '\u00A0'}
+                  {isProtected && (
+                    <span className="text-gray-500" title="Protected line">
+                      🔒
+                    </span>
+                  )}
+                  <span>{lineNum}</span>
                 </div>
               );
             })}
           </div>
 
-          {/* Error underline overlay */}
-          {error && (
-            <div className="absolute inset-0 pointer-events-none p-3">
+          {/* Code Area */}
+          <div className="flex-1 relative">
+            {/* Textarea - transparent text but fully functional for selection */}
+            <textarea
+              ref={textareaRef}
+              value={code}
+              onChange={handleCodeChange}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className="absolute w-full p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none"
+              style={{
+                tabSize: 2,
+                fontFamily: "'Roboto Mono', monospace",
+                lineHeight: '1.5rem',
+                whiteSpace: 'pre',
+                overflowWrap: 'normal',
+                wordBreak: 'normal',
+                color: 'transparent',
+                caretColor: 'var(--color-green-bright)',
+                zIndex: 1,
+                WebkitTextFillColor: 'transparent',
+                height: `${(lineCount + 1) * 24}px`,
+              }}
+              placeholder=""
+            />
+
+            {/* Text display layer */}
+            <div
+              className="absolute inset-0 p-3 pointer-events-none font-mono text-sm leading-6"
+              style={{
+                tabSize: 2,
+                fontFamily: "'Roboto Mono', monospace",
+                lineHeight: '1.5rem',
+                whiteSpace: 'pre',
+                overflowWrap: 'normal',
+                wordBreak: 'normal',
+                zIndex: 2,
+                minHeight: `${(lineCount + 1) * 24}px`,
+              }}
+            >
               {code.split('\n').map((line, lineIndex) => {
-                if (lineIndex + 1 === error.line) {
-                  return (
-                    <div
-                      key={lineIndex}
-                      className="relative"
-                      style={{ top: `${lineIndex * 1.5}rem` }}
-                    >
-                      <div
-                        className="absolute border-b-2 border-red-500 border-dotted"
-                        style={{
-                          left: `${error.column - 1}ch`,
-                          width: `${Math.max(10, line.length - error.column + 1)}ch`,
-                          bottom: '-2px',
-                        }}
-                      />
-                    </div>
-                  );
-                }
-                return null;
+                const lineNum = lineIndex + 1;
+                const isProtected = isProtectedLine(lineNum);
+                return (
+                  <div
+                    key={lineIndex}
+                    className={isProtected ? 'text-green' : 'text-green-bright'}
+                    style={{
+                      backgroundColor: isProtected ? 'rgba(13, 17, 23, 0.2)' : 'transparent',
+                      borderLeft: isProtected ? '2px solid var(--color-navy-light)' : 'none',
+                      paddingLeft: isProtected ? '10px' : '0',
+                      marginLeft: isProtected ? '-10px' : '0',
+                    }}
+                  >
+                    {line || '\u00A0'}
+                  </div>
+                );
               })}
             </div>
-          )}
+
+            {/* Error underline overlay */}
+            {error && (
+              <div className="absolute inset-0 pointer-events-none p-3">
+                {code.split('\n').map((line, lineIndex) => {
+                  if (lineIndex + 1 === error.line) {
+                    return (
+                      <div
+                        key={lineIndex}
+                        className="relative"
+                        style={{ top: `${lineIndex * 1.5}rem` }}
+                      >
+                        <div
+                          className="absolute border-b-2 border-red-500 border-dotted"
+                          style={{
+                            left: `${error.column - 1}ch`,
+                            width: `${Math.max(10, line.length - error.column + 1)}ch`,
+                            bottom: '-2px',
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
