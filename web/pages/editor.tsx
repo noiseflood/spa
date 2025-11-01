@@ -93,6 +93,7 @@ export default function Editor() {
   const { playSound: playSoundEffect } = useSound();
   const [xmlOutput, setXmlOutput] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
   const [importText, setImportText] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
@@ -681,6 +682,18 @@ export default function Editor() {
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
+  };
+
+  const handleReset = () => {
+    if (isPlaying) {
+      stopSound();
+    }
+    const initialNodes = getInitialNodes();
+    setRootNodes(initialNodes);
+    setCurrentNodeId(0);
+    nodeIdCounterRef.current = 1;
+    setExpandedNodes(new Set());
+    setShowResetModal(false);
   };
 
   const normalizeSound = (sound: SPASound): ToneElement | NoiseElement => {
@@ -1489,6 +1502,12 @@ export default function Editor() {
                     >
                       Copy SPA
                     </button>
+                    <button
+                      onClick={() => setShowResetModal(true)}
+                      className="px-3 py-1.5 text-xs bg-navy border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                    >
+                      Reset
+                    </button>
                   </div>
                 </div>
 
@@ -1590,6 +1609,49 @@ export default function Editor() {
                   className="w-full py-3 bg-navy-light hover:bg-navy-light/80 disabled:bg-navy disabled:text-gray-500 rounded-lg font-semibold transition-colors"
                 >
                   Import
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-navy-dark border border-red-500/50 rounded-lg max-w-md w-full">
+            <div className="bg-navy border-b border-red-500/30 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-red-400">Reset Editor</h2>
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-white">
+                Are you sure you want to reset the editor? This will:
+              </p>
+              <ul className="list-disc list-inside text-white/80 space-y-2 ml-2">
+                <li>Clear all current sounds and layers</li>
+                <li>Reset to default single tone</li>
+                <li>This action cannot be undone</li>
+              </ul>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowResetModal(false)}
+                  className="flex-1 py-2.5 bg-navy border border-navy-light/30 text-white rounded-lg hover:bg-navy-light/10 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex-1 py-2.5 bg-red-500/20 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-medium"
+                >
+                  Reset Editor
                 </button>
               </div>
             </div>
