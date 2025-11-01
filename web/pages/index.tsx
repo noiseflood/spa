@@ -21,9 +21,9 @@ export default function Home() {
 
     // Show words one by one
     const wordTimers = [
-      setTimeout(() => setVisibleWords(1), 0),    // "Unmute" immediately
-      setTimeout(() => setVisibleWords(2), 1000),  // "the" after 1 second
-      setTimeout(() => setVisibleWords(3), 2000),  // "internet" after 2 seconds
+      setTimeout(() => setVisibleWords(1), 0), // "Unmute" immediately
+      setTimeout(() => setVisibleWords(2), 1000), // "the" after 1 second
+      setTimeout(() => setVisibleWords(3), 2000), // "internet" after 2 seconds
     ];
 
     // Transition to homepage after 3 seconds
@@ -32,7 +32,7 @@ export default function Home() {
     }, 3000);
 
     return () => {
-      wordTimers.forEach(timer => clearTimeout(timer));
+      wordTimers.forEach((timer) => clearTimeout(timer));
       clearTimeout(transitionTimer);
     };
   }, [showIntro]);
@@ -125,25 +125,23 @@ export default function Home() {
         </Head>
 
         <div className="min-h-screen bg-[#16152F] flex items-center justify-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-[0.2em] text-[#8ED670] font-[Verdana,sans-serif] text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-[0.2em] text-[#8ED670] font-[Verdana,sans-serif] text-right">
             <span
-              className={`inline-block transition-opacity duration-500 ${
+              className={`block transition-opacity duration-500 ${
                 visibleWords >= 1 ? 'opacity-100' : 'opacity-0'
               }`}
             >
               Unmute
             </span>
-            {' '}
             <span
-              className={`inline-block transition-opacity duration-500 ${
+              className={`block transition-opacity duration-500 ${
                 visibleWords >= 2 ? 'opacity-100' : 'opacity-0'
               }`}
             >
               the
             </span>
-            {' '}
             <span
-              className={`inline-block transition-opacity duration-500 ${
+              className={`block transition-opacity duration-500 ${
                 visibleWords >= 3 ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -195,7 +193,7 @@ export default function Home() {
                   href="/editor"
                   onMouseEnter={() => playSound('ui-feedback/hover')}
                   onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-navy-dark text-white font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-bright text-navy font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
