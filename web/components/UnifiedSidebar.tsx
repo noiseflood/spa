@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface UnifiedSidebarProps {
   presetCategories: Record<string, Record<string, string>>;
@@ -13,6 +13,8 @@ export default function UnifiedSidebar({
 }: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
   const [expandedCategory, setExpandedCategory] = useState<string | null>('UI Feedback');
+  const [focusedItem, setFocusedItem] = useState<{ type: 'category' | 'preset'; category: string; preset?: string } | null>(null);
+  const presetsContainerRef = useRef<HTMLDivElement>(null);
   const [chatMessages, setChatMessages] = useState<
     { role: 'user' | 'assistant'; content: string }[]
   >([
@@ -23,6 +25,175 @@ export default function UnifiedSidebar({
     },
   ]);
   const [inputValue, setInputValue] = useState('');
+
+  // Keyboard navigation for presets
+  useEffect(() => {
+    if (activeTab !== 'presets') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const categories = Object.keys(presetCategories);
+
+      if (!categories.length) return;
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        playSoundEffect('ui-feedback/hover');
+
+        if (!focusedItem) {
+          // Initialize focus on first preset of first category
+          const firstCategory = categories[0];
+          setExpandedCategory(firstCategory);
+          const firstPresets = Object.keys(presetCategories[firstCategory]);
+          if (firstPresets.length > 0) {
+            const firstPreset = firstPresets[0];
+            setFocusedItem({ type: 'preset', category: firstCategory, preset: firstPreset });
+            onLoadPreset(firstCategory, firstPreset); // Load the first preset
+          } else {
+            setFocusedItem({ type: 'category', category: firstCategory });
+          }
+          return;
+        }
+
+        const currentCategoryIndex = categories.indexOf(focusedItem.category);
+
+        if (e.key === 'ArrowDown') {
+          if (focusedItem.type === 'category') {
+            // If category is expanded, move to first preset
+            if (expandedCategory === focusedItem.category) {
+              const presets = Object.keys(presetCategories[focusedItem.category]);
+              if (presets.length > 0) {
+                const firstPreset = presets[0];
+                setFocusedItem({ type: 'preset', category: focusedItem.category, preset: firstPreset });
+                onLoadPreset(focusedItem.category, firstPreset); // Load the preset
+              }
+            } else {
+              // Move to next category
+              const nextIndex = (currentCategoryIndex + 1) % categories.length;
+              const nextCategory = categories[nextIndex];
+              // Automatically expand the next category and select its first preset
+              setExpandedCategory(nextCategory);
+              const nextPresets = Object.keys(presetCategories[nextCategory]);
+              if (nextPresets.length > 0) {
+                const firstPreset = nextPresets[0];
+                setFocusedItem({ type: 'preset', category: nextCategory, preset: firstPreset });
+                onLoadPreset(nextCategory, firstPreset); // Load the preset
+              } else {
+                setFocusedItem({ type: 'category', category: nextCategory });
+              }
+            }
+          } else {
+            // Currently on a preset
+            const presets = Object.keys(presetCategories[focusedItem.category]);
+            const currentPresetIndex = presets.indexOf(focusedItem.preset!);
+
+            if (currentPresetIndex < presets.length - 1) {
+              // Move to next preset
+              const nextPreset = presets[currentPresetIndex + 1];
+              setFocusedItem({ type: 'preset', category: focusedItem.category, preset: nextPreset });
+              onLoadPreset(focusedItem.category, nextPreset); // Load the preset
+            } else {
+              // Move to next category, expand it, and select first preset
+              const nextIndex = (currentCategoryIndex + 1) % categories.length;
+              const nextCategory = categories[nextIndex];
+              setExpandedCategory(nextCategory);
+              const nextPresets = Object.keys(presetCategories[nextCategory]);
+              if (nextPresets.length > 0) {
+                const firstPreset = nextPresets[0];
+                setFocusedItem({ type: 'preset', category: nextCategory, preset: firstPreset });
+                onLoadPreset(nextCategory, firstPreset); // Load the preset
+              } else {
+                setFocusedItem({ type: 'category', category: nextCategory });
+              }
+            }
+          }
+        } else {
+          // ArrowUp
+          if (focusedItem.type === 'category') {
+            // This shouldn't happen with new navigation, but handle it anyway
+            // Move to previous category and select last preset
+            const prevIndex = currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
+            const prevCategory = categories[prevIndex];
+            setExpandedCategory(prevCategory);
+            const prevPresets = Object.keys(presetCategories[prevCategory]);
+            if (prevPresets.length > 0) {
+              const lastPreset = prevPresets[prevPresets.length - 1];
+              setFocusedItem({ type: 'preset', category: prevCategory, preset: lastPreset });
+              onLoadPreset(prevCategory, lastPreset); // Load the preset
+            } else {
+              setFocusedItem({ type: 'category', category: prevCategory });
+            }
+          } else {
+            // Currently on a preset
+            const presets = Object.keys(presetCategories[focusedItem.category]);
+            const currentPresetIndex = presets.indexOf(focusedItem.preset!);
+
+            if (currentPresetIndex > 0) {
+              // Move to previous preset in same category
+              const prevPreset = presets[currentPresetIndex - 1];
+              setFocusedItem({ type: 'preset', category: focusedItem.category, preset: prevPreset });
+              onLoadPreset(focusedItem.category, prevPreset); // Load the preset
+            } else {
+              // This is the first preset in the category
+              // Move to previous category and select its last preset
+              const prevIndex = currentCategoryIndex === 0 ? categories.length - 1 : currentCategoryIndex - 1;
+              const prevCategory = categories[prevIndex];
+              setExpandedCategory(prevCategory);
+              const prevPresets = Object.keys(presetCategories[prevCategory]);
+              if (prevPresets.length > 0) {
+                const lastPreset = prevPresets[prevPresets.length - 1];
+                setFocusedItem({ type: 'preset', category: prevCategory, preset: lastPreset });
+                onLoadPreset(prevCategory, lastPreset); // Load the preset
+              } else {
+                setFocusedItem({ type: 'category', category: prevCategory });
+              }
+            }
+          }
+        }
+      } else if (e.key === 'ArrowRight' && focusedItem?.type === 'category') {
+        // Expand category
+        e.preventDefault();
+        playSoundEffect('ui-feedback/tab-switch');
+        setExpandedCategory(focusedItem.category);
+      } else if (e.key === 'ArrowLeft' && focusedItem) {
+        // Collapse category or move to parent
+        e.preventDefault();
+        if (focusedItem.type === 'preset') {
+          // Move focus to parent category and collapse
+          playSoundEffect('ui-feedback/tab-switch');
+          setFocusedItem({ type: 'category', category: focusedItem.category });
+          setExpandedCategory(null);
+        } else if (expandedCategory === focusedItem.category) {
+          // Collapse current category
+          playSoundEffect('ui-feedback/tab-switch');
+          setExpandedCategory(null);
+        }
+      } else if (e.key === 'Enter' && focusedItem) {
+        e.preventDefault();
+        if (focusedItem.type === 'category') {
+          // Toggle category expansion
+          playSoundEffect('ui-feedback/tab-switch');
+          setExpandedCategory(expandedCategory === focusedItem.category ? null : focusedItem.category);
+        } else {
+          // Load preset
+          playSoundEffect('ui-feedback/button-click');
+          onLoadPreset(focusedItem.category, focusedItem.preset!);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, focusedItem, expandedCategory, presetCategories, onLoadPreset, playSoundEffect]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (!focusedItem) return;
+
+    const focusedElement = presetsContainerRef.current?.querySelector?.('[data-focused="true"]');
+    if (focusedElement) {
+      focusedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [focusedItem]);
 
   const handleSendMessage = () => {
     if (inputValue.trim()) {
@@ -85,63 +256,85 @@ export default function UnifiedSidebar({
 
       {/* Tab Content */}
       {activeTab === 'presets' ? (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" ref={presetsContainerRef}>
           <div className="p-4">
             <div className="mb-4">
               <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">Sound Library</h3>
               <p className="text-xs text-gray-400">
                 Click any preset to load it into the editor. Great for learning and as starting
-                points!
+                points! Use arrow keys to navigate.
               </p>
             </div>
 
-            {Object.entries(presetCategories).map(([category, presets]) => (
-              <div key={category} className="mb-3">
-                <button
-                  onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                  onClick={() => {
-                    playSoundEffect('ui-feedback/tab-switch');
-                    setExpandedCategory(expandedCategory === category ? null : category);
-                  }}
-                  className="w-full flex items-center justify-between p-2 bg-navy-dark rounded hover:bg-navy-light/10 transition-colors"
-                >
-                  <span className="text-sm font-medium text-navy-light">{category}</span>
-                  <svg
-                    className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+            {Object.entries(presetCategories).map(([category, presets]) => {
+              const isFocused = focusedItem?.type === 'category' && focusedItem.category === category;
+              return (
+                <div key={category} className="mb-3">
+                  <button
+                    data-focused={isFocused}
+                    onMouseEnter={() => {
+                      playSoundEffect('ui-feedback/hover');
+                      setFocusedItem({ type: 'category', category });
+                    }}
+                    onClick={() => {
+                      playSoundEffect('ui-feedback/tab-switch');
+                      setExpandedCategory(expandedCategory === category ? null : category);
+                      setFocusedItem({ type: 'category', category });
+                    }}
+                    className={`w-full flex items-center justify-between p-2 bg-navy-dark rounded hover:bg-navy-light/10 transition-colors ${
+                      isFocused ? 'ring-2 ring-green ring-offset-2 ring-offset-navy' : ''
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-                {expandedCategory === category && (
-                  <div className="space-y-0.5 ml-2 mt-1">
-                    {Object.keys(presets).map((presetName) => (
-                      <button
-                        key={presetName}
-                        onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                        onClick={() => {
-                          playSoundEffect('ui-feedback/button-click');
-                          onLoadPreset(category, presetName);
-                        }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between"
-                      >
-                        <span>{presetName}</span>
-                        <span className="text-[10px] text-gray-500 group-hover:text-gray-300">
-                          Load →
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                    <span className="text-sm font-medium text-navy-light">{category}</span>
+                    <svg
+                      className={`w-3 h-3 transition-transform ${expandedCategory === category ? 'rotate-90' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                  {expandedCategory === category && (
+                    <div className="space-y-0.5 ml-2 mt-1">
+                      {Object.keys(presets).map((presetName) => {
+                        const isPresetFocused = focusedItem?.type === 'preset' &&
+                          focusedItem.category === category &&
+                          focusedItem.preset === presetName;
+                        return (
+                          <button
+                            key={presetName}
+                            data-focused={isPresetFocused}
+                            onMouseEnter={() => {
+                              playSoundEffect('ui-feedback/hover');
+                              setFocusedItem({ type: 'preset', category, preset: presetName });
+                            }}
+                            onClick={() => {
+                              playSoundEffect('ui-feedback/button-click');
+                              onLoadPreset(category, presetName);
+                              setFocusedItem({ type: 'preset', category, preset: presetName });
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between ${
+                              isPresetFocused ? 'ring-2 ring-green ring-offset-2 ring-offset-navy bg-navy-light/20 text-white' : ''
+                            }`}
+                          >
+                            <span>{presetName}</span>
+                            <span className="text-[10px] text-gray-500 group-hover:text-gray-300">
+                              Load →
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
