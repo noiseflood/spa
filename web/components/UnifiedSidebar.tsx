@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { sendChatMessages, EditorUpdateCallback } from '../lib/llmService';
+import { sendChatMessages, EditorUpdateCallback, Message } from '../lib/llmService';
 
 interface UnifiedSidebarProps {
   presetCategories: Record<string, Record<string, string>>;
@@ -29,9 +29,7 @@ export default function UnifiedSidebar({
   } | null>(null);
   const presetsContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedCategory = useRef(false);
-  const [chatMessages, setChatMessages] = useState<
-    { role: 'user' | 'assistant'; content: string }[]
-  >([
+  const [chatMessages, setChatMessages] = useState<Message[]>([
     {
       role: 'assistant',
       content:
@@ -42,6 +40,64 @@ export default function UnifiedSidebar({
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingText, setLoadingText] = useState('Composing');
+  const [dotCount, setDotCount] = useState(1);
+
+  // Audio-themed loading words
+  const loadingWords = [
+    'Composing',
+    'Orchestrating',
+    'Motzarting',
+    'Synthesizing',
+    'Harmonizing',
+    'Beethovening',
+    'Mixing',
+    'Mastering',
+    'Sampling',
+    'Conducting',
+  ];
+
+  // Cycle through loading text every 5 seconds
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % loadingWords.length;
+      setLoadingText(loadingWords[index]);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
+  // Animate dots: . -> .. -> ... -> . (every 400ms)
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev % 3) + 1);
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
+  // Update the loading message in chat when loadingText or dotCount changes
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const dots = '.'.repeat(dotCount);
+    setChatMessages((prevMessages) => {
+      const lastMessage = prevMessages[prevMessages.length - 1];
+      if (lastMessage?.isLoading) {
+        return [
+          ...prevMessages.slice(0, -1),
+          { ...lastMessage, content: `${loadingText}${dots}` },
+        ];
+      }
+      return prevMessages;
+    });
+  }, [loadingText, dotCount, isGenerating]);
 
   // Load active tab from localStorage on mount
   useEffect(() => {
@@ -335,6 +391,12 @@ export default function UnifiedSidebar({
 
       setChatMessages(updatedMessages);
       setInputValue('');
+      setIsGenerating(true);
+      setDotCount(1); // Reset dot animation
+
+      // Add loading message
+      const loadingMessage = { role: 'assistant' as const, content: `${loadingText}.`, isLoading: true };
+      setChatMessages([...updatedMessages, loadingMessage]);
 
       try {
         const responseMessages = await sendChatMessages(updatedMessages, apiKey, onEditorUpdate, currentSPA);
@@ -348,6 +410,8 @@ export default function UnifiedSidebar({
             content: 'Sorry, I encountered an error processing your request. Please try again.',
           },
         ]);
+      } finally {
+        setIsGenerating(false);
       }
     }
   };
@@ -373,6 +437,17 @@ export default function UnifiedSidebar({
     localStorage.removeItem('anthropic_api_key');
     setApiKey(null);
     setShowApiKeyInput(true);
+    setChatMessages([
+      {
+        role: 'assistant',
+        content:
+          '👋 Welcome to the SPA Sound Editor!\n\n💡 New here? Start with the **Presets** tab above to explore ready-made sounds and learn how the editor works.\n\nI can help you:\n• Create custom sound effects\n• Modify existing presets\n• Understand how different parameters affect sounds\n• Build complex layered compositions\n\nJust describe the sound you want to create!',
+      },
+    ]);
+    playSoundEffect('ui-feedback/button-click');
+  };
+
+  const handleClearChat = () => {
     setChatMessages([
       {
         role: 'assistant',
@@ -649,13 +724,22 @@ export default function UnifiedSidebar({
                   <p className="text-[10px] text-gray-500">
                     Tip: Check the Presets tab for examples and inspiration!
                   </p>
-                  <button
-                    onClick={handleClearApiKey}
-                    className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
-                    title="Clear API key"
-                  >
-                    Clear Key
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleClearChat}
+                      className="text-[10px] text-gray-400 hover:text-gray-300 transition-colors"
+                      title="Clear chat history"
+                    >
+                      Clear Chat
+                    </button>
+                    <button
+                      onClick={handleClearApiKey}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                      title="Clear API key"
+                    >
+                      Clear Key
+                    </button>
+                  </div>
                 </div>
               </>
             )}
