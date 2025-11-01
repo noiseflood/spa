@@ -1206,7 +1206,7 @@ export default function Editor() {
                     </div>
                   </div>
 
-                  <div className="tree">
+                  <div>
                     {rootNodes.length === 0 ? (
                       <p className="text-gray-500 text-xs">No layers</p>
                     ) : (
