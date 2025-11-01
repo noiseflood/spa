@@ -214,7 +214,7 @@ export default function Home() {
             <div className="h-full" />
             <div
               onClick={handleClick}
-              className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95"
+              className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95 focus:outline-none"
               title="Click to play sound"
             >
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-green-bright animate-glow tracking-tighter select-none">

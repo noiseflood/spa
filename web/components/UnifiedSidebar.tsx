@@ -316,6 +316,11 @@ export default function UnifiedSidebar({
                       playSoundEffect('ui-feedback/hover');
                       setFocusedItem({ type: 'category', category });
                     }}
+                    onMouseLeave={() => {
+                      if (focusedItem?.type === 'category' && focusedItem.category === category) {
+                        setFocusedItem(null);
+                      }
+                    }}
                     onClick={() => {
                       playSoundEffect('ui-feedback/tab-switch');
                       setExpandedCategory(expandedCategory === category ? null : category);
@@ -358,10 +363,18 @@ export default function UnifiedSidebar({
                               playSoundEffect('ui-feedback/hover');
                               setFocusedItem({ type: 'preset', category, preset: presetName });
                             }}
+                            onMouseLeave={() => {
+                              if (
+                                focusedItem?.type === 'preset' &&
+                                focusedItem.category === category &&
+                                focusedItem.preset === presetName
+                              ) {
+                                setFocusedItem(null);
+                              }
+                            }}
                             onClick={() => {
                               playSoundEffect('ui-feedback/button-click');
                               onLoadPreset(category, presetName);
-                              setFocusedItem({ type: 'preset', category, preset: presetName });
                               setActivePreset({ category, preset: presetName });
                               // Ensure category stays expanded when preset is selected
                               if (expandedCategory !== category) {
