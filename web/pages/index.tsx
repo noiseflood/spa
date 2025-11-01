@@ -5,24 +5,9 @@ import { playSPA } from '@spa-audio/core';
 import { useSound } from '../contexts/SoundContext';
 import MuteButton from '../components/MuteButton';
 
-// Cookie helper functions
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
-
-function setCookie(name: string, value: string, days: number = 365) {
-  if (typeof document === 'undefined') return;
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
-}
-
 export default function Home() {
-  const [hasAccepted, setHasAccepted] = useState<boolean | null>(null);
+  const [showIntro, setShowIntro] = useState(true);
+  const [visibleWords, setVisibleWords] = useState(0);
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([]);
   const [currentPreset, setCurrentPreset] = useState<{ path: string; name: string } | null>(null);
   const [displayedName, setDisplayedName] = useState('');
@@ -30,15 +15,31 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const { playSound } = useSound();
 
-  // Check for cookie on mount
+  // Animate intro text and transition to homepage
   useEffect(() => {
-    const accepted = getCookie('accept_noise') === 'true';
-    setHasAccepted(accepted);
-  }, []);
+    if (!showIntro) return;
+
+    // Show words one by one
+    const wordTimers = [
+      setTimeout(() => setVisibleWords(1), 0),    // "Unmute" immediately
+      setTimeout(() => setVisibleWords(2), 1000),  // "the" after 1 second
+      setTimeout(() => setVisibleWords(3), 2000),  // "internet" after 2 seconds
+    ];
+
+    // Transition to homepage after 3 seconds
+    const transitionTimer = setTimeout(() => {
+      setShowIntro(false);
+    }, 3000);
+
+    return () => {
+      wordTimers.forEach(timer => clearTimeout(timer));
+      clearTimeout(transitionTimer);
+    };
+  }, [showIntro]);
 
   // Load all preset files on mount (for original landing page)
   useEffect(() => {
-    if (hasAccepted === false) return; // Don't load if showing gate
+    if (showIntro) return; // Don't load if showing intro
 
     async function loadPresets() {
       try {
@@ -57,7 +58,7 @@ export default function Home() {
       }
     }
     loadPresets();
-  }, [hasAccepted]);
+  }, [showIntro]);
 
   // Typing animation
   useEffect(() => {
@@ -110,18 +111,8 @@ export default function Home() {
     }, 30);
   };
 
-  const handleAccept = () => {
-    setCookie('accept_noise', 'true');
-    setHasAccepted(true);
-  };
-
-  // Show loading state while checking cookie
-  if (hasAccepted === null) {
-    return null;
-  }
-
-  // Show gate if not accepted
-  if (!hasAccepted) {
+  // Show intro animation
+  if (showIntro) {
     return (
       <>
         <Head>
@@ -133,41 +124,32 @@ export default function Home() {
           <meta name="viewport" content="width=device-width, initial-scale=1" />
         </Head>
 
-        <div className="min-h-screen bg-[#16152F] grid grid-cols-2 grid-rows-2 gap-16 p-16">
-          {/* Top Left - Title */}
-          <div className="col-start-1 row-start-1 flex items-end text-right justify-end">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-light tracking-[0.2em] text-[#8ED670] !leading-[1.8] font-[Verdana,sans-serif]">
+        <div className="min-h-screen bg-[#16152F] flex items-center justify-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-[0.2em] text-[#8ED670] font-[Verdana,sans-serif] text-center">
+            <span
+              className={`inline-block transition-opacity duration-500 ${
+                visibleWords >= 1 ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               Unmute
-              <br />
+            </span>
+            {' '}
+            <span
+              className={`inline-block transition-opacity duration-500 ${
+                visibleWords >= 2 ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               the
-              <br />
+            </span>
+            {' '}
+            <span
+              className={`inline-block transition-opacity duration-500 ${
+                visibleWords >= 3 ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               internet
-              <br />?
-            </h1>
-          </div>
-
-          {/* Top Right - Empty */}
-          <div className="col-start-2 row-start-1"></div>
-
-          {/* Bottom Left - Yes Button */}
-          <div className="col-start-1 row-start-2 flex items-start justify-end">
-            <button
-              onClick={handleAccept}
-              className="text-3xl md:text-4xl lg:text-5xl font-light tracking-[0.2em] text-[#8ED670] font-[Verdana,sans-serif] bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity duration-200"
-            >
-              Yes
-            </button>
-          </div>
-
-          {/* Bottom Right - No Button */}
-          <div className="col-start-2 row-start-2 flex items-start justify-start">
-            <a
-              href="https://google.com"
-              className="px-16 py-3 text-white text-3xl md:text-4xl lg:text-5xl font-medium rounded-full bg-gradient-to-r from-pink-300 via-purple-300 to-amber-100 hover:scale-105 shadow-[0_0_50px_rgba(255,182,193,0.9)] hover:shadow-[0_0_70px_rgba(255,182,193,1)] transition-all duration-200 cursor-pointer font-serif"
-            >
-              No
-            </a>
-          </div>
+            </span>
+          </h1>
         </div>
       </>
     );
