@@ -20,6 +20,7 @@ export default [
         declarationDir: './dist',
         declaration: true,
         declarationMap: true,
+        outputToFilesystem: true,
       }),
     ],
   },
@@ -38,6 +39,9 @@ export default [
       typescript({
         tsconfig: './tsconfig.json',
         declaration: false,
+        declarationMap: false,
+        composite: false,
+        outputToFilesystem: true,
       }),
     ],
   },

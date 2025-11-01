@@ -45,18 +45,15 @@ export function interpolate(
       return start + (end - start) * progress;
 
     case 'exp':
-    case 'exponential':
       // Exponential curve (fast start, slow end)
       if (start === 0) start = 0.001; // Avoid log(0)
       return start * Math.pow(end / start, progress);
 
     case 'log':
-    case 'logarithmic':
       // Logarithmic curve (slow start, fast end)
       return start + (end - start) * Math.log1p(progress * 9) / Math.log(10);
 
     case 'smooth':
-    case 'ease-in-out':
       // Smooth S-curve (ease-in-out)
       const t = progress < 0.5
         ? 2 * progress * progress

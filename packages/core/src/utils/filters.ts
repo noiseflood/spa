@@ -2,7 +2,7 @@
  * Filter utilities
  */
 
-import type { FilterConfig, FilterType } from '@spa-audio/types';
+import type { FilterConfig } from '@spa-audio/types';
 
 /**
  * Apply filter to buffer using biquad filters
@@ -33,8 +33,9 @@ export function calculateBiquadCoefficients(
   sampleRate: number
 ): BiquadCoefficients {
   const freq = typeof filter.cutoff === 'number' ? filter.cutoff : filter.cutoff.start;
-  const Q = filter.resonance || 1.0;
-  const gain = filter.gain || 0;
+  const Q = typeof filter.resonance === 'number' ? filter.resonance :
+    (filter.resonance ? filter.resonance.start : 1.0);
+  // const gain = filter.gain || 0; // TODO: implement gain when needed
 
   // Normalized frequency
   const omega = 2 * Math.PI * freq / sampleRate;
@@ -132,15 +133,14 @@ function applyTimeVaryingFilter(
 ): Float32Array {
   const filtered = new Float32Array(buffer.length);
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-  
-  const duration = buffer.length / sampleRate;
+
+  // const duration = buffer.length / sampleRate; // TODO: use if needed for time-based automation
   const updateInterval = 64; // Update coefficients every N samples
   
   for (let i = 0; i < buffer.length; i++) {
     // Update coefficients periodically
     if (i % updateInterval === 0) {
       const progress = i / buffer.length;
-      const currentTime = progress * duration;
       
       // Calculate current cutoff frequency
       let currentCutoff: number;
@@ -200,7 +200,7 @@ function interpolateValue(
   start: number,
   end: number,
   progress: number,
-  curve: 'linear' | 'exp' | 'log' | 'smooth'
+  curve: 'linear' | 'exp' | 'log' | 'smooth' | 'step' | 'ease-in' | 'ease-out'
 ): number {
   switch (curve) {
     case 'linear':
@@ -220,7 +220,19 @@ function interpolateValue(
       // Smooth ease-in-ease-out (S-curve)
       const smoothProgress = progress * progress * (3 - 2 * progress);
       return start + (end - start) * smoothProgress;
-      
+
+    case 'step':
+      // Step function (instant change at midpoint)
+      return progress < 0.5 ? start : end;
+
+    case 'ease-in':
+      // Quadratic ease in
+      return start + (end - start) * progress * progress;
+
+    case 'ease-out':
+      // Quadratic ease out
+      return start + (end - start) * (1 - Math.pow(1 - progress, 2));
+
     default:
       return start + (end - start) * progress;
   }

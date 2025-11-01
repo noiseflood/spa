@@ -22,7 +22,6 @@ import type {
   AutomationCurve,
   FilterConfig,
   ParseOptions,
-  ParseResult,
   WaveformType,
   NoiseColor,
   FilterType,
@@ -37,9 +36,7 @@ export function parseSPA(
   options: ParseOptions = {}
 ): SPADocument {
   const {
-    validate = true,
     resolveReferences = true,
-    strict = false,
     allowComments = true
   } = options;
 
@@ -62,7 +59,7 @@ export function parseSPA(
   const doc = parser.parseFromString(cleanXml, 'text/xml');
 
   // Add querySelector polyfill for xmldom
-  if (!doc.querySelector && doc.getElementsByTagName) {
+  if (!doc.querySelector && 'getElementsByTagName' in doc) {
     const addQuerySelectors = (node: any) => {
       node.querySelector = function(selector: string) {
         return this.getElementsByTagName(selector)[0] || null;
@@ -121,12 +118,12 @@ export function parseSPA(
  * Parse definitions section
  */
 function parseDefinitions(root: Element): any {
-  const defsEl = root.querySelector('defs');
+  const defsEl = root.querySelector?.('defs');
   if (!defsEl) return undefined;
 
   const envelopes: Record<string, ADSREnvelope> = {};
 
-  defsEl.querySelectorAll('envelope').forEach(el => {
+  defsEl.querySelectorAll?.('envelope')?.forEach(el => {
     const id = el.getAttribute('id');
     if (!id) throw new Error('Envelope in defs missing id attribute');
 

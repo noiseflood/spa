@@ -10,7 +10,7 @@ import type { ADSREnvelope } from '@spa-audio/types';
 export function applyEnvelope(
   buffer: Float32Array,
   envelope: ADSREnvelope,
-  duration: number,
+  _duration: number,
   sampleRate: number
 ): Float32Array {
   const numSamples = buffer.length;

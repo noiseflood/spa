@@ -3,7 +3,6 @@
  */
 
 import type {
-  SPADocument,
   ValidationResult,
   ValidationError,
   ValidationWarning
@@ -29,7 +28,7 @@ export function validateSPA(xml: string): ValidationResult {
     const doc = parser.parseFromString(xml, 'text/xml');
 
     // Add querySelector polyfill for xmldom
-    if (!doc.querySelector && doc.getElementsByTagName) {
+    if (!doc.querySelector && 'getElementsByTagName' in doc) {
       (doc as any).querySelector = function(selector: string) {
         return this.getElementsByTagName(selector)[0] || null;
       };
@@ -105,6 +104,7 @@ function validateDefs(
   errors: ValidationError[],
   warnings: ValidationWarning[]
 ): void {
+  void warnings; // Currently unused but kept for API consistency
   for (const child of Array.from(el.children)) {
     if (child.tagName === 'envelope') {
       if (!child.hasAttribute('id')) {

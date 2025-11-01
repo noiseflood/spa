@@ -208,5 +208,4 @@ export const SPA = {
   clearCache: clearSoundCache
 } as const;
 
-// Default export
-export default SPA;
+// Export SPA namespace as named export only (no default export to avoid rollup warnings)

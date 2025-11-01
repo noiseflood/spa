@@ -13,7 +13,6 @@ export function generateNoise(
   sampleRate: number
 ): Float32Array {
   const numSamples = Math.floor(duration * sampleRate);
-  const buffer = new Float32Array(numSamples);
 
   switch (color) {
     case 'white':

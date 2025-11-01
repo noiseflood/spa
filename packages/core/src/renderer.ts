@@ -9,12 +9,9 @@ import type {
   NoiseElement,
   GroupElement,
   SequenceElement,
-  TimedSound,
   RenderOptions,
-  RenderResult,
   ADSREnvelope,
-  AutomationCurve,
-  RepeatConfig
+  AutomationCurve
 } from '@spa-audio/types';
 
 import { parseSPA } from './parser';
@@ -35,8 +32,7 @@ export async function renderSPA(
     sampleRate = 48000,
     channels = 2,
     normalize = true,
-    masterVolume = 1.0,
-    offline = true
+    masterVolume = 1.0
   } = options;
 
   // Parse if string
@@ -122,16 +118,15 @@ export async function renderToBuffer(
 function renderSound(
   sound: SPASound,
   defs: any,
-  sampleRate: number,
-  startOffset: number = 0
+  sampleRate: number
 ): Float32Array {
   switch (sound.type) {
     case 'tone':
-      return renderTone(sound, defs, sampleRate, startOffset);
+      return renderTone(sound, defs, sampleRate);
     case 'noise':
-      return renderNoise(sound, defs, sampleRate, startOffset);
+      return renderNoise(sound, defs, sampleRate);
     case 'group':
-      return renderGroup(sound, defs, sampleRate, startOffset);
+      return renderGroup(sound, defs, sampleRate);
     case 'sequence':
       return renderSequence(sound, defs, sampleRate);
     default:
@@ -145,8 +140,7 @@ function renderSound(
 function renderTone(
   tone: ToneElement,
   defs: any,
-  sampleRate: number,
-  startOffset: number = 0
+  sampleRate: number
 ): Float32Array {
   let buffer: Float32Array;
 
@@ -162,7 +156,8 @@ function renderTone(
       sampleRate
     );
   } else {
-    buffer = generateWaveform(tone.wave, tone.freq as number, tone.dur, sampleRate);
+    // Default to 440 Hz if frequency is not provided
+    buffer = generateWaveform(tone.wave, 440, tone.dur, sampleRate);
   }
 
   // Apply envelope
@@ -206,8 +201,7 @@ function renderTone(
 function renderNoise(
   noise: NoiseElement,
   defs: any,
-  sampleRate: number,
-  startOffset: number = 0
+  sampleRate: number
 ): Float32Array {
   let buffer = generateNoise(noise.color, noise.dur, sampleRate);
 
@@ -252,8 +246,7 @@ function renderNoise(
 function renderGroup(
   group: GroupElement,
   defs: any,
-  sampleRate: number,
-  startOffset: number = 0
+  sampleRate: number
 ): Float32Array {
   const renderedSounds = group.sounds.map(sound =>
     renderSound(sound, defs, sampleRate)
@@ -324,7 +317,7 @@ function renderSequence(
 /**
  * Get duration of a sound element
  */
-function getDuration(sound: ToneElement | NoiseElement | GroupElement): number {
+function getDuration(sound: SPASound): number {
   if (sound.type === 'tone' || sound.type === 'noise') {
     let baseDur = sound.dur;
 
@@ -339,10 +332,15 @@ function getDuration(sound: ToneElement | NoiseElement | GroupElement): number {
     // For groups, find the longest duration
     let maxDur = 0;
     for (const child of sound.sounds) {
-      // Recursively get duration (though groups in sequences might be complex)
-      if (child.type === 'tone' || child.type === 'noise') {
-        maxDur = Math.max(maxDur, getDuration(child as ToneElement | NoiseElement));
-      }
+      maxDur = Math.max(maxDur, getDuration(child));
+    }
+    return maxDur;
+  } else if (sound.type === 'sequence') {
+    // For sequences, calculate the total duration
+    let maxDur = 0;
+    for (const element of sound.elements) {
+      const endTime = element.at + getDuration(element.sound);
+      maxDur = Math.max(maxDur, endTime);
     }
     return maxDur;
   }
@@ -515,11 +513,11 @@ function createAudioBuffer(
     length,
     sampleRate,
     duration: length / sampleRate,
-    getChannelData: (channel: number) => new Float32Array(length),
-    copyToChannel: (source: Float32Array, channel: number) => {
+    getChannelData: (_channel: number) => new Float32Array(length),
+    copyToChannel: (_source: Float32Array, _channel: number) => {
       // No-op in Node.js
     },
-    copyFromChannel: (destination: Float32Array, channel: number) => {
+    copyFromChannel: (_destination: Float32Array, _channel: number) => {
       // No-op in Node.js
     }
   } as AudioBuffer;
@@ -560,8 +558,10 @@ function finalizeMixedAudio(
   const audioBuffer = createAudioBuffer(channels, mixedMono.length, sampleRate);
 
   // Copy to channels (mono to stereo)
+  // Create a new Float32Array to ensure proper ArrayBuffer type compatibility
+  const channelData = new Float32Array(mixedMono);
   for (let channel = 0; channel < channels; channel++) {
-    audioBuffer.copyToChannel(mixedMono, channel);
+    audioBuffer.copyToChannel(channelData, channel);
   }
 
   return audioBuffer;

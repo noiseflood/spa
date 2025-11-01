@@ -11,9 +11,7 @@ import type {
   ADSREnvelope,
   AutomationCurve,
   FilterConfig,
-  WaveformType,
-  NoiseColor,
-  FilterType
+  NoiseColor
 } from '@spa-audio/types';
 
 export interface EngineOptions {
@@ -194,9 +192,10 @@ export class SPAAudioEngine {
       this.applyEnvelope(gainNode.gain, envelope, startTime, tone.dur);
     } else {
       // Simple fade in/out if no envelope
+      const ampValue = typeof tone.amp === 'number' ? tone.amp : 1;
       gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(tone.amp || 1, startTime + 0.01);
-      gainNode.gain.setValueAtTime(tone.amp || 1, startTime + tone.dur - 0.01);
+      gainNode.gain.linearRampToValueAtTime(ampValue, startTime + 0.01);
+      gainNode.gain.setValueAtTime(ampValue, startTime + tone.dur - 0.01);
       gainNode.gain.linearRampToValueAtTime(0, startTime + tone.dur);
     }
 
@@ -270,9 +269,10 @@ export class SPAAudioEngine {
     if (envelope) {
       this.applyEnvelope(gainNode.gain, envelope, startTime, noise.dur);
     } else {
+      const ampValue = typeof noise.amp === 'number' ? noise.amp : 1;
       gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(noise.amp || 1, startTime + 0.01);
-      gainNode.gain.setValueAtTime(noise.amp || 1, startTime + noise.dur - 0.01);
+      gainNode.gain.linearRampToValueAtTime(ampValue, startTime + 0.01);
+      gainNode.gain.setValueAtTime(ampValue, startTime + noise.dur - 0.01);
       gainNode.gain.linearRampToValueAtTime(0, startTime + noise.dur);
     }
 
@@ -294,7 +294,9 @@ export class SPAAudioEngine {
     // Apply panning
     if (noise.pan !== undefined) {
       const panNode = this.context.createStereoPanner();
-      panNode.pan.value = noise.pan;
+      if (typeof noise.pan === 'number') {
+        panNode.pan.value = noise.pan;
+      }
       lastNode.connect(panNode);
       lastNode = panNode;
     }
