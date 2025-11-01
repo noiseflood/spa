@@ -5,9 +5,10 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
-interface Message {
+export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  isLoading?: boolean;
 }
 
 const TOOLS: Anthropic.Tool[] = [
@@ -86,9 +87,10 @@ export async function sendChatMessages(
   onEditorUpdate?: EditorUpdateCallback,
   currentSPA?: string
 ): Promise<Message[]> {
-  // Filter out the initial welcome message if it's still there
+  // Filter out the initial welcome message and loading messages
   const conversationMessages = messages.filter(
     (msg) =>
+      !msg.isLoading &&
       !(
         msg.role === 'assistant' &&
         msg.content.includes('👋 Welcome to the SPA Sound Editor!')
