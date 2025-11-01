@@ -807,15 +807,20 @@ export default function Editor() {
         setActiveEditorTab('editor');
         // Log for debugging
         console.log('AI updated editor:', explanation);
-        return true; // Success
+        return { success: true };
       } else {
         // Empty XML
         console.warn('AI generated empty SPA XML');
-        return false;
+        return { success: false, error: 'The generated SPA XML contains no sound elements.' };
       }
     } catch (error) {
       console.error('Failed to update editor from AI:', error);
-      return false; // Failure
+      console.error('Invalid XML received:', xml);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: errorMessage,
+      };
     }
   };
 
@@ -1053,6 +1058,7 @@ export default function Editor() {
           onLoadPreset={loadPreset}
           playSoundEffect={playSoundEffect}
           onEditorUpdate={handleAIEditorUpdate}
+          currentSPA={xmlOutput}
         />
 
         {/* Main Content: Synth-style Layout */}
