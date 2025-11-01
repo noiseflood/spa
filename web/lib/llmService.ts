@@ -106,6 +106,8 @@ export async function sendChatMessages(
     const client = new Anthropic({
       apiKey,
       dangerouslyAllowBrowser: true,
+      timeout: 60 * 1000 * 2, // 120 seconds (default is 10 minutes)
+
     });
 
     // Load the system prompt at runtime
@@ -119,11 +121,17 @@ export async function sendChatMessages(
     // First API call
     let response = await client.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 2048,
+      max_tokens: 64000,
       system: systemPrompt,
       messages: anthropicMessages,
       tools: TOOLS,
     });
+
+    // Log the entire response
+    console.log('=== FULL API RESPONSE ===');
+    console.log(JSON.stringify(response, null, 2));
+    console.log('=== RESPONSE CONTENT ===');
+    console.log(JSON.stringify(response.content, null, 2));
 
     const MAX_RETRIES = 3;
     let attempt = 0;
@@ -134,6 +142,9 @@ export async function sendChatMessages(
       const toolUseBlock = response.content.find(
         (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
       );
+
+      console.log('=== TOOL USE BLOCK ===');
+      console.log(JSON.stringify(toolUseBlock, null, 2));
 
       if (!toolUseBlock || !onEditorUpdate) {
         // No tool use - extract text response
@@ -157,12 +168,17 @@ export async function sendChatMessages(
       const toolInput = toolUseBlock.input as { xml?: string; explanation?: string };
 
       // Debug logging
-      console.log('Tool use block:', toolUseBlock);
-      console.log('Tool input:', toolInput);
+      console.log('=== TOOL INPUT ===');
+      console.log('Type of input:', typeof toolUseBlock.input);
+      console.log('Input keys:', Object.keys(toolUseBlock.input || {}));
       console.log('XML value:', toolInput.xml);
+      console.log('XML length:', toolInput.xml?.length);
       console.log('Explanation value:', toolInput.explanation);
 
       const result = onEditorUpdate(toolInput.xml || '', toolInput.explanation || '');
+
+      console.log('=== TOOL EXECUTION RESULT ===');
+      console.log(JSON.stringify(result, null, 2));
 
       // Build tool result messages
       const toolResultMessages: Anthropic.MessageParam[] = [
@@ -188,7 +204,7 @@ export async function sendChatMessages(
       // Make another request to get Claude's response
       response = await client.messages.create({
         model: 'claude-sonnet-4-5',
-        max_tokens: 2048,
+        max_tokens: 64000,
         system: systemPrompt,
         messages: toolResultMessages,
         tools: TOOLS,
