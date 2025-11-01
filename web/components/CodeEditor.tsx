@@ -14,7 +14,12 @@ interface ParseError {
   message: string;
 }
 
-export default function CodeEditor({ value, onChange, onValidChange, className = '' }: CodeEditorProps) {
+export default function CodeEditor({
+  value,
+  onChange,
+  onValidChange,
+  className = '',
+}: CodeEditorProps) {
   // Protected lines that cannot be edited
   const PROTECTED_HEADER_1 = '<?xml version="1.0" encoding="UTF-8"?>';
   const PROTECTED_HEADER_2 = '<spa xmlns="https://spa.audio/ns" version="1.1">';
@@ -244,15 +249,19 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
 
     // If pasting a full SPA document, extract just the content
     let contentToPaste = pastedText;
-    if (pastedText.includes('<?xml') && pastedText.includes('<spa') && pastedText.includes('</spa>')) {
+    if (
+      pastedText.includes('<?xml') &&
+      pastedText.includes('<spa') &&
+      pastedText.includes('</spa>')
+    ) {
       const pastedLines = pastedText.split('\n');
-      const startIdx = pastedLines.findIndex(line => line.includes('<spa'));
-      const endIdx = pastedLines.findIndex(line => line.includes('</spa>'));
+      const startIdx = pastedLines.findIndex((line) => line.includes('<spa'));
+      const endIdx = pastedLines.findIndex((line) => line.includes('</spa>'));
       if (startIdx !== -1 && endIdx !== -1 && startIdx < endIdx) {
         // Extract content and ensure proper indentation
         contentToPaste = pastedLines
           .slice(startIdx + 1, endIdx)
-          .map(line => {
+          .map((line) => {
             const trimmed = line.trim();
             return trimmed ? '  ' + trimmed : '';
           })
@@ -263,7 +272,7 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
       if (contentToPaste.includes('<') && !contentToPaste.startsWith('  ')) {
         contentToPaste = contentToPaste
           .split('\n')
-          .map(line => {
+          .map((line) => {
             const trimmed = line.trim();
             return trimmed ? '  ' + trimmed : '';
           })
@@ -329,8 +338,8 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
         target: {
           value: newCode,
           selectionStart: start + 2,
-          selectionEnd: start + 2
-        }
+          selectionEnd: start + 2,
+        },
       } as React.ChangeEvent<HTMLTextAreaElement>;
 
       handleCodeChange(syntheticEvent);
@@ -494,7 +503,6 @@ export default function CodeEditor({ value, onChange, onValidChange, className =
                 className={`leading-6 flex items-center justify-end gap-1 ${
                   isProtected ? 'text-gray-500' : 'text-gray-600'
                 } ${getLineStyle(lineNum)}`}
-                style={{ paddingRight: getLineStyle(lineNum) ? '6px' : '0' }}
               >
                 {isProtected && (
                   <span className="text-gray-500" title="Protected line">

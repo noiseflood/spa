@@ -457,8 +457,8 @@ export default function UnifiedSidebar({
                               isPresetFocused
                                 ? 'ring-2 ring-green ring-offset-2 ring-offset-navy bg-navy-light/20 text-white'
                                 : isActive
-                                ? 'bg-green/20 text-green border-l-2 border-green font-medium'
-                                : 'text-gray-300'
+                                  ? 'bg-green/20 text-green border-l-2 border-green font-medium'
+                                  : 'text-gray-300'
                             }`}
                           >
                             <span className="flex items-center gap-1">
@@ -479,9 +479,9 @@ export default function UnifiedSidebar({
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             {chatMessages.map((msg, index) => (
               <div
                 key={index}
@@ -500,7 +500,7 @@ export default function UnifiedSidebar({
 
           {/* Suggested Prompts (only show if no user messages yet) */}
           {chatMessages.filter((m) => m.role === 'user').length === 0 && (
-            <div className="px-4 pb-2">
+            <div className="px-4 pb-2 flex-shrink-0">
               <p className="text-xs text-gray-500 mb-2">Try one of these:</p>
               <div className="flex flex-wrap gap-2">
                 {suggestedPrompts.map((prompt, index) => (
@@ -521,7 +521,7 @@ export default function UnifiedSidebar({
           )}
 
           {/* Input Area */}
-          <div className="p-4 border-t border-navy-light/20">
+          <div className="p-4 border-t border-navy-light/20 flex-shrink-0">
             {showApiKeyInput ? (
               <div className="space-y-3">
                 <div className="text-xs text-gray-400 mb-2">
