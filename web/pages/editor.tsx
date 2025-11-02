@@ -2054,7 +2054,9 @@ function ToneParameters({
               ))}
             </div>
           </div>
-          <div className={`flex flex-wrap gap-4 sm:gap-6 w-full ${!filter ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div
+            className={`flex flex-wrap gap-4 sm:gap-6 w-full ${!filter ? 'opacity-40 pointer-events-none' : ''}`}
+          >
             <Knob
               label="Cutoff"
               value={typeof filter?.cutoff === 'number' ? filter.cutoff : 1000}
@@ -2309,7 +2311,9 @@ function NoiseParameters({
               ))}
             </div>
           </div>
-          <div className={`flex flex-wrap gap-4 sm:gap-6 ${!filter ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div
+            className={`flex flex-wrap gap-4 sm:gap-6 ${!filter ? 'opacity-40 pointer-events-none' : ''}`}
+          >
             <Knob
               label="Cutoff"
               value={typeof filter?.cutoff === 'number' ? filter.cutoff : 1000}
