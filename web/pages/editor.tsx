@@ -19,6 +19,7 @@ import {
 import { useSound } from '../contexts/SoundContext';
 import UnifiedSidebar from '../components/UnifiedSidebar';
 import CodeEditor from '../components/CodeEditor';
+import Waveform from '../components/Waveform';
 import { EditorUpdateCallback } from '../lib/llmService';
 
 // Editor-specific types for UI state with support for nested structures
@@ -99,6 +100,9 @@ export default function Editor() {
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [activeEditorTab, setActiveEditorTab] = useState<'editor' | 'code'>('editor');
   const [hasCodeError, setHasCodeError] = useState(false);
+  const [playerExpanded, setPlayerExpanded] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'presets' | 'ai' | 'editor'>('editor');
+  const [showMobileLayerDrawer, setShowMobileLayerDrawer] = useState(false);
   const [presetCategories, setPresetCategories] = useState<Record<string, Record<string, string>>>(
     {}
   );
@@ -1187,165 +1191,130 @@ export default function Editor() {
         <title>SPA Sound Editor</title>
       </Head>
 
-      {/* Main Content */}
-      <div className="flex h-screen">
-        <UnifiedSidebar
-          presetCategories={presetCategories}
-          onLoadPreset={loadPreset}
-          playSoundEffect={playSoundEffect}
-          onEditorUpdate={handleAIEditorUpdate}
-          currentSPA={xmlOutput}
-        />
+      {/* Mobile Top Player Bar - Only visible on mobile */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-navy-medium border-b-2 border-navy-light">
+        {playerExpanded ? (
+          // Expanded player with waveform
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-2">
+              <a href="/" className="text-green-bright font-bold text-lg">
+                SPA
+              </a>
+              <button
+                onClick={() => {
+                  playSoundEffect('ui-feedback/button-click');
+                  setPlayerExpanded(false);
+                }}
+                className="p-2 text-white/60 hover:text-white"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="bg-grey rounded h-24 overflow-hidden mb-2 relative">
+              <Waveform
+                layers={allLayers}
+                currentNodeId={currentNodeId}
+                onLayerClick={setCurrentNodeId}
+                height={96}
+              />
+            </div>
+            <button
+              onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+              onClick={() => {
+                playSoundEffect('ui-feedback/button-click');
+                playSound();
+              }}
+              className="w-full py-2 bg-green-bright text-navy-dark rounded hover:bg-green/80 transition-colors font-medium"
+            >
+              {isPlaying ? 'Stop' : 'Play'}
+            </button>
+          </div>
+        ) : (
+          // Collapsed player
+          <div className="flex items-center justify-between p-3">
+            <a href="/" className="text-green-bright font-bold text-lg">
+              SPA
+            </a>
+            <div className="flex items-center gap-3">
+              <button
+                onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                onClick={() => {
+                  playSoundEffect('ui-feedback/button-click');
+                  playSound();
+                }}
+                className="p-2 bg-green-bright text-navy-dark rounded-full hover:bg-green/80 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  {isPlaying ? (
+                    <rect x="6" y="4" width="4" height="16" />
+                  ) : (
+                    <path d="M8 5v14l11-7z" />
+                  )}
+                  {isPlaying && <rect x="14" y="4" width="4" height="16" />}
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  playSoundEffect('ui-feedback/button-click');
+                  setPlayerExpanded(true);
+                }}
+                className="p-2 text-white/60 hover:text-white"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
-        {/* Main Content: Synth-style Layout */}
-        <div className="flex-1 flex overflow-hidden w-full">
+      {/* Main Content */}
+      <div
+        className={`flex h-screen ${playerExpanded ? 'pt-[200px]' : 'pt-[60px]'} lg:pt-0 pb-20 lg:pb-0`}
+      >
+        {/* Sidebar - Show on desktop always, on mobile only when mobileTab is presets or ai */}
+        <div
+          className={`${mobileTab === 'presets' || mobileTab === 'ai' ? 'block' : 'hidden'} lg:block w-full lg:w-auto`}
+        >
+          <UnifiedSidebar
+            presetCategories={presetCategories}
+            onLoadPreset={loadPreset}
+            playSoundEffect={playSoundEffect}
+            onEditorUpdate={handleAIEditorUpdate}
+            currentSPA={xmlOutput}
+            mobileTab={mobileTab}
+          />
+        </div>
+
+        {/* Main Content: Synth-style Layout - Show on desktop always, on mobile only when mobileTab is editor */}
+        <div
+          className={`flex-1 flex overflow-hidden w-full ${mobileTab === 'editor' ? 'block' : 'hidden'} lg:block`}
+        >
           {/* Left: Synth Controls */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-navy">
-            {/* Top Bar: Waveform */}
-            <div className="flex gap-4 select-none">
+          <div className="h-full flex-1 flex flex-col overflow-hidden bg-navy">
+            {/* Top Bar: Waveform - Hidden on mobile since we have mobile player bar */}
+            <div className="hidden lg:flex gap-4 select-none">
               <div className="flex flex-col w-full h-48 bg-grey">
                 <div className="h-36 overflow-hidden relative">
-                  {allLayers.length > 0 ? (
-                    <svg
-                      width="100%"
-                      height="96"
-                      viewBox="0 0 1000 96"
-                      preserveAspectRatio="none"
-                      className="w-full h-full"
-                    >
-                      {(() => {
-                        const maxTime = Math.max(
-                          1,
-                          ...allLayers.map((l) => {
-                            const s = l.sound;
-                            const at = (s as any).at || 0;
-                            const dur = s.type === 'tone' || s.type === 'noise' ? s.dur : 1;
-                            return at + dur;
-                          })
-                        );
-
-                        return allLayers.map((layer) => {
-                          const isActive = layer.id === currentNodeId;
-                          const sound = layer.sound;
-                          const startTime = (sound as any).at || 0;
-                          const duration =
-                            sound.type === 'tone' || sound.type === 'noise' ? sound.dur : 1;
-
-                          const startX = (startTime / maxTime) * 1000;
-                          const endX = ((startTime + duration) / maxTime) * 1000;
-                          const width = endX - startX;
-                          const samples = Math.max(50, Math.floor(width / 5));
-
-                          const points: string[] = [];
-                          const centerY = 48;
-
-                          for (let i = 0; i <= samples; i++) {
-                            const x = startX + (i / samples) * width;
-                            const progress = i / samples;
-                            let y = centerY;
-
-                            let amplitude = 22;
-                            if (sound.type === 'tone' || sound.type === 'noise') {
-                              const envelope = sound.envelope;
-                              const env =
-                                typeof envelope === 'object'
-                                  ? envelope
-                                  : { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 };
-                              const amp = typeof sound.amp === 'number' ? sound.amp : 1;
-
-                              const attackEnd = env.attack / duration;
-                              const decayEnd = (env.attack + env.decay) / duration;
-                              const releaseStart = 1 - env.release / duration;
-
-                              let envValue = 1;
-                              if (progress < attackEnd) {
-                                envValue = progress / attackEnd;
-                              } else if (progress < decayEnd) {
-                                const decayProg = (progress - attackEnd) / (decayEnd - attackEnd);
-                                envValue = 1 - (1 - env.sustain) * decayProg;
-                              } else if (progress < releaseStart) {
-                                envValue = env.sustain;
-                              } else {
-                                const releaseProg = (progress - releaseStart) / (1 - releaseStart);
-                                envValue = env.sustain * (1 - releaseProg);
-                              }
-
-                              amplitude *= envValue * amp;
-                            }
-
-                            if (sound.type === 'tone') {
-                              const tone = sound as ToneElement;
-                              const freq = typeof tone.freq === 'number' ? tone.freq : 440;
-                              const cycles = (freq / 100) * progress * duration;
-
-                              if (tone.wave === 'sine') {
-                                y = centerY + Math.sin(cycles * Math.PI * 2) * amplitude;
-                              } else if (tone.wave === 'square') {
-                                y =
-                                  centerY +
-                                  (Math.sin(cycles * Math.PI * 2) > 0 ? amplitude : -amplitude);
-                              } else if (tone.wave === 'saw') {
-                                y = centerY + ((cycles % 1) * 2 - 1) * amplitude;
-                              } else if (tone.wave === 'triangle') {
-                                const t = (cycles % 1) * 4;
-                                y = centerY + (t < 1 ? t : t < 3 ? 2 - t : t - 4) * amplitude;
-                              }
-                            } else if (sound.type === 'noise') {
-                              y = centerY + (Math.random() * 2 - 1) * amplitude;
-                            }
-
-                            points.push(`${i === 0 ? 'M' : 'L'} ${x} ${y}`);
-                          }
-
-                          const pathData = points.join(' ');
-
-                          return (
-                            <g
-                              key={layer.id}
-                              onClick={() => setCurrentNodeId(layer.id)}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <path
-                                d={pathData}
-                                stroke={isActive ? '#22c55e' : 'rgba(34, 197, 94, 0.4)'}
-                                strokeWidth={isActive ? 2 : 1}
-                                fill="none"
-                                style={{ filter: 'drop-shadow(0 0 3px currentColor)' }}
-                              />
-                            </g>
-                          );
-                        });
-                      })()}
-                      <line
-                        x1="0"
-                        y1="48"
-                        x2="1000"
-                        y2="48"
-                        stroke="rgba(34, 197, 94, 0.1)"
-                        strokeWidth="1"
-                      />
-                      <line
-                        x1="0"
-                        y1="24"
-                        x2="1000"
-                        y2="24"
-                        stroke="rgba(34, 197, 94, 0.05)"
-                        strokeWidth="1"
-                      />
-                      <line
-                        x1="0"
-                        y1="72"
-                        x2="1000"
-                        y2="72"
-                        stroke="rgba(34, 197, 94, 0.05)"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <p className="text-green-500/50 text-xs font-mono">NO SIGNAL</p>
-                    </div>
-                  )}
+                  <Waveform
+                    layers={allLayers}
+                    currentNodeId={currentNodeId}
+                    onLayerClick={setCurrentNodeId}
+                    height={96}
+                  />
                 </div>
                 <div className="m-3">
                   <button
@@ -1383,12 +1352,49 @@ export default function Editor() {
 
             {/* Synth Control Panel */}
             <div className="flex h-full overflow-hidden">
-              <div className="w-80 flex-shrink-0 border-r border-navy-light/20 overflow-y-auto select-none">
+              {/* Mobile Layer Drawer Overlay */}
+              {showMobileLayerDrawer && (
+                <div
+                  className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                  onClick={() => setShowMobileLayerDrawer(false)}
+                />
+              )}
+
+              {/* Layer Selector - Desktop: always visible, Mobile: slide-out drawer */}
+              <div
+                className={`
+                  w-80 flex-shrink-0 border-r border-navy-light/20 overflow-y-auto select-none bg-navy-dark
+                  lg:relative lg:translate-x-0
+                  fixed inset-y-0 left-0 z-50 transition-transform duration-300
+                  ${showMobileLayerDrawer ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                `}
+              >
                 <div className="">
                   <div className="flex items-center justify-between mb-2 sticky top-0 bg-navy-dark z-10 p-2">
-                    <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
-                      Sound Structure
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      {/* Close button - only visible on mobile */}
+                      <button
+                        onClick={() => setShowMobileLayerDrawer(false)}
+                        className="lg:hidden p-1 hover:bg-navy-light/20 rounded transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                      <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
+                        Sound Structure
+                      </h3>
+                    </div>
                     <div className="relative">
                       <button
                         onClick={() => setShowAddMenu(showAddMenu === -1 ? null : -1)}
@@ -1440,6 +1446,22 @@ export default function Editor() {
               <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Tab Header and Action Buttons */}
                 <div className="flex flex-wrap gap-2 items-center border-b border-navy-light/20 select-none p-2">
+                  {/* Mobile Layers Button */}
+                  <button
+                    onClick={() => setShowMobileLayerDrawer(true)}
+                    className="lg:hidden px-3 py-2 text-sm font-medium bg-navy-light hover:bg-navy-light/80 rounded transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
+                    </svg>
+                    Layers
+                  </button>
+
                   <div className="flex">
                     <button
                       onClick={() => {
@@ -1658,6 +1680,75 @@ export default function Editor() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Tab Navigation - Only visible on mobile */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-navy-medium border-t-2 border-navy-light">
+        <div className="flex justify-around items-center">
+          <button
+            onClick={() => {
+              playSoundEffect('ui-feedback/tab-switch');
+              setMobileTab('presets');
+            }}
+            className={`flex-1 py-4 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === 'presets'
+                ? 'text-green-bright border-t-2 border-green-bright'
+                : 'text-white/60 border-t-2 border-transparent'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            <span className="text-xs font-medium">Presets</span>
+          </button>
+          <button
+            onClick={() => {
+              playSoundEffect('ui-feedback/tab-switch');
+              setMobileTab('ai');
+            }}
+            className={`flex-1 py-4 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === 'ai'
+                ? 'text-green-bright border-t-2 border-green-bright'
+                : 'text-white/60 border-t-2 border-transparent'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+              />
+            </svg>
+            <span className="text-xs font-medium">Chat</span>
+          </button>
+          <button
+            onClick={() => {
+              playSoundEffect('ui-feedback/tab-switch');
+              setMobileTab('editor');
+            }}
+            className={`flex-1 py-4 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === 'editor'
+                ? 'text-green-bright border-t-2 border-green-bright'
+                : 'text-white/60 border-t-2 border-transparent'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+              />
+            </svg>
+            <span className="text-xs font-medium">Editor</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

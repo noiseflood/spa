@@ -7,6 +7,7 @@ interface UnifiedSidebarProps {
   playSoundEffect: (sound: string) => void;
   onEditorUpdate?: EditorUpdateCallback;
   currentSPA?: string;
+  mobileTab?: 'presets' | 'ai' | 'editor';
 }
 
 export default function UnifiedSidebar({
@@ -15,8 +16,20 @@ export default function UnifiedSidebar({
   playSoundEffect,
   onEditorUpdate,
   currentSPA,
+  mobileTab,
 }: UnifiedSidebarProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'chat'>('presets');
+
+  // Sync activeTab with mobileTab on mobile
+  useEffect(() => {
+    if (mobileTab) {
+      if (mobileTab === 'presets') {
+        setActiveTab('presets');
+      } else if (mobileTab === 'ai') {
+        setActiveTab('chat');
+      }
+    }
+  }, [mobileTab]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [focusedItem, setFocusedItem] = useState<{
     type: 'category' | 'preset';
@@ -476,15 +489,15 @@ export default function UnifiedSidebar({
   };
 
   return (
-    <div className="w-[450px] bg-navy-medium border-r-2 border-navy-light flex flex-col h-full">
+    <div className="w-full lg:w-[360px] bg-navy-medium lg:border-r-2 border-navy-light flex flex-col h-full">
       <div className="flex justify-between items-center">
-        <div>
-          <a href="/" rel="noopener noreferrer" className="px-4">
+        <div className="lg:block hidden">
+          <a href="/" rel="noopener noreferrer" className="text-green-bright font-bold px-4">
             SPA
           </a>
         </div>
-        {/* Tab Header */}
-        <div className="flex select-none">
+        {/* Tab Header - Hidden on mobile since we have bottom navigation */}
+        <div className="hidden lg:flex select-none">
           <button
             onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
             onClick={() => {

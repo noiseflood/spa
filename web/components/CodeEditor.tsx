@@ -667,7 +667,7 @@ export default function CodeEditor({
           <span className="text-gray-600">|</span>
           <span className="text-gray-500">XML</span>
         </div>
-        <div className="flex items-center gap-2 text-gray-500">
+        <div className="items-center gap-2 text-gray-500 hidden xl:flex">
           <span>Ctrl+Z: Undo</span>
           <span>|</span>
           <span>Ctrl+Enter: Format</span>
