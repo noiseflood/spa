@@ -513,14 +513,14 @@ export default function CodeEditor({
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-auto bg-grey font-mono text-sm">
-        <div className="flex min-h-full pb-10">
-          {/* Line Numbers */}
-          <div
-            ref={lineNumbersRef}
-            className="select-none px-3 py-3 text-right border-r border-navy-light/20"
-            style={{ minWidth: '4.5rem' }}
-          >
+      <div className="flex-1 flex overflow-hidden bg-grey font-mono text-sm">
+        {/* Line Numbers */}
+        <div
+          ref={lineNumbersRef}
+          className="select-none px-3 py-3 text-right border-r border-navy-light/20 overflow-y-auto"
+          style={{ minWidth: '4.5rem' }}
+        >
+          <div className="pb-10">
             {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNum) => {
               const isProtected = isProtectedLine(lineNum);
               return (
@@ -540,11 +540,14 @@ export default function CodeEditor({
               );
             })}
           </div>
+        </div>
 
-          {/* Code Area */}
-          <div className="flex-1 relative">
+        {/* Code Area */}
+        <div className="flex-1 relative overflow-auto">
+          <div className="relative pb-10">
             {/* Textarea - transparent text but fully functional for selection */}
             <textarea
+              id="code-editor"
               ref={textareaRef}
               value={code}
               onChange={handleCodeChange}
@@ -566,6 +569,7 @@ export default function CodeEditor({
                 zIndex: 1,
                 WebkitTextFillColor: 'transparent',
                 height: `${(lineCount + 1) * 24}px`,
+                overflow: 'hidden',
               }}
               placeholder=""
             />

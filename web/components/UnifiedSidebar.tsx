@@ -29,13 +29,7 @@ export default function UnifiedSidebar({
   } | null>(null);
   const presetsContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedCategory = useRef(false);
-  const [chatMessages, setChatMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        '👋 Welcome to the SPA Sound Editor!\n\n💡 New here? Start with the **Presets** tab above to explore ready-made sounds and learn how the editor works.\n\nI can help you:\n• Create custom sound effects\n• Modify existing presets\n• Understand how different parameters affect sounds\n• Build complex layered compositions\n\nJust describe the sound you want to create!',
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
