@@ -1102,7 +1102,7 @@ export default function Editor() {
                     style={{ marginLeft: !isRoot ? '0' : '0' }}
                   >
                     <span
-                      className="absolute block w-[10px] h-[10px] rounded-full bg-white border-2 border-gray-600 z-10"
+                      className="absolute block w-[10px] h-[10px] rounded-full bg-white border-2 border-gray-600"
                       style={{
                         top: 'calc(1.5rem / 2 - 5px)',
                         left: !isRoot ? 'calc(1.5rem - 5px - 1px)' : '-12px',
@@ -1384,8 +1384,8 @@ export default function Editor() {
             {/* Synth Control Panel */}
             <div className="flex h-full overflow-hidden">
               <div className="w-80 flex-shrink-0 border-r border-navy-light/20 overflow-y-auto select-none">
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="">
+                  <div className="flex items-center justify-between mb-2 sticky top-0 bg-navy-dark z-10 p-2">
                     <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
                       Sound Structure
                     </h3>
@@ -1427,7 +1427,7 @@ export default function Editor() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="p-4">
                     {rootNodes.length === 0 ? (
                       <p className="text-gray-500 text-xs">No layers</p>
                     ) : (
@@ -1439,7 +1439,7 @@ export default function Editor() {
 
               <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Tab Header and Action Buttons */}
-                <div className="flex justify-between items-center border-b border-navy-light/20 select-none">
+                <div className="flex flex-wrap gap-2 items-center border-b border-navy-light/20 select-none p-2">
                   <div className="flex">
                     <button
                       onClick={() => {
@@ -1475,10 +1475,10 @@ export default function Editor() {
                       Code {hasCodeError && <span className="text-red-400">●</span>}
                     </button>
                   </div>
-                  <div className="flex gap-2 px-4">
+                  <div className="flex flex-wrap gap-2 ml-auto">
                     <button
                       onClick={() => setShowImportModal(true)}
-                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors whitespace-nowrap"
                     >
                       Import
                     </button>
@@ -1492,7 +1492,7 @@ export default function Editor() {
                         a.click();
                         URL.revokeObjectURL(url);
                       }}
-                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors whitespace-nowrap"
                     >
                       Export
                     </button>
@@ -1500,13 +1500,13 @@ export default function Editor() {
                       onClick={() => {
                         navigator.clipboard.writeText(xmlOutput);
                       }}
-                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors"
+                      className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors whitespace-nowrap"
                     >
                       Copy SPA
                     </button>
                     <button
                       onClick={() => setShowResetModal(true)}
-                      className="px-3 py-1.5 text-xs bg-navy border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                      className="px-3 py-1.5 text-xs bg-navy border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded transition-colors whitespace-nowrap"
                     >
                       Reset
                     </button>
@@ -1850,9 +1850,9 @@ function ToneParameters({
   const repeat = typeof tone.repeat === 'number' ? tone.repeat : 1;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Top Row: Oscillator + Filter */}
-      <div className="flex gap-12 mb-8 pb-8 border-b border-navy-light/20">
+      <div className="flex flex-wrap gap-6 lg:gap-12 mb-8 pb-8 border-b border-navy-light/20">
         {/* Oscillator */}
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
@@ -1913,7 +1913,7 @@ function ToneParameters({
           </div>
 
           {!isFreqModulated ? (
-            <div className="flex gap-6 w-full">
+            <div className="flex flex-wrap gap-4 sm:gap-6 w-full">
               <Knob
                 label="Freq"
                 value={freq}
@@ -1948,7 +1948,7 @@ function ToneParameters({
             </div>
           ) : (
             <>
-              <div className="flex gap-2 mb-2">
+              <div className="flex flex-wrap gap-2 mb-2">
                 {['linear', 'exp', 'log', 'smooth', 'step'].map((curve) => (
                   <button
                     key={curve}
@@ -1967,7 +1967,7 @@ function ToneParameters({
                   </button>
                 ))}
               </div>
-              <div className="flex gap-6 w-full">
+              <div className="flex flex-wrap gap-4 sm:gap-6 w-full">
                 <Knob
                   label="F.Start"
                   value={freqMod.start}
@@ -2054,7 +2054,7 @@ function ToneParameters({
               ))}
             </div>
           </div>
-          <div className={`flex gap-6 w-full ${!filter ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className={`flex flex-wrap gap-4 sm:gap-6 w-full ${!filter ? 'opacity-40 pointer-events-none' : ''}`}>
             <Knob
               label="Cutoff"
               value={typeof filter?.cutoff === 'number' ? filter.cutoff : 1000}
@@ -2087,13 +2087,13 @@ function ToneParameters({
       </div>
 
       {/* Bottom Row: Envelope + Repeat */}
-      <div className="flex gap-12">
+      <div className="flex flex-wrap gap-6 lg:gap-12">
         {/* Envelope */}
         <div>
           <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
             Envelope
           </h3>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-4 sm:gap-6">
             <Slider
               label="Attack"
               value={env.attack}
@@ -2149,7 +2149,7 @@ function ToneParameters({
           <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
             Repeat
           </h3>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             <Knob
               label="Count"
               value={repeat}
@@ -2225,11 +2225,11 @@ function NoiseParameters({
   const repeat = typeof noise.repeat === 'number' ? noise.repeat : 1;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Top Row: Noise Generator + Filter */}
-      <div className="flex gap-12 mb-8 pb-8 border-b border-navy-light/20">
+      <div className="flex flex-wrap gap-6 lg:gap-12 mb-8 pb-8 border-b border-navy-light/20">
         {/* Noise Generator */}
-        <div className="flex gap-6 items-end">
+        <div className="flex flex-wrap gap-4 sm:gap-6 items-end">
           <div className="flex flex-col gap-1">
             <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-2">
               Noise Generator
@@ -2276,12 +2276,12 @@ function NoiseParameters({
         </div>
 
         {/* Filter */}
-        <div className="flex gap-6 items-end">
+        <div className="flex flex-wrap gap-4 sm:gap-6 items-end">
           <div className="flex flex-col gap-1">
             <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-2">
               Filter
             </h3>
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {['none', 'lowpass', 'highpass', 'bandpass'].map((type) => (
                 <button
                   key={type}
@@ -2309,7 +2309,7 @@ function NoiseParameters({
               ))}
             </div>
           </div>
-          <div className={`flex gap-6 ${!filter ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className={`flex flex-wrap gap-4 sm:gap-6 ${!filter ? 'opacity-40 pointer-events-none' : ''}`}>
             <Knob
               label="Cutoff"
               value={typeof filter?.cutoff === 'number' ? filter.cutoff : 1000}
@@ -2342,13 +2342,13 @@ function NoiseParameters({
       </div>
 
       {/* Bottom Row: Envelope + Repeat */}
-      <div className="flex gap-12">
+      <div className="flex flex-wrap gap-6 lg:gap-12">
         {/* Envelope */}
         <div>
           <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
             Envelope
           </h3>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-4 sm:gap-6">
             <Slider
               label="Attack"
               value={env.attack}
@@ -2404,7 +2404,7 @@ function NoiseParameters({
           <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
             Repeat
           </h3>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             <Knob
               label="Count"
               value={repeat}

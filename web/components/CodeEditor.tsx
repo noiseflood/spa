@@ -87,6 +87,7 @@ export default function CodeEditor({
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const codeAreaRef = useRef<HTMLDivElement>(null);
 
   // Update code when value prop changes (from external source)
   useEffect(() => {
@@ -102,6 +103,21 @@ export default function CodeEditor({
   const lineCount = useMemo(() => {
     return code.split('\n').length;
   }, [code]);
+
+  // Sync scroll between line numbers and code area
+  useEffect(() => {
+    const codeArea = codeAreaRef.current;
+    const lineNumbers = lineNumbersRef.current;
+
+    if (!codeArea || !lineNumbers) return;
+
+    const handleScroll = () => {
+      lineNumbers.scrollTop = codeArea.scrollTop;
+    };
+
+    codeArea.addEventListener('scroll', handleScroll);
+    return () => codeArea.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Validate and parse the XML
   const validateCode = (newCode: string) => {
@@ -517,7 +533,7 @@ export default function CodeEditor({
         {/* Line Numbers */}
         <div
           ref={lineNumbersRef}
-          className="select-none px-3 py-3 text-right border-r border-navy-light/20 overflow-y-auto"
+          className="select-none px-3 py-3 text-right border-r border-navy-light/20 overflow-hidden"
           style={{ minWidth: '4.5rem' }}
         >
           <div className="pb-10">
@@ -543,8 +559,8 @@ export default function CodeEditor({
         </div>
 
         {/* Code Area */}
-        <div className="flex-1 relative overflow-auto">
-          <div className="relative pb-10">
+        <div ref={codeAreaRef} className="flex-1 relative overflow-auto">
+          <div className="relative pb-10 w-full">
             {/* Textarea - transparent text but fully functional for selection */}
             <textarea
               id="code-editor"
@@ -556,7 +572,7 @@ export default function CodeEditor({
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              className="absolute w-full p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none"
+              className="absolute p-3 bg-transparent font-mono text-sm leading-6 resize-none focus:outline-none"
               style={{
                 tabSize: 2,
                 fontFamily: "'Roboto Mono', monospace",
@@ -570,13 +586,15 @@ export default function CodeEditor({
                 WebkitTextFillColor: 'transparent',
                 height: `${(lineCount + 1) * 24}px`,
                 overflow: 'hidden',
+                minWidth: '100%',
+                width: 'fit-content',
               }}
               placeholder=""
             />
 
             {/* Text display layer */}
             <div
-              className="absolute inset-0 p-3 pointer-events-none font-mono text-sm leading-6"
+              className="absolute p-3 pointer-events-none font-mono text-sm leading-6"
               style={{
                 tabSize: 2,
                 fontFamily: "'Roboto Mono', monospace",
@@ -586,6 +604,8 @@ export default function CodeEditor({
                 wordBreak: 'normal',
                 zIndex: 2,
                 minHeight: `${(lineCount + 1) * 24}px`,
+                minWidth: '100%',
+                width: 'fit-content',
               }}
             >
               {code.split('\n').map((line, lineIndex) => {
