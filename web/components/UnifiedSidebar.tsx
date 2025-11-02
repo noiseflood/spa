@@ -109,10 +109,14 @@ export default function UnifiedSidebar({
     const textarea = chatInputRef.current;
     if (!textarea) return;
 
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
-    // Set height based on scrollHeight, with a max of ~5 lines (120px)
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    // Reset height to get accurate scrollHeight
+    textarea.style.height = '20px'; // Single line height without padding
+
+    // Calculate height: scrollHeight accounts for content + padding
+    // Min: 44px (20px line-height + 24px padding for single line)
+    // Max: 120px (allows ~5 lines)
+    const newHeight = Math.max(44, Math.min(textarea.scrollHeight, 120));
+    textarea.style.height = `${newHeight}px`;
   }, [inputValue]);
 
   // Load active tab from localStorage on mount
@@ -617,7 +621,7 @@ export default function UnifiedSidebar({
                                 setExpandedCategory(category);
                               }
                             }}
-                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between ${
+                            className={`w-full text-left px-3 py-3 lg:py-1.5 text-xs hover:bg-navy-light/20 hover:text-white rounded transition-colors truncate group flex items-center justify-between ${
                               isPresetFocused
                                 ? 'ring-2 ring-green ring-offset-2 ring-offset-navy bg-navy-light/20 text-white'
                                 : isActive
@@ -747,7 +751,6 @@ export default function UnifiedSidebar({
                       }}
                       placeholder="Ask about sounds or describe what you want..."
                       className="w-full p-3 bg-transparent text-white rounded-lg focus:outline-none text-sm resize-none overflow-y-auto"
-                      style={{ minHeight: '44px', maxHeight: '120px' }}
                       disabled={isGenerating}
                     />
                     <div className="p-3 flex justify-between items-center gap-2">

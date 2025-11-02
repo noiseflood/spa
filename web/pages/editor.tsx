@@ -1283,7 +1283,7 @@ export default function Editor() {
 
       {/* Main Content */}
       <div
-        className={`flex h-screen ${playerExpanded ? 'pt-[200px]' : 'pt-[60px]'} lg:pt-0 pb-20 lg:pb-0`}
+        className={`flex h-screen ${playerExpanded ? 'pt-[210px]' : 'pt-[60px]'} lg:pt-0 pb-20 lg:pb-0`}
       >
         {/* Sidebar - Show on desktop always, on mobile only when mobileTab is presets or ai */}
         <div
@@ -1695,7 +1695,7 @@ export default function Editor() {
                 : 'text-white/60 border-t-2 border-transparent'
             }`}
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1716,7 +1716,7 @@ export default function Editor() {
                 : 'text-white/60 border-t-2 border-transparent'
             }`}
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1737,7 +1737,7 @@ export default function Editor() {
                 : 'text-white/60 border-t-2 border-transparent'
             }`}
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1946,7 +1946,7 @@ function ToneParameters({
       <div className="flex flex-wrap gap-6 lg:gap-12 mb-8 pb-8 border-b border-navy-light/20">
         {/* Oscillator */}
         <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-start gap-1">
             <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-2">
               Oscillator
             </h3>
@@ -1979,28 +1979,28 @@ function ToneParameters({
                   </svg>
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  if (isFreqModulated) {
+                    // Switch to simple freq
+                    updateLayerSound(layer.id, { freq: freqMod.start } as Partial<ToneElement>);
+                  } else {
+                    // Switch to freq modulation
+                    updateLayerSound(layer.id, {
+                      freq: { start: freq, end: freq * 2, curve: 'linear' },
+                    } as Partial<ToneElement>);
+                  }
+                }}
+                className={`ml-2 px-2 py-1 text-xs rounded transition-all ${
+                  isFreqModulated
+                    ? 'bg-green text-white'
+                    : 'bg-gray-800 border border-gray-700 text-gray-400 hover:border-navy-light/50'
+                }`}
+                title="Toggle frequency modulation"
+              >
+                {isFreqModulated ? '↗' : '→'}
+              </button>
             </div>
-            <button
-              onClick={() => {
-                if (isFreqModulated) {
-                  // Switch to simple freq
-                  updateLayerSound(layer.id, { freq: freqMod.start } as Partial<ToneElement>);
-                } else {
-                  // Switch to freq modulation
-                  updateLayerSound(layer.id, {
-                    freq: { start: freq, end: freq * 2, curve: 'linear' },
-                  } as Partial<ToneElement>);
-                }
-              }}
-              className={`ml-2 px-2 py-1 text-xs rounded transition-all ${
-                isFreqModulated
-                  ? 'bg-green text-white'
-                  : 'bg-gray-800 border border-gray-700 text-gray-400 hover:border-navy-light/50'
-              }`}
-              title="Toggle frequency modulation"
-            >
-              {isFreqModulated ? '↗' : '→'}
-            </button>
           </div>
 
           {!isFreqModulated ? (
@@ -2113,7 +2113,7 @@ function ToneParameters({
 
         {/* Filter */}
         <div className="flex flex-col gap-6 items-end">
-          <div className="flex gap-3 items-center">
+          <div className="flex flex-col gap-1 items-start">
             <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-2">
               Filter
             </h3>
