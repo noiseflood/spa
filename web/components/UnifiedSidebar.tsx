@@ -90,10 +90,7 @@ export default function UnifiedSidebar({
     setChatMessages((prevMessages) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
       if (lastMessage?.isLoading) {
-        return [
-          ...prevMessages.slice(0, -1),
-          { ...lastMessage, content: `${loadingText}${dots}` },
-        ];
+        return [...prevMessages.slice(0, -1), { ...lastMessage, content: `${loadingText}${dots}` }];
       }
       return prevMessages;
     });
@@ -395,11 +392,20 @@ export default function UnifiedSidebar({
       setDotCount(1); // Reset dot animation
 
       // Add loading message
-      const loadingMessage = { role: 'assistant' as const, content: `${loadingText}.`, isLoading: true };
+      const loadingMessage = {
+        role: 'assistant' as const,
+        content: `${loadingText}.`,
+        isLoading: true,
+      };
       setChatMessages([...updatedMessages, loadingMessage]);
 
       try {
-        const responseMessages = await sendChatMessages(updatedMessages, apiKey, onEditorUpdate, currentSPA);
+        const responseMessages = await sendChatMessages(
+          updatedMessages,
+          apiKey,
+          onEditorUpdate,
+          currentSPA
+        );
         setChatMessages(responseMessages);
       } catch (error) {
         console.error('Error sending message:', error);
@@ -460,36 +466,43 @@ export default function UnifiedSidebar({
 
   return (
     <div className="w-[450px] bg-navy-medium border-r-2 border-navy-light flex flex-col h-full">
-      {/* Tab Header */}
-      <div className="flex border-b border-navy-light/20">
-        <button
-          onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-          onClick={() => {
-            playSoundEffect('ui-feedback/tab-switch');
-            setActiveTab('presets');
-          }}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'presets'
-              ? 'bg-navy-dark text-white border-b-2 border-green'
-              : 'border-transparent text-gray-400 hover:text-white hover:bg-navy-dark/50'
-          }`}
-        >
-          🎵 Presets
-        </button>
-        <button
-          onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-          onClick={() => {
-            playSoundEffect('ui-feedback/tab-switch');
-            setActiveTab('chat');
-          }}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'chat'
-              ? 'bg-navy-dark text-white border-b-2 border-green'
-              : 'border-transparent text-gray-400 hover:text-white hover:bg-navy-dark/50'
-          }`}
-        >
-          💬 AI Assistant
-        </button>
+      <div className="flex justify-between items-center">
+        <div>
+          <a href="/" rel="noopener noreferrer" className="px-4">
+            SPA
+          </a>
+        </div>
+        {/* Tab Header */}
+        <div className="flex select-none">
+          <button
+            onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+            onClick={() => {
+              playSoundEffect('ui-feedback/tab-switch');
+              setActiveTab('presets');
+            }}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'presets'
+                ? 'text-white border-green'
+                : 'text-gray-400 hover:text-white border-transparent'
+            }`}
+          >
+            Presets
+          </button>
+          <button
+            onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+            onClick={() => {
+              playSoundEffect('ui-feedback/tab-switch');
+              setActiveTab('chat');
+            }}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'chat'
+                ? 'text-white border-green'
+                : 'text-gray-400 hover:text-white border-transparent'
+            }`}
+          >
+            AI Assistant
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -508,7 +521,7 @@ export default function UnifiedSidebar({
               const isFocused =
                 focusedItem?.type === 'category' && focusedItem.category === category;
               return (
-                <div key={category} className="mb-3">
+                <div key={category} className="mb-3 select-none">
                   <button
                     data-focused={isFocused}
                     onMouseEnter={() => {
@@ -628,8 +641,7 @@ export default function UnifiedSidebar({
           {/* Suggested Prompts (only show if no user messages yet) */}
           {chatMessages.filter((m) => m.role === 'user').length === 0 && (
             <div className="px-4 pb-2 flex-shrink-0">
-              <p className="text-xs text-gray-500 mb-2">Try one of these:</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {suggestedPrompts.map((prompt, index) => (
                   <button
                     key={index}
@@ -695,9 +707,10 @@ export default function UnifiedSidebar({
               </div>
             ) : (
               <>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
+                <div className="flex flex-col gap-4 mb-2 px-3 py-2 bg-navy-dark border-2 border-navy-light/20 rounded">
+                  <textarea
+                    id="chat-input"
+                    rows={2}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -707,23 +720,25 @@ export default function UnifiedSidebar({
                       }
                     }}
                     placeholder="Ask about sounds or describe what you want..."
-                    className="flex-1 px-3 py-2 bg-navy-dark text-white rounded border border-navy-light/20 focus:outline-none focus:border-green text-sm"
+                    className="w-full py-3 bg-transparent flex-1 text-white rounded focus:outline-none focus:border-green text-sm"
                   />
-                  <button
-                    onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
-                    onClick={() => {
-                      playSoundEffect('ui-feedback/button-click');
-                      handleSendMessage();
-                    }}
-                    className="px-4 py-2 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-sm"
-                  >
-                    Send
-                  </button>
+                  <div className="w-full flex justify-between items-center">
+                    <div></div>
+                    <div>
+                      <button
+                        onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
+                        onClick={() => {
+                          playSoundEffect('ui-feedback/button-click');
+                          handleSendMessage();
+                        }}
+                        className="px-2 py-1 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-xs uppercase"
+                      >
+                        Send
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-gray-500">
-                    Tip: Check the Presets tab for examples and inspiration!
-                  </p>
                   <div className="flex gap-3">
                     <button
                       onClick={handleClearChat}

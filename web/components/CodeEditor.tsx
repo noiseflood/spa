@@ -477,7 +477,7 @@ export default function CodeEditor({
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between p-2 bg-navy-dark border-b border-navy-light/20">
+      <div className="flex items-center justify-between p-2 bg-navy-dark border-b border-navy-light/20 select-none">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">
             {error ? (

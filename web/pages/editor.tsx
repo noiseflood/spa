@@ -99,7 +99,9 @@ export default function Editor() {
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [activeEditorTab, setActiveEditorTab] = useState<'editor' | 'code'>('editor');
   const [hasCodeError, setHasCodeError] = useState(false);
-  const [presetCategories, setPresetCategories] = useState<Record<string, Record<string, string>>>({});
+  const [presetCategories, setPresetCategories] = useState<Record<string, Record<string, string>>>(
+    {}
+  );
   const audioContextRef = useRef<AudioContext | null>(null);
   const nodeIdCounterRef = useRef(1); // Start at 1 since we have node 0
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +110,7 @@ export default function Editor() {
 
   // Initialize preset categories on mount
   useEffect(() => {
-    initializePresets().then(categories => {
+    initializePresets().then((categories) => {
       setPresetCategories(categories);
     });
   }, []);
@@ -1200,7 +1202,7 @@ export default function Editor() {
           {/* Left: Synth Controls */}
           <div className="flex-1 flex flex-col overflow-hidden bg-navy">
             {/* Top Bar: Waveform */}
-            <div className="flex gap-4">
+            <div className="flex gap-4 select-none">
               <div className="flex flex-col w-full h-48 bg-grey">
                 <div className="h-36 overflow-hidden relative">
                   {allLayers.length > 0 ? (
@@ -1381,7 +1383,7 @@ export default function Editor() {
 
             {/* Synth Control Panel */}
             <div className="flex h-full overflow-hidden">
-              <div className="w-80 flex-shrink-0 border-r border-navy-light/20 overflow-y-auto">
+              <div className="w-80 flex-shrink-0 border-r border-navy-light/20 overflow-y-auto select-none">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-navy-light font-semibold text-xs uppercase tracking-wider">
@@ -1437,7 +1439,7 @@ export default function Editor() {
 
               <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Tab Header and Action Buttons */}
-                <div className="flex justify-between items-center border-b border-navy-light/20">
+                <div className="flex justify-between items-center border-b border-navy-light/20 select-none">
                   <div className="flex">
                     <button
                       onClick={() => {
@@ -1513,7 +1515,7 @@ export default function Editor() {
 
                 {/* Tab Content */}
                 {activeEditorTab === 'editor' ? (
-                  <div className="flex-1 overflow-y-auto p-4 pb-24">
+                  <div className="flex-1 overflow-y-auto p-4 pb-24 select-none">
                     {currentLayer ? (
                       <div className="max-w-6xl">
                         {currentLayer.sound.type === 'tone' ? (
@@ -1631,9 +1633,7 @@ export default function Editor() {
             </div>
 
             <div className="p-6 space-y-4">
-              <p className="text-white">
-                Are you sure you want to reset the editor? This will:
-              </p>
+              <p className="text-white">Are you sure you want to reset the editor? This will:</p>
               <ul className="list-disc list-inside text-white/80 space-y-2 ml-2">
                 <li>Clear all current sounds and layers</li>
                 <li>Reset to default single tone</li>
