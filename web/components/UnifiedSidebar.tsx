@@ -43,6 +43,7 @@ export default function UnifiedSidebar({
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingText, setLoadingText] = useState('Composing');
   const [dotCount, setDotCount] = useState(1);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Audio-themed loading words
   const loadingWords = [
@@ -95,6 +96,17 @@ export default function UnifiedSidebar({
       return prevMessages;
     });
   }, [loadingText, dotCount, isGenerating]);
+
+  // Auto-grow textarea
+  useEffect(() => {
+    const textarea = chatInputRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    // Set height based on scrollHeight, with a max of ~5 lines (120px)
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+  }, [inputValue]);
 
   // Load active tab from localStorage on mount
   useEffect(() => {
@@ -390,6 +402,11 @@ export default function UnifiedSidebar({
       setInputValue('');
       setIsGenerating(true);
       setDotCount(1); // Reset dot animation
+
+      // Reset textarea height
+      if (chatInputRef.current) {
+        chatInputRef.current.style.height = 'auto';
+      }
 
       // Add loading message
       const loadingMessage = {
@@ -707,38 +724,43 @@ export default function UnifiedSidebar({
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-4 mb-2 px-3 py-2 bg-navy-dark border-2 border-navy-light/20 rounded">
-                  <textarea
-                    id="chat-input"
-                    rows={2}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    placeholder="Ask about sounds or describe what you want..."
-                    className="w-full py-3 bg-transparent flex-1 text-white rounded focus:outline-none focus:border-green text-sm"
-                  />
-                  <div className="w-full flex justify-between items-center">
-                    <div></div>
-                    <div>
+                <div className="flex flex-col gap-3 mb-2">
+                  <div className="relative bg-navy-dark border-2 border-navy-light/20 rounded-lg focus-within:border-green/50 transition-colors">
+                    <textarea
+                      ref={chatInputRef}
+                      id="chat-input"
+                      rows={1}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder="Ask about sounds or describe what you want..."
+                      className="w-full p-3 bg-transparent text-white rounded-lg focus:outline-none text-sm resize-none overflow-y-auto"
+                      style={{ minHeight: '44px', maxHeight: '120px' }}
+                      disabled={isGenerating}
+                    />
+                    <div className="p-3 flex justify-between items-center gap-2">
+                      <div></div>
                       <button
                         onMouseEnter={() => playSoundEffect('ui-feedback/hover')}
                         onClick={() => {
                           playSoundEffect('ui-feedback/button-click');
                           handleSendMessage();
                         }}
-                        className="px-2 py-1 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-xs uppercase"
+                        disabled={!inputValue.trim() || isGenerating}
+                        className="px-3 py-1.5 bg-green text-navy-dark rounded hover:bg-green/80 transition-colors font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Send
+                        {isGenerating ? '...' : 'Send'}
                       </button>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
+                  <div></div>
                   <div className="flex gap-3">
                     <button
                       onClick={handleClearChat}
