@@ -5,6 +5,7 @@
 import type {
   SPADocument,
   SPASound,
+  SPADefinitions,
   ToneElement,
   NoiseElement,
   GroupElement,
@@ -20,6 +21,7 @@ import { generateNoise } from './utils/noise';
 import { applyEnvelope } from './utils/envelopes';
 import { applyFilter } from './utils/filters';
 import { applyAutomation } from './utils/automation';
+import { applyEffect } from './utils/effects';
 
 /**
  * Render SPA XML to AudioBuffer
@@ -117,21 +119,39 @@ export async function renderToBuffer(
  */
 function renderSound(
   sound: SPASound,
-  defs: any,
+  defs: SPADefinitions | undefined,
   sampleRate: number
 ): Float32Array {
+  // Never render effect elements directly - they're only definitions
+  if (sound.type === 'effect') {
+    throw new Error('Effect elements are definitions only and cannot be rendered as sounds');
+  }
+
+  let buffer: Float32Array;
+
   switch (sound.type) {
     case 'tone':
-      return renderTone(sound, defs, sampleRate);
+      buffer = renderTone(sound, defs, sampleRate);
+      break;
     case 'noise':
-      return renderNoise(sound, defs, sampleRate);
+      buffer = renderNoise(sound, defs, sampleRate);
+      break;
     case 'group':
-      return renderGroup(sound, defs, sampleRate);
+      buffer = renderGroup(sound, defs, sampleRate);
+      break;
     case 'sequence':
-      return renderSequence(sound, defs, sampleRate);
+      buffer = renderSequence(sound, defs, sampleRate);
+      break;
     default:
       throw new Error(`Unknown sound type: ${(sound as any).type}`);
   }
+
+  // Apply referenced effects if any
+  if ('effect' in sound && sound.effect) {
+    buffer = applyReferencedEffects(buffer, sound.effect, defs, sampleRate);
+  }
+
+  return buffer;
 }
 
 /**
@@ -139,7 +159,7 @@ function renderSound(
  */
 function renderTone(
   tone: ToneElement,
-  defs: any,
+  defs: SPADefinitions | undefined,
   sampleRate: number
 ): Float32Array {
   let buffer: Float32Array;
@@ -200,7 +220,7 @@ function renderTone(
  */
 function renderNoise(
   noise: NoiseElement,
-  defs: any,
+  defs: SPADefinitions | undefined,
   sampleRate: number
 ): Float32Array {
   let buffer = generateNoise(noise.color, noise.dur, sampleRate);
@@ -245,7 +265,7 @@ function renderNoise(
  */
 function renderGroup(
   group: GroupElement,
-  defs: any,
+  defs: SPADefinitions | undefined,
   sampleRate: number
 ): Float32Array {
   const renderedSounds = group.sounds.map(sound =>
@@ -284,7 +304,7 @@ function renderGroup(
  */
 function renderSequence(
   sequence: SequenceElement,
-  defs: any,
+  defs: SPADefinitions | undefined,
   sampleRate: number
 ): Float32Array {
   // Find the total duration of the sequence
@@ -315,9 +335,45 @@ function renderSequence(
 }
 
 /**
+ * Apply referenced effects to audio buffer
+ */
+function applyReferencedEffects(
+  buffer: Float32Array,
+  effectRef: string,
+  defs: SPADefinitions | undefined,
+  sampleRate: number
+): Float32Array {
+  if (!effectRef || !defs || !defs.effects) {
+    return buffer;
+  }
+
+  // Split effect references by comma for effect chains
+  const effectIds = effectRef.split(',').map(id => id.trim());
+  let result = buffer;
+
+  for (const effectId of effectIds) {
+    const effect = defs.effects[effectId];
+    if (!effect) {
+      console.warn(`Effect "${effectId}" not found in definitions`);
+      continue;
+    }
+
+    // Apply the effect to the audio
+    result = applyEffect(result, effect, sampleRate);
+  }
+
+  return result;
+}
+
+/**
  * Get duration of a sound element
  */
 function getDuration(sound: SPASound): number {
+  // Effect elements are definitions only, not sounds
+  if (sound.type === 'effect') {
+    throw new Error('Effect elements are definitions only and cannot have duration');
+  }
+
   if (sound.type === 'tone' || sound.type === 'noise') {
     let baseDur = sound.dur;
 
@@ -344,6 +400,7 @@ function getDuration(sound: SPASound): number {
     }
     return maxDur;
   }
+
   return 0;
 }
 
@@ -414,7 +471,7 @@ function generateSample(wave: string, phase: number): number {
  */
 function resolveEnvelope(
   envelope: ADSREnvelope | string,
-  defs: any
+  defs: SPADefinitions | undefined
 ): ADSREnvelope | null {
   if (typeof envelope === 'string') {
     if (envelope.startsWith('#') && defs?.envelopes) {

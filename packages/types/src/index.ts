@@ -22,6 +22,7 @@ export interface SPADocument {
 export interface SPADefinitions {
   envelopes: Record<string, ADSREnvelope>;
   filters?: Record<string, FilterConfig>;
+  effects?: Record<string, EffectElement>;
 }
 
 // ============================================================================
@@ -31,7 +32,7 @@ export interface SPADefinitions {
 /**
  * Union type of all possible sound elements
  */
-export type SPASound = ToneElement | NoiseElement | GroupElement | SequenceElement;
+export type SPASound = ToneElement | NoiseElement | GroupElement | SequenceElement | EffectElement;
 
 /**
  * Tone/Oscillator element
@@ -53,6 +54,7 @@ export interface ToneElement {
   repeatDecay?: number;
   repeatPitchShift?: number;
   at?: number; // Time in seconds when this element starts (for root-level timing)
+  effect?: string; // Effect ID(s) to apply, comma-separated for chains
 }
 
 /**
@@ -73,6 +75,7 @@ export interface NoiseElement {
   repeatDecay?: number;
   repeatPitchShift?: number;
   at?: number; // Time in seconds when this element starts (for root-level timing)
+  effect?: string; // Effect ID(s) to apply, comma-separated for chains
 }
 
 /**
@@ -90,6 +93,7 @@ export interface GroupElement {
   repeatDecay?: number;
   repeatPitchShift?: number;
   at?: number; // Time in seconds when this element starts (for root-level timing)
+  effect?: string; // Effect ID(s) to apply, comma-separated for chains
 }
 
 /**
@@ -101,6 +105,7 @@ export interface SequenceElement {
   elements: TimedSound[];
   loop?: boolean;
   tempo?: number; // BPM for beat-based timing
+  effect?: string; // Effect ID(s) to apply, comma-separated for chains
 }
 
 /**
@@ -109,6 +114,23 @@ export interface SequenceElement {
 export interface TimedSound {
   at: number; // Time in seconds when this element starts
   sound: ToneElement | NoiseElement | GroupElement;
+}
+
+/**
+ * Effect definition (requires id for reference)
+ */
+export interface EffectElement {
+  type: 'effect';
+  id: string; // Required for reference-based effects
+  effectType: EffectType;
+  preset?: ReverbPreset;
+  mix?: number;
+  decay?: number;
+  preDelay?: number;
+  damping?: number;
+  roomSize?: number;
+  delayTime?: number;
+  feedback?: number;
 }
 
 // ============================================================================
@@ -221,6 +243,16 @@ export type FilterType =
  * Automation curve interpolation types
  */
 export type CurveType = 'linear' | 'exp' | 'log' | 'smooth' | 'step' | 'ease-in' | 'ease-out';
+
+/**
+ * Available effect types
+ */
+export type EffectType = 'reverb' | 'delay' | 'chorus' | 'distortion';
+
+/**
+ * Available reverb presets
+ */
+export type ReverbPreset = 'room' | 'hall' | 'cathedral' | 'cave' | 'plate' | 'spring' | 'custom';
 
 // ============================================================================
 // Rendering Types
@@ -365,6 +397,10 @@ export function isGroupElement(sound: SPASound): sound is GroupElement {
 
 export function isSequenceElement(sound: SPASound): sound is SequenceElement {
   return sound.type === 'sequence';
+}
+
+export function isEffectElement(sound: SPASound): sound is EffectElement {
+  return sound.type === 'effect';
 }
 
 export function isAutomationCurve(value: any): value is AutomationCurve {

@@ -1,7 +1,0 @@
-<?xml version="1.1" encoding="UTF-8"?>
-<!-- Button Hover: Gentle feedback for mouse hover -->
-<spa xmlns="https://spa.audio/ns" version="1.1">
-  <tone wave="sine" freq="600" dur="0.03"
-        amp="0.3"
-        envelope="0,0.01,0,0.02"/>
-</spa>

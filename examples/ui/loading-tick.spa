@@ -1,7 +1,0 @@
-<?xml version="1.1" encoding="UTF-8"?>
-<!-- Loading Tick: High-frequency tick for progress indication -->
-<spa xmlns="https://spa.audio/ns" version="1.1">
-  <tone wave="sine" freq="1200" dur="0.03"
-        amp="0.4"
-        envelope="0,0.01,0,0.02"/>
-</spa>

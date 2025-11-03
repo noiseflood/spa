@@ -1,9 +1,0 @@
-<?xml version="1.1" encoding="UTF-8"?>
-<!-- Swipe: Filtered noise sweep for swipe gestures -->
-<spa xmlns="https://spa.audio/ns" version="1.1">
-  <noise color="white" dur="0.15"
-         filter="bandpass" resonance="2.0"
-         cutoff.start="1000" cutoff.end="3000" cutoff.curve="linear"
-         amp="0.3"
-         envelope="0,0.05,0.4,0.1"/>
-</spa>

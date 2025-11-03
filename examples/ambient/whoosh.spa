@@ -1,9 +1,0 @@
-<?xml version="1.1" encoding="UTF-8"?>
-<!-- Whoosh: Filtered noise sweep for motion effects -->
-<spa xmlns="https://spa.audio/ns" version="1.1">
-  <noise color="white" dur="0.5"
-         filter="bandpass" resonance="2.0"
-         cutoff.start="2000" cutoff.end="200" cutoff.curve="exp"
-         amp.start="0" amp.end="1.0" amp.curve="smooth"
-         envelope="0,0.2,0.4,0.3"/>
-</spa>

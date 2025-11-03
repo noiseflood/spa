@@ -29,18 +29,21 @@ interface EditorLayer {
   id: number;
   type: 'layer';
   sound: ToneElement | NoiseElement;
+  effect?: string; // Reference to effect IDs
 }
 
 interface EditorGroup {
   id: number;
   type: 'group';
   children: EditorNode[];
+  effect?: string; // Reference to effect IDs
 }
 
 interface EditorSequence {
   id: number;
   type: 'sequence';
   children: EditorNode[];
+  effect?: string; // Reference to effect IDs
 }
 
 export default function Editor() {
@@ -111,6 +114,17 @@ export default function Editor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPlaybackRef = useRef<Promise<void> | null>(null);
   const hasInitializedExpandedNodes = useRef(false);
+
+  // Effects state
+  const [effects, setEffects] = useState<Array<{
+    id: string;
+    type: 'reverb' | 'delay';
+    preset?: string;
+    mix?: number;
+    decay?: number;
+    delayTime?: number;
+    feedback?: number;
+  }>>([]);
 
   // Initialize preset categories on mount
   useEffect(() => {
@@ -384,12 +398,20 @@ export default function Editor() {
 
   const nodeToXML = (node: EditorNode, indent: string = ''): string => {
     if (node.type === 'layer') {
-      return soundToXML(node.sound);
+      return soundToXML(node.sound, node.effect);
     } else if (node.type === 'group') {
       if (node.children.length === 0) {
-        return `${indent}<group/>`;
+        let xml = `${indent}<group`;
+        if (node.effect) xml += ` effect="${node.effect}"`;
+        xml += '/>';
+        return xml;
       }
-      let xml = `${indent}<group>\n`;
+      let xml = `${indent}<group`;
+      if (node.effect) {
+        console.log('Adding effect to group XML:', node.effect);
+        xml += ` effect="${node.effect}"`;
+      }
+      xml += '>\n';
       for (const child of node.children) {
         xml += `${indent}  ${nodeToXML(child, indent + '  ')}\n`;
       }
@@ -397,9 +419,14 @@ export default function Editor() {
       return xml;
     } else if (node.type === 'sequence') {
       if (node.children.length === 0) {
-        return `${indent}<sequence/>`;
+        let xml = `${indent}<sequence`;
+        if (node.effect) xml += ` effect="${node.effect}"`;
+        xml += '/>';
+        return xml;
       }
-      let xml = `${indent}<sequence>\n`;
+      let xml = `${indent}<sequence`;
+      if (node.effect) xml += ` effect="${node.effect}"`;
+      xml += '>\n';
       for (const child of node.children) {
         xml += `${indent}  ${nodeToXML(child, indent + '  ')}\n`;
       }
@@ -410,7 +437,7 @@ export default function Editor() {
   };
 
   const updateXMLOutput = useCallback(() => {
-    if (rootNodes.length === 0) {
+    if (rootNodes.length === 0 && effects.length === 0) {
       setXmlOutput(`<?xml version="1.0" encoding="UTF-8"?>
 <spa xmlns="https://spa.audio/ns" version="1.1">
   <!-- Add layers to create your sound -->
@@ -421,20 +448,39 @@ export default function Editor() {
     let xml =
       '<?xml version="1.0" encoding="UTF-8"?>\n<spa xmlns="https://spa.audio/ns" version="1.1">\n';
 
+    // Add effects definitions if any
+    if (effects.length > 0) {
+      xml += '  <defs>\n';
+      for (const effect of effects) {
+        xml += `    <effect id="${effect.id}" type="${effect.type}"`;
+        if (effect.type === 'reverb') {
+          if (effect.preset) xml += ` preset="${effect.preset}"`;
+          if (effect.mix !== undefined) xml += ` mix="${effect.mix}"`;
+          if (effect.decay !== undefined) xml += ` decay="${effect.decay}"`;
+        } else if (effect.type === 'delay') {
+          if (effect.delayTime !== undefined) xml += ` delayTime="${effect.delayTime}"`;
+          if (effect.feedback !== undefined) xml += ` feedback="${effect.feedback}"`;
+          if (effect.mix !== undefined) xml += ` mix="${effect.mix}"`;
+        }
+        xml += '/>\n';
+      }
+      xml += '  </defs>\n';
+    }
+
     for (const node of rootNodes) {
       xml += '  ' + nodeToXML(node, '  ') + '\n';
     }
 
     xml += '</spa>';
     setXmlOutput(xml);
-  }, [rootNodes]);
+  }, [rootNodes, effects]);
 
   // Update XML whenever nodes change
   useEffect(() => {
     updateXMLOutput();
   }, [updateXMLOutput]);
 
-  const soundToXML = (sound: ToneElement | NoiseElement): string => {
+  const soundToXML = (sound: ToneElement | NoiseElement, effectRef?: string): string => {
     let xml = '<';
 
     if (sound.type === 'tone') {
@@ -501,6 +547,11 @@ export default function Editor() {
           xml += ` repeat.pitchShift="${tone.repeatPitchShift}"`;
       }
 
+      // Add effect reference if provided
+      if (effectRef) {
+        xml += ` effect="${effectRef}"`;
+      }
+
       xml += '/>';
     } else if (sound.type === 'noise') {
       const noise = sound as NoiseElement;
@@ -556,6 +607,11 @@ export default function Editor() {
           xml += ` repeat.decay="${noise.repeatDecay}"`;
       }
 
+      // Add effect reference if provided
+      if (effectRef) {
+        xml += ` effect="${effectRef}"`;
+      }
+
       xml += '/>';
     }
 
@@ -599,6 +655,22 @@ export default function Editor() {
       const newNodes: EditorNode[] = [];
       let nodeId = 0;
 
+      // Import effects from the document
+      if (doc.defs?.effects) {
+        const importedEffects = Object.entries(doc.defs.effects).map(([id, effect]) => ({
+          id,
+          type: effect.effectType as 'reverb' | 'delay',
+          ...(effect.preset && { preset: effect.preset }),
+          ...(effect.mix !== undefined && { mix: effect.mix }),
+          ...(effect.decay !== undefined && { decay: effect.decay }),
+          ...(effect.delayTime !== undefined && { delayTime: effect.delayTime }),
+          ...(effect.feedback !== undefined && { feedback: effect.feedback }),
+        }));
+        setEffects(importedEffects);
+      } else {
+        setEffects([]);
+      }
+
       const processSoundToNode = (sound: SPASound): EditorNode => {
         if (sound.type === 'group') {
           const group = sound as GroupElement;
@@ -606,6 +678,7 @@ export default function Editor() {
             id: nodeId++,
             type: 'group',
             children: [],
+            ...(group.effect && { effect: group.effect }),
           };
           if (group.sounds) {
             groupNode.children = group.sounds.map((s) => processSoundToNode(s));
@@ -618,6 +691,7 @@ export default function Editor() {
             id: nodeId++,
             type: 'sequence',
             children: [],
+            ...(sequence.effect && { effect: sequence.effect }),
           };
           if (sequence.elements) {
             sequenceNode.children = sequence.elements.map((timedSound: any) => {
@@ -628,10 +702,12 @@ export default function Editor() {
           setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
           return sequenceNode;
         } else {
+          const tone = sound as ToneElement | NoiseElement;
           return {
             id: nodeId++,
             type: 'layer',
             sound: normalizeSound(sound),
+            ...(tone.effect && { effect: tone.effect }),
           };
         }
       };
@@ -758,6 +834,7 @@ export default function Editor() {
               id: nodeId++,
               type: 'group',
               children: [],
+              ...(group.effect && { effect: group.effect }),
             };
             if (group.sounds) {
               groupNode.children = group.sounds.map((s) => processSoundToNode(s));
@@ -770,6 +847,7 @@ export default function Editor() {
               id: nodeId++,
               type: 'sequence',
               children: [],
+              ...(sequence.effect && { effect: sequence.effect }),
             };
             if (sequence.elements) {
               sequenceNode.children = sequence.elements.map(
@@ -814,8 +892,30 @@ export default function Editor() {
     // This will be called when valid code is entered in the CodeEditor
     try {
       const doc = parseSPA(newCode);
+      console.log('Parsed document:', doc);
+      console.log('First sound:', doc.sounds[0]);
+      if (doc.sounds[0] && 'effect' in doc.sounds[0]) {
+        console.log('Has effect?', (doc.sounds[0] as any).effect);
+      }
+
       const newNodes: EditorNode[] = [];
       let nodeId = 0;
+
+      // Import effects from the document
+      if (doc.defs?.effects) {
+        const importedEffects = Object.entries(doc.defs.effects).map(([id, effect]) => ({
+          id,
+          type: effect.effectType as 'reverb' | 'delay',
+          ...(effect.preset && { preset: effect.preset }),
+          ...(effect.mix !== undefined && { mix: effect.mix }),
+          ...(effect.decay !== undefined && { decay: effect.decay }),
+          ...(effect.delayTime !== undefined && { delayTime: effect.delayTime }),
+          ...(effect.feedback !== undefined && { feedback: effect.feedback }),
+        }));
+        setEffects(importedEffects);
+      } else {
+        setEffects([]);
+      }
 
       const processSoundToNode = (sound: SPASound): EditorNode => {
         if (sound.type === 'group') {
@@ -824,6 +924,7 @@ export default function Editor() {
             id: nodeId++,
             type: 'group',
             children: [],
+            ...(group.effect && { effect: group.effect }),
           };
           if (group.sounds) {
             groupNode.children = group.sounds.map((s) => processSoundToNode(s));
@@ -836,6 +937,7 @@ export default function Editor() {
             id: nodeId++,
             type: 'sequence',
             children: [],
+            ...(sequence.effect && { effect: sequence.effect }),
           };
           if (sequence.elements) {
             sequenceNode.children = sequence.elements.map(
@@ -848,10 +950,12 @@ export default function Editor() {
           setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
           return sequenceNode;
         } else {
+          const tone = sound as ToneElement | NoiseElement;
           return {
             id: nodeId++,
             type: 'layer',
             sound: normalizeSound(sound),
+            ...(tone.effect && { effect: tone.effect }),
           };
         }
       };
@@ -891,6 +995,22 @@ export default function Editor() {
       const newNodes: EditorNode[] = [];
       let nodeId = 0;
 
+      // Import effects from the document
+      if (doc.defs?.effects) {
+        const importedEffects = Object.entries(doc.defs.effects).map(([id, effect]) => ({
+          id,
+          type: effect.effectType as 'reverb' | 'delay',
+          ...(effect.preset && { preset: effect.preset }),
+          ...(effect.mix !== undefined && { mix: effect.mix }),
+          ...(effect.decay !== undefined && { decay: effect.decay }),
+          ...(effect.delayTime !== undefined && { delayTime: effect.delayTime }),
+          ...(effect.feedback !== undefined && { feedback: effect.feedback }),
+        }));
+        setEffects(importedEffects);
+      } else {
+        setEffects([]);
+      }
+
       const processSoundToNode = (sound: SPASound): EditorNode => {
         if (sound.type === 'group') {
           const group = sound as GroupElement;
@@ -898,6 +1018,7 @@ export default function Editor() {
             id: nodeId++,
             type: 'group',
             children: [],
+            ...(group.effect && { effect: group.effect }),
           };
           if (group.sounds) {
             groupNode.children = group.sounds.map((s) => processSoundToNode(s));
@@ -910,6 +1031,7 @@ export default function Editor() {
             id: nodeId++,
             type: 'sequence',
             children: [],
+            ...(sequence.effect && { effect: sequence.effect }),
           };
           if (sequence.elements) {
             sequenceNode.children = sequence.elements.map(
@@ -922,10 +1044,12 @@ export default function Editor() {
           setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
           return sequenceNode;
         } else {
+          const tone = sound as ToneElement | NoiseElement;
           return {
             id: nodeId++,
             type: 'layer',
             sound: normalizeSound(sound),
+            ...(tone.effect && { effect: tone.effect }),
           };
         }
       };
@@ -1431,6 +1555,51 @@ export default function Editor() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Effects Section */}
+                  <div className="p-4 border-b border-navy-light/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-medium text-gray-400">Effects</h4>
+                      <button
+                        onClick={() => {
+                          const effectId = `effect${effects.length + 1}`;
+                          setEffects([...effects, {
+                            id: effectId,
+                            type: 'reverb',
+                            preset: 'hall',
+                            mix: 0.5
+                          }]);
+                        }}
+                        className="text-xs px-2 py-1 bg-navy-light hover:bg-navy-light/80 rounded transition-colors"
+                      >
+                        + Add Effect
+                      </button>
+                    </div>
+                    {effects.length === 0 ? (
+                      <p className="text-gray-500 text-xs">No effects defined</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {effects.map((effect) => (
+                          <div key={effect.id} className="flex items-center justify-between text-xs bg-navy-light/10 p-2 rounded">
+                            <div className="flex items-center gap-2">
+                              <span className="text-green">#{effect.id}</span>
+                              <span className="text-gray-400">
+                                {effect.type === 'reverb' ? `Reverb (${effect.preset || 'hall'})` : `Delay (${effect.delayTime || 0.5}s)`}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setEffects(effects.filter(e => e.id !== effect.id));
+                              }}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4">

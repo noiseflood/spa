@@ -10,10 +10,12 @@ export { validate, validateSPA } from './validator';
 export type {
   SPADocument,
   SPASound,
+  SPADefinitions,
   ToneElement,
   NoiseElement,
   GroupElement,
   SequenceElement,
+  EffectElement,
   ADSREnvelope,
   AutomationCurve,
   FilterConfig,

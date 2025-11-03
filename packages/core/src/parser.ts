@@ -13,10 +13,12 @@ declare global {
 import type {
   SPADocument,
   SPASound,
+  SPADefinitions,
   ToneElement,
   NoiseElement,
   GroupElement,
   SequenceElement,
+  EffectElement,
   TimedSound,
   ADSREnvelope,
   AutomationCurve,
@@ -25,7 +27,9 @@ import type {
   WaveformType,
   NoiseColor,
   FilterType,
-  CurveType
+  CurveType,
+  EffectType,
+  ReverbPreset
 } from '@spa-audio/types';
 
 /**
@@ -117,12 +121,14 @@ export function parseSPA(
 /**
  * Parse definitions section
  */
-function parseDefinitions(root: Element): any {
+function parseDefinitions(root: Element): SPADefinitions | undefined {
   const defsEl = root.querySelector?.('defs');
   if (!defsEl) return undefined;
 
   const envelopes: Record<string, ADSREnvelope> = {};
+  const effects: Record<string, EffectElement> = {};
 
+  // Parse envelopes
   defsEl.querySelectorAll?.('envelope')?.forEach(el => {
     const id = el.getAttribute('id');
     if (!id) throw new Error('Envelope in defs missing id attribute');
@@ -135,7 +141,13 @@ function parseDefinitions(root: Element): any {
     };
   });
 
-  return { envelopes };
+  // Parse effects
+  defsEl.querySelectorAll?.('effect')?.forEach(el => {
+    const effect = parseEffectDefinition(el);
+    effects[effect.id] = effect;
+  });
+
+  return { envelopes, effects };
 }
 
 /**
@@ -143,7 +155,7 @@ function parseDefinitions(root: Element): any {
  */
 function parseChildren(
   parent: Element,
-  defs?: any,
+  defs?: SPADefinitions,
   resolveRefs: boolean = true
 ): SPASound[] {
   const sounds: SPASound[] = [];
@@ -153,6 +165,25 @@ function parseChildren(
     const child = children[i] as Element;
     if (!child.tagName) continue; // Skip text nodes
     if (child.tagName === 'defs') continue;
+
+    // For root level, also handle effect definitions (store them in defs)
+    if (parent.tagName === 'spa' && child.tagName === 'effect') {
+      // Parse effect definition - these get stored in defs, not sounds
+      const effect = parseEffectDefinition(child);
+      if (!defs) {
+        // Create defs if it doesn't exist
+        (parent as any).__defs = { envelopes: {}, effects: {} };
+        defs = (parent as any).__defs;
+      }
+      // TypeScript guard to ensure defs is defined
+      if (defs) {
+        if (!defs.effects) {
+          defs.effects = {};
+        }
+        defs.effects[effect.id] = effect;
+      }
+      continue;
+    }
 
     if (child.tagName === 'tone') {
       sounds.push(parseTone(child, defs, resolveRefs));
@@ -173,7 +204,7 @@ function parseChildren(
  */
 function parseTone(
   el: Element,
-  defs?: any,
+  defs?: SPADefinitions,
   resolveRefs: boolean = true
 ): ToneElement {
   const wave = el.getAttribute('wave') as WaveformType;
@@ -194,6 +225,7 @@ function parseTone(
   const repeatConfig = parseRepeat(el);
 
   const at = el.hasAttribute('at') ? parseFloat(el.getAttribute('at')!) : undefined;
+  const effect = el.getAttribute('effect') || undefined;
 
   return {
     type: 'tone',
@@ -205,6 +237,7 @@ function parseTone(
     envelope: parseEnvelope(el, defs, resolveRefs),
     pan: parseNumericOrAutomation(el, 'pan'),
     at,
+    effect,
     filter: parseFilter(el),
     phase: el.hasAttribute('phase')
       ? parseFloat(el.getAttribute('phase')!)
@@ -218,7 +251,7 @@ function parseTone(
  */
 function parseNoise(
   el: Element,
-  defs?: any,
+  defs?: SPADefinitions,
   resolveRefs: boolean = true
 ): NoiseElement {
   const color = el.getAttribute('color') as NoiseColor;
@@ -233,6 +266,7 @@ function parseNoise(
 
   const repeatConfig = parseRepeat(el);
   const at = el.hasAttribute('at') ? parseFloat(el.getAttribute('at')!) : undefined;
+  const effect = el.getAttribute('effect') || undefined;
 
   return {
     type: 'noise',
@@ -244,6 +278,7 @@ function parseNoise(
     pan: parseNumericOrAutomation(el, 'pan'),
     filter: parseFilter(el),
     at,
+    effect,
     ...repeatConfig
   };
 }
@@ -253,25 +288,27 @@ function parseNoise(
  */
 function parseGroup(
   el: Element,
-  defs?: any,
+  defs?: SPADefinitions,
   resolveRefs: boolean = true
 ): GroupElement {
   const sounds = parseChildren(el, defs, resolveRefs);
 
   const repeatConfig = parseRepeat(el);
   const at = el.hasAttribute('at') ? parseFloat(el.getAttribute('at')!) : undefined;
+  const effect = el.getAttribute('effect') || undefined;
 
   return {
     type: 'group',
     id: el.getAttribute('id') || undefined,
     sounds,
     amp: el.hasAttribute('amp')
-      ? parseFloat(el.getAttribute('amp')!)
+      ? parseFloat(el.getAttribute('amp') || '1')
       : undefined,
     pan: el.hasAttribute('pan')
-      ? parseFloat(el.getAttribute('pan')!)
+      ? parseFloat(el.getAttribute('pan') || '0')
       : undefined,
     at,
+    effect,
     ...repeatConfig
   };
 }
@@ -281,7 +318,7 @@ function parseGroup(
  */
 function parseSequence(
   el: Element,
-  defs?: any,
+  defs?: SPADefinitions,
   resolveRefs: boolean = true
 ): SequenceElement {
   const elements: TimedSound[] = [];
@@ -294,7 +331,7 @@ function parseSequence(
     // Get the timing
     const at = parseFloat(child.getAttribute('at') || '0');
 
-    // Parse the sound element
+    // Parse the sound element (no more effect containers)
     let sound: ToneElement | NoiseElement | GroupElement;
 
     if (child.tagName === 'tone') {
@@ -310,10 +347,13 @@ function parseSequence(
     elements.push({ at, sound });
   }
 
+  const effect = el.getAttribute('effect') || undefined;
+
   const sequence: SequenceElement = {
     type: 'sequence',
     id: el.getAttribute('id') || undefined,
-    elements
+    elements,
+    effect
   };
 
   // Parse optional attributes
@@ -326,6 +366,60 @@ function parseSequence(
   }
 
   return sequence;
+}
+
+/**
+ * Parse effect definition (not a container, just a definition)
+ */
+function parseEffectDefinition(el: Element): EffectElement {
+  const id = el.getAttribute('id');
+  if (!id) {
+    throw new Error('Effect element must have an id attribute');
+  }
+
+  const effectType = el.getAttribute('type') as EffectType;
+  if (!effectType) {
+    throw new Error('Effect element missing required type attribute');
+  }
+
+  const effect: EffectElement = {
+    type: 'effect',
+    id,
+    effectType
+  };
+
+  // Parse effect-specific attributes
+  if (effectType === 'reverb') {
+    if (el.hasAttribute('preset')) {
+      effect.preset = el.getAttribute('preset') as ReverbPreset;
+    }
+    if (el.hasAttribute('decay')) {
+      effect.decay = parseFloat(el.getAttribute('decay')!);
+    }
+    if (el.hasAttribute('preDelay')) {
+      effect.preDelay = parseFloat(el.getAttribute('preDelay')!);
+    }
+    if (el.hasAttribute('damping')) {
+      effect.damping = parseFloat(el.getAttribute('damping')!);
+    }
+    if (el.hasAttribute('roomSize')) {
+      effect.roomSize = parseFloat(el.getAttribute('roomSize')!);
+    }
+  } else if (effectType === 'delay') {
+    if (el.hasAttribute('delayTime')) {
+      effect.delayTime = parseFloat(el.getAttribute('delayTime')!);
+    }
+    if (el.hasAttribute('feedback')) {
+      effect.feedback = parseFloat(el.getAttribute('feedback')!);
+    }
+  }
+
+  // Common effect attributes
+  if (el.hasAttribute('mix')) {
+    effect.mix = parseFloat(el.getAttribute('mix')!);
+  }
+
+  return effect;
 }
 
 /**
@@ -392,7 +486,7 @@ function parseRepeat(el: Element): {
  */
 function parseEnvelope(
   el: Element,
-  defs?: any,
+  defs?: SPADefinitions,
   resolveRefs: boolean = true
 ): ADSREnvelope | string | undefined {
   const envAttr = el.getAttribute('envelope');

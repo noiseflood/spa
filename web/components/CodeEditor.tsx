@@ -149,7 +149,8 @@ export default function CodeEditor({
       // If we get here, the code is valid
       setError(null);
       setLastValidCode(newCode);
-      onChange(newCode);
+      // Don't call onChange during validation - only update valid state
+      // onChange will be called on blur or explicit save
       onValidChange?.(true);
       return true;
     } catch (err: any) {
@@ -223,10 +224,14 @@ export default function CodeEditor({
     // Debounced validation - don't restructure while typing
     clearTimeout((window as any).codeValidationTimeout);
     (window as any).codeValidationTimeout = setTimeout(() => {
-      // Only validate, don't restructure during typing
-      validateCode(correctedCode);
+      // Validate the code
+      const isValid = validateCode(correctedCode);
+      // Only call onChange if the code is valid and we've stopped editing for 3 seconds
+      if (isValid) {
+        onChange(correctedCode);
+      }
       setIsEditing(false);
-    }, 1000); // Increased timeout to reduce interruptions
+    }, 3000); // Increased timeout to 3 seconds to avoid interrupting typing
   };
 
   // Handle paste events to clean up pasted content
@@ -569,6 +574,12 @@ export default function CodeEditor({
               onChange={handleCodeChange}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
+              onBlur={() => {
+                // Save changes when user clicks away
+                if (lastValidCode && lastValidCode !== value) {
+                  onChange(lastValidCode);
+                }
+              }}
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
