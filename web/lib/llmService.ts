@@ -14,13 +14,15 @@ export interface Message {
 const TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_spa_editor',
-    description: 'Updates the SPA sound editor with new XML markup. Use this when the user asks you to create, modify, or generate a sound effect. The XML must be complete and valid SPA format.',
+    description:
+      'Updates the SPA sound editor with new XML markup. Use this when the user asks you to create, modify, or generate a sound effect. The XML must be complete and valid SPA format.',
     input_schema: {
       type: 'object',
       properties: {
         xml: {
           type: 'string',
-          description: 'Complete SPA XML markup including <?xml> declaration, <spa> root element with xmlns and version attributes, and all sound elements. Must be valid and well-formed.',
+          description:
+            'Complete SPA XML markup including <?xml> declaration, <spa> root element with xmlns and version attributes, and all sound elements. Must be valid and well-formed.',
         },
         explanation: {
           type: 'string',
@@ -91,10 +93,7 @@ export async function sendChatMessages(
   const conversationMessages = messages.filter(
     (msg) =>
       !msg.isLoading &&
-      !(
-        msg.role === 'assistant' &&
-        msg.content.includes('👋 Welcome to the SPA Sound Editor!')
-      )
+      !(msg.role === 'assistant' && msg.content.includes('👋 Welcome to the SPA Sound Editor!'))
   );
 
   // Convert messages to Anthropic format
@@ -109,7 +108,6 @@ export async function sendChatMessages(
       apiKey,
       dangerouslyAllowBrowser: true,
       timeout: 60 * 1000 * 2, // 120 seconds (default is 10 minutes)
-
     });
 
     // Load the system prompt at runtime

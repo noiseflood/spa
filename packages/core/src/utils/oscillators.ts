@@ -84,15 +84,12 @@ export function generatePulse(
 /**
  * Mix multiple waveforms
  */
-export function mixWaveforms(
-  waveforms: Float32Array[],
-  weights?: number[]
-): Float32Array {
+export function mixWaveforms(waveforms: Float32Array[], weights?: number[]): Float32Array {
   if (waveforms.length === 0) {
     return new Float32Array(0);
   }
 
-  const maxLength = Math.max(...waveforms.map(w => w.length));
+  const maxLength = Math.max(...waveforms.map((w) => w.length));
   const mixed = new Float32Array(maxLength);
 
   for (let i = 0; i < waveforms.length; i++) {

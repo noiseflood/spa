@@ -410,7 +410,7 @@ export default function CodeEditor({
       // Add newlines before < (except when preceded by >)
       normalized = normalized.replace(/(?<!>)</g, '\n<');
 
-      const tokens = normalized.split('\n').filter(t => t.trim());
+      const tokens = normalized.split('\n').filter((t) => t.trim());
 
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i].trim();

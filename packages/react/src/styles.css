@@ -132,7 +132,7 @@
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #4CAF50;
+  background: #4caf50;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -140,7 +140,7 @@
 .spa-volume-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #4CAF50;
+  background: #4caf50;
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -177,7 +177,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: #4CAF50;
+  background: #4caf50;
   border-radius: 2px;
   transition: width 0.1s;
 }
@@ -191,7 +191,7 @@
   top: 50%;
   width: 16px;
   height: 16px;
-  background: #4CAF50;
+  background: #4caf50;
   border: 2px solid white;
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -234,7 +234,7 @@
 }
 
 .spa-uploader-dropzone.dragging {
-  border-color: #4CAF50;
+  border-color: #4caf50;
   background: #f0f8f0;
 }
 
@@ -243,7 +243,7 @@
 }
 
 .spa-uploader-dropzone.dragging .spa-uploader-icon {
-  color: #4CAF50;
+  color: #4caf50;
 }
 
 .spa-uploader-text {
@@ -301,9 +301,9 @@
 }
 
 .spa-uploader-url-submit {
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
-  border-color: #4CAF50;
+  border-color: #4caf50;
 }
 
 .spa-uploader-url-submit:hover:not(:disabled) {
@@ -326,7 +326,7 @@
 /* SPA Button */
 .spa-button {
   padding: 0.5rem 1rem;
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
@@ -363,7 +363,7 @@
   color: #666;
 }
 
-.tempo-control input[type="range"] {
+.tempo-control input[type='range'] {
   width: 120px;
 }
 
@@ -383,21 +383,25 @@
   cursor: pointer;
 }
 
-.loop-control input[type="checkbox"] {
+.loop-control input[type='checkbox'] {
   cursor: pointer;
 }
 
 /* Loading Spinner */
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spinner {
   width: 24px;
   height: 24px;
   border: 3px solid #ddd;
-  border-top-color: #4CAF50;
+  border-top-color: #4caf50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

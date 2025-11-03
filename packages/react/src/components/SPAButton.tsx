@@ -9,8 +9,8 @@ import { parseSPA } from '@spa-audio/core';
 import type { SPADocument } from '@spa-audio/types';
 
 export interface SPAButtonProps {
-  src?: string;           // URL to SPA file
-  spa?: string;           // Inline SPA XML
+  src?: string; // URL to SPA file
+  spa?: string; // Inline SPA XML
   document?: SPADocument; // Pre-parsed SPA document
   children: React.ReactNode;
   className?: string;
@@ -29,7 +29,7 @@ export const SPAButton: React.FC<SPAButtonProps> = ({
   disabled = false,
   onClick,
   onPlay,
-  onError
+  onError,
 }) => {
   const webAudio = useWebAudio();
   const engineRef = useRef<SPAAudioEngine | null>(null);
@@ -40,11 +40,11 @@ export const SPAButton: React.FC<SPAButtonProps> = ({
     if (!src) return;
 
     fetch(src)
-      .then(res => res.text())
-      .then(xml => {
+      .then((res) => res.text())
+      .then((xml) => {
         documentRef.current = parseSPA(xml);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Failed to load SPA file:', error);
         onError?.(error);
       });
@@ -66,7 +66,7 @@ export const SPAButton: React.FC<SPAButtonProps> = ({
   useEffect(() => {
     if (webAudio.context && !engineRef.current) {
       engineRef.current = new SPAAudioEngine(webAudio.context, {
-        masterVolume: 0.8
+        masterVolume: 0.8,
       });
     }
 
@@ -96,7 +96,7 @@ export const SPAButton: React.FC<SPAButtonProps> = ({
 
       if (!engineRef.current && webAudio.context) {
         engineRef.current = new SPAAudioEngine(webAudio.context, {
-          masterVolume: 0.8
+          masterVolume: 0.8,
         });
       }
 

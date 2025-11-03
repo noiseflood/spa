@@ -29,20 +29,14 @@ import type {
   FilterType,
   CurveType,
   EffectType,
-  ReverbPreset
+  ReverbPreset,
 } from '@spa-audio/types';
 
 /**
  * Parse SPA XML string into a document object
  */
-export function parseSPA(
-  xml: string,
-  options: ParseOptions = {}
-): SPADocument {
-  const {
-    resolveReferences = true,
-    allowComments = true
-  } = options;
+export function parseSPA(xml: string, options: ParseOptions = {}): SPADocument {
+  const { resolveReferences = true, allowComments = true } = options;
 
   // Remove comments if not allowed
   let cleanXml = xml;
@@ -65,10 +59,10 @@ export function parseSPA(
   // Add querySelector polyfill for xmldom
   if (!doc.querySelector && 'getElementsByTagName' in doc) {
     const addQuerySelectors = (node: any) => {
-      node.querySelector = function(selector: string) {
+      node.querySelector = function (selector: string) {
         return this.getElementsByTagName(selector)[0] || null;
       };
-      node.querySelectorAll = function(selector: string) {
+      node.querySelectorAll = function (selector: string) {
         return this.getElementsByTagName(selector);
       };
       // Add to all elements
@@ -83,7 +77,9 @@ export function parseSPA(
   }
 
   // Check for parsing errors
-  const parserError = doc.querySelector ? doc.querySelector('parsererror') : doc.getElementsByTagName('parsererror')[0];
+  const parserError = doc.querySelector
+    ? doc.querySelector('parsererror')
+    : doc.getElementsByTagName('parsererror')[0];
   if (parserError) {
     throw new Error(`XML parsing error: ${parserError.textContent}`);
   }
@@ -114,7 +110,7 @@ export function parseSPA(
     version,
     xmlns: root.getAttribute('xmlns') || undefined,
     defs,
-    sounds
+    sounds,
   };
 }
 
@@ -140,7 +136,7 @@ function parseDefinitions(root: Element): SPADefinitions | undefined {
         attack: parseFloat(el.getAttribute('attack') || '0'),
         decay: parseFloat(el.getAttribute('decay') || '0'),
         sustain: parseFloat(el.getAttribute('sustain') || '1'),
-        release: parseFloat(el.getAttribute('release') || '0')
+        release: parseFloat(el.getAttribute('release') || '0'),
       };
     }
 
@@ -208,11 +204,7 @@ function parseChildren(
 /**
  * Parse tone element
  */
-function parseTone(
-  el: Element,
-  defs?: SPADefinitions,
-  resolveRefs: boolean = true
-): ToneElement {
+function parseTone(el: Element, defs?: SPADefinitions, resolveRefs: boolean = true): ToneElement {
   const wave = el.getAttribute('wave') as WaveformType;
   if (!wave) {
     throw new Error('Tone element missing required wave attribute');
@@ -245,21 +237,15 @@ function parseTone(
     at,
     effect,
     filter: parseFilter(el),
-    phase: el.hasAttribute('phase')
-      ? parseFloat(el.getAttribute('phase')!)
-      : undefined,
-    ...repeatConfig
+    phase: el.hasAttribute('phase') ? parseFloat(el.getAttribute('phase')!) : undefined,
+    ...repeatConfig,
   };
 }
 
 /**
  * Parse noise element
  */
-function parseNoise(
-  el: Element,
-  defs?: SPADefinitions,
-  resolveRefs: boolean = true
-): NoiseElement {
+function parseNoise(el: Element, defs?: SPADefinitions, resolveRefs: boolean = true): NoiseElement {
   const color = el.getAttribute('color') as NoiseColor;
   if (!color) {
     throw new Error('Noise element missing required color attribute');
@@ -285,18 +271,14 @@ function parseNoise(
     filter: parseFilter(el),
     at,
     effect,
-    ...repeatConfig
+    ...repeatConfig,
   };
 }
 
 /**
  * Parse group element
  */
-function parseGroup(
-  el: Element,
-  defs?: SPADefinitions,
-  resolveRefs: boolean = true
-): GroupElement {
+function parseGroup(el: Element, defs?: SPADefinitions, resolveRefs: boolean = true): GroupElement {
   const sounds = parseChildren(el, defs, resolveRefs);
 
   const repeatConfig = parseRepeat(el);
@@ -307,15 +289,11 @@ function parseGroup(
     type: 'group',
     id: el.getAttribute('id') || undefined,
     sounds,
-    amp: el.hasAttribute('amp')
-      ? parseFloat(el.getAttribute('amp') || '1')
-      : undefined,
-    pan: el.hasAttribute('pan')
-      ? parseFloat(el.getAttribute('pan') || '0')
-      : undefined,
+    amp: el.hasAttribute('amp') ? parseFloat(el.getAttribute('amp') || '1') : undefined,
+    pan: el.hasAttribute('pan') ? parseFloat(el.getAttribute('pan') || '0') : undefined,
     at,
     effect,
-    ...repeatConfig
+    ...repeatConfig,
   };
 }
 
@@ -359,7 +337,7 @@ function parseSequence(
     type: 'sequence',
     id: el.getAttribute('id') || undefined,
     elements,
-    effect
+    effect,
   };
 
   // Parse optional attributes
@@ -391,7 +369,7 @@ function parseEffectDefinition(el: Element): EffectElement {
   const effect: EffectElement = {
     type: 'effect',
     id,
-    effectType
+    effectType,
   };
 
   // Parse effect-specific attributes
@@ -444,7 +422,7 @@ function parseNumericOrAutomation(
     return {
       start: parseFloat(start),
       end: parseFloat(end),
-      curve: curve || 'linear'
+      curve: curve || 'linear',
     };
   }
 
@@ -483,7 +461,7 @@ function parseRepeat(el: Element): {
       : undefined,
     repeatPitchShift: el.hasAttribute('repeat.pitchShift')
       ? parseFloat(el.getAttribute('repeat.pitchShift')!)
-      : undefined
+      : undefined,
   };
 }
 
@@ -508,7 +486,7 @@ function parseEnvelope(
   }
 
   // Parse inline format: "a,d,s,r"
-  const parts = envAttr.split(',').map(s => s.trim());
+  const parts = envAttr.split(',').map((s) => s.trim());
   if (parts.length !== 4) {
     throw new Error(`Invalid envelope format: ${envAttr}`);
   }
@@ -518,7 +496,7 @@ function parseEnvelope(
     attack: a,
     decay: d,
     sustain: s,
-    release: r
+    release: r,
   };
 }
 
@@ -538,11 +516,7 @@ function parseFilter(el: Element): FilterConfig | undefined {
     type: filterType,
     cutoff,
     resonance: parseNumericOrAutomation(el, 'resonance'),
-    gain: el.hasAttribute('gain')
-      ? parseFloat(el.getAttribute('gain')!)
-      : undefined,
-    detune: el.hasAttribute('detune')
-      ? parseFloat(el.getAttribute('detune')!)
-      : undefined
+    gain: el.hasAttribute('gain') ? parseFloat(el.getAttribute('gain')!) : undefined,
+    detune: el.hasAttribute('detune') ? parseFloat(el.getAttribute('detune')!) : undefined,
   };
 }

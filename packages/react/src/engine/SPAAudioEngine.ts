@@ -11,13 +11,13 @@ import type {
   ADSREnvelope,
   AutomationCurve,
   FilterConfig,
-  NoiseColor
+  NoiseColor,
 } from '@spa-audio/types';
 
 export interface EngineOptions {
-  tempo?: number;          // BPM for tempo-relative timing
-  masterVolume?: number;   // Global volume (0-1)
-  loop?: boolean;          // Loop playback
+  tempo?: number; // BPM for tempo-relative timing
+  masterVolume?: number; // Global volume (0-1)
+  loop?: boolean; // Loop playback
   onComplete?: () => void; // Callback when playback completes
 }
 
@@ -43,7 +43,7 @@ export class SPAAudioEngine {
       tempo: 120,
       masterVolume: 0.8,
       loop: false,
-      ...options
+      ...options,
     };
 
     // Create master audio chain
@@ -132,11 +132,7 @@ export class SPAAudioEngine {
    */
   setVolume(volume: number): void {
     this.options.masterVolume = Math.max(0, Math.min(1, volume));
-    this.masterGain.gain.setTargetAtTime(
-      this.options.masterVolume,
-      this.context.currentTime,
-      0.01
-    );
+    this.masterGain.gain.setTargetAtTime(this.options.masterVolume, this.context.currentTime, 0.01);
   }
 
   /**
@@ -241,7 +237,7 @@ export class SPAAudioEngine {
       startTime,
       node: oscillator,
       gainNode,
-      element: tone
+      element: tone,
     });
   }
 
@@ -314,7 +310,7 @@ export class SPAAudioEngine {
       startTime,
       node: source,
       gainNode,
-      element: noise
+      element: noise,
     });
   }
 
@@ -344,15 +340,21 @@ export class SPAAudioEngine {
 
       case 'pink':
         // Pink noise: 1/f spectrum
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        let b0 = 0,
+          b1 = 0,
+          b2 = 0,
+          b3 = 0,
+          b4 = 0,
+          b5 = 0,
+          b6 = 0;
         for (let i = 0; i < length; i++) {
           const white = Math.random() * 2 - 1;
           b0 = 0.99886 * b0 + white * 0.0555179;
           b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
+          b2 = 0.969 * b2 + white * 0.153852;
+          b3 = 0.8665 * b3 + white * 0.3104856;
+          b4 = 0.55 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.016898;
           data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
           b6 = white * 0.115926;
         }
@@ -363,7 +365,7 @@ export class SPAAudioEngine {
         let lastOut = 0;
         for (let i = 0; i < length; i++) {
           const white = Math.random() * 2 - 1;
-          lastOut = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = (lastOut + 0.02 * white) / 1.02;
           data[i] = lastOut * 3.5;
         }
         break;
@@ -442,11 +444,7 @@ export class SPAAudioEngine {
   /**
    * Apply automation curve to an audio parameter
    */
-  private applyAutomation(
-    param: AudioParam,
-    curve: AutomationCurve,
-    startTime: number
-  ): void {
+  private applyAutomation(param: AudioParam, curve: AutomationCurve, startTime: number): void {
     const duration = curve.duration || 1;
 
     switch (curve.curve) {
@@ -456,14 +454,8 @@ export class SPAAudioEngine {
         break;
 
       case 'exp':
-        param.exponentialRampToValueAtTime(
-          Math.max(0.0001, curve.start),
-          startTime
-        );
-        param.exponentialRampToValueAtTime(
-          Math.max(0.0001, curve.end),
-          startTime + duration
-        );
+        param.exponentialRampToValueAtTime(Math.max(0.0001, curve.start), startTime);
+        param.exponentialRampToValueAtTime(Math.max(0.0001, curve.end), startTime + duration);
         break;
 
       case 'step':

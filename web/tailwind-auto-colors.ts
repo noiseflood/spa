@@ -23,10 +23,10 @@ function loadColors() {
 }
 
 // This plugin automatically reads colors from colors.css and registers them as Tailwind utilities
-export default plugin(function() {}, {
+export default plugin(function () {}, {
   theme: {
     extend: {
-      colors: loadColors()
-    }
-  }
+      colors: loadColors(),
+    },
+  },
 });

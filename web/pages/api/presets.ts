@@ -9,32 +9,34 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const categories: Record<string, Record<string, string>> = {};
 
     // Read all directories in the presets folder
-    const dirs = fs.readdirSync(presetsDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    const dirs = fs
+      .readdirSync(presetsDir, { withFileTypes: true })
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => dirent.name);
 
     // For each directory (category), find all .spa files
-    dirs.forEach(categoryDir => {
+    dirs.forEach((categoryDir) => {
       const categoryPath = path.join(presetsDir, categoryDir);
-      const files = fs.readdirSync(categoryPath, { withFileTypes: true })
-        .filter(dirent => dirent.isFile() && dirent.name.endsWith('.spa'))
-        .map(dirent => dirent.name);
+      const files = fs
+        .readdirSync(categoryPath, { withFileTypes: true })
+        .filter((dirent) => dirent.isFile() && dirent.name.endsWith('.spa'))
+        .map((dirent) => dirent.name);
 
       if (files.length > 0) {
         // Convert category name from kebab-case to Title Case
         const categoryName = categoryDir
           .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
 
         categories[categoryName] = {};
 
-        files.forEach(file => {
+        files.forEach((file) => {
           // Convert filename to preset name (remove .spa and convert kebab-case to Title Case)
           const presetName = file
             .replace('.spa', '')
             .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
 
           categories[categoryName][presetName] = `${categoryDir}/${file}`;

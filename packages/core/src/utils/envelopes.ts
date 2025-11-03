@@ -30,7 +30,7 @@ export function applyEnvelope(
     } else if (i < attackSamples + decaySamples) {
       // Decay phase
       const decayProgress = (i - attackSamples) / decaySamples;
-      gain = 1.0 - (decayProgress * (1.0 - envelope.sustain));
+      gain = 1.0 - decayProgress * (1.0 - envelope.sustain);
     } else if (i < attackSamples + decaySamples + sustainSamples) {
       // Sustain phase
       gain = envelope.sustain;
@@ -49,30 +49,28 @@ export function applyEnvelope(
 /**
  * Create a simple envelope shape
  */
-export function createEnvelope(
-  type: 'pluck' | 'pad' | 'stab' | 'gate'
-): ADSREnvelope {
+export function createEnvelope(type: 'pluck' | 'pad' | 'stab' | 'gate'): ADSREnvelope {
   switch (type) {
     case 'pluck':
       return {
         attack: 0.01,
         decay: 0.1,
         sustain: 0.2,
-        release: 0.1
+        release: 0.1,
       };
     case 'pad':
       return {
         attack: 0.5,
         decay: 0.3,
         sustain: 0.7,
-        release: 1.0
+        release: 1.0,
       };
     case 'stab':
       return {
         attack: 0,
         decay: 0.1,
         sustain: 0,
-        release: 0.1
+        release: 0.1,
       };
     case 'gate':
     default:
@@ -80,7 +78,7 @@ export function createEnvelope(
         attack: 0,
         decay: 0,
         sustain: 1,
-        release: 0
+        release: 0,
       };
   }
 }
@@ -88,11 +86,7 @@ export function createEnvelope(
 /**
  * Apply a simple fade in
  */
-export function fadeIn(
-  buffer: Float32Array,
-  fadeTime: number,
-  sampleRate: number
-): Float32Array {
+export function fadeIn(buffer: Float32Array, fadeTime: number, sampleRate: number): Float32Array {
   const fadeSamples = Math.floor(fadeTime * sampleRate);
   const result = new Float32Array(buffer.length);
 
@@ -107,19 +101,13 @@ export function fadeIn(
 /**
  * Apply a simple fade out
  */
-export function fadeOut(
-  buffer: Float32Array,
-  fadeTime: number,
-  sampleRate: number
-): Float32Array {
+export function fadeOut(buffer: Float32Array, fadeTime: number, sampleRate: number): Float32Array {
   const fadeSamples = Math.floor(fadeTime * sampleRate);
   const fadeStart = buffer.length - fadeSamples;
   const result = new Float32Array(buffer.length);
 
   for (let i = 0; i < buffer.length; i++) {
-    const gain = i >= fadeStart
-      ? 1.0 - ((i - fadeStart) / fadeSamples)
-      : 1.0;
+    const gain = i >= fadeStart ? 1.0 - (i - fadeStart) / fadeSamples : 1.0;
     result[i] = buffer[i] * gain;
   }
 

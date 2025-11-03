@@ -19,12 +19,7 @@ export function applyAutomation(
   for (let i = 0; i < numSamples; i++) {
     const t = i / sampleRate;
     const progress = Math.min(1, t / duration);
-    const value = interpolate(
-      automation.start,
-      automation.end,
-      progress,
-      automation.curve
-    );
+    const value = interpolate(automation.start, automation.end, progress, automation.curve);
     result[i] = buffer[i] * value;
   }
 
@@ -51,13 +46,11 @@ export function interpolate(
 
     case 'log':
       // Logarithmic curve (slow start, fast end)
-      return start + (end - start) * Math.log1p(progress * 9) / Math.log(10);
+      return start + ((end - start) * Math.log1p(progress * 9)) / Math.log(10);
 
     case 'smooth':
       // Smooth S-curve (ease-in-out)
-      const t = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const t = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
       return start + (end - start) * t;
 
     case 'ease-in':
@@ -80,20 +73,12 @@ export function interpolate(
 /**
  * Generate automation points for a curve
  */
-export function generateAutomationPoints(
-  automation: AutomationCurve,
-  numPoints: number
-): number[] {
+export function generateAutomationPoints(automation: AutomationCurve, numPoints: number): number[] {
   const points: number[] = [];
 
   for (let i = 0; i < numPoints; i++) {
     const progress = i / (numPoints - 1);
-    points.push(interpolate(
-      automation.start,
-      automation.end,
-      progress,
-      automation.curve
-    ));
+    points.push(interpolate(automation.start, automation.end, progress, automation.curve));
   }
 
   return points;
@@ -129,7 +114,7 @@ export function createLFO(
         break;
     }
 
-    lfo[i] = 1 + (value * depth);
+    lfo[i] = 1 + value * depth;
     phase = (phase + phaseIncrement) % 1.0;
   }
 

@@ -25,17 +25,19 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          padding: '40px',
-          textAlign: 'center',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#1e1e1e',
-          color: '#fff'
-        }}>
+        <div
+          style={{
+            padding: '40px',
+            textAlign: 'center',
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#1e1e1e',
+            color: '#fff',
+          }}
+        >
           <h1>Something went wrong</h1>
           <p>Please refresh the page to try again.</p>
           <button
@@ -48,7 +50,7 @@ class ErrorBoundary extends Component<Props, State> {
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           >
             Refresh Page

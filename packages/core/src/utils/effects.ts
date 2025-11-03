@@ -14,15 +14,7 @@ export function generateImpulseResponse(
   sampleRate: number = 48000
 ): Float32Array {
   const presetSettings = getReverbPresetSettings(preset);
-  const {
-    duration,
-    decay,
-    preDelay,
-    damping,
-    roomSize,
-    diffusion,
-    wetGain
-  } = presetSettings;
+  const { duration, decay, preDelay, damping, roomSize, diffusion, wetGain } = presetSettings;
 
   const length = Math.floor(duration * sampleRate);
   const impulse = new Float32Array(length);
@@ -39,7 +31,7 @@ export function generateImpulseResponse(
       let amplitude = Math.exp(-decay * t);
 
       // Apply room size factor (larger rooms = longer decay)
-      amplitude *= (1 - Math.exp(-t / roomSize));
+      amplitude *= 1 - Math.exp(-t / roomSize);
 
       // High frequency damping simulation
       const dampingFactor = Math.exp(-damping * t * 2);
@@ -94,7 +86,7 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.5,
       roomSize: 0.3,
       diffusion: 0.7,
-      wetGain: 0.3
+      wetGain: 0.3,
     },
     hall: {
       duration: 2.5,
@@ -103,7 +95,7 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.3,
       roomSize: 0.7,
       diffusion: 0.85,
-      wetGain: 0.35
+      wetGain: 0.35,
     },
     cathedral: {
       duration: 5.0,
@@ -112,7 +104,7 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.2,
       roomSize: 1.0,
       diffusion: 0.95,
-      wetGain: 0.4
+      wetGain: 0.4,
     },
     cave: {
       duration: 4.0,
@@ -121,7 +113,7 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.1,
       roomSize: 0.9,
       diffusion: 0.6,
-      wetGain: 0.5
+      wetGain: 0.5,
     },
     plate: {
       duration: 1.5,
@@ -130,7 +122,7 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.6,
       roomSize: 0.4,
       diffusion: 0.9,
-      wetGain: 0.35
+      wetGain: 0.35,
     },
     spring: {
       duration: 2.0,
@@ -139,7 +131,7 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.4,
       roomSize: 0.2,
       diffusion: 0.5,
-      wetGain: 0.4
+      wetGain: 0.4,
     },
     custom: {
       duration: 2.0,
@@ -148,8 +140,8 @@ function getReverbPresetSettings(preset: ReverbPreset) {
       damping: 0.4,
       roomSize: 0.5,
       diffusion: 0.8,
-      wetGain: 0.35
-    }
+      wetGain: 0.35,
+    },
   };
 
   return settings[preset] || settings.hall;

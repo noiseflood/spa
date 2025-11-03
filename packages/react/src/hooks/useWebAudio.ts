@@ -19,11 +19,7 @@ export interface UseWebAudioOptions {
 }
 
 export function useWebAudio(options: UseWebAudioOptions = {}) {
-  const {
-    autoInit = false,
-    latencyHint = 'interactive',
-    sampleRate
-  } = options;
+  const { autoInit = false, latencyHint = 'interactive', sampleRate } = options;
 
   const contextRef = useRef<AudioContext | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -154,7 +150,7 @@ export function useWebAudio(options: UseWebAudioOptions = {}) {
     createAnalyzer,
     createGain,
     createCompressor,
-    setIsPlaying
+    setIsPlaying,
   };
 }
 

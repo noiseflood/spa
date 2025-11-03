@@ -15,49 +15,55 @@ function Error({ statusCode, hasGetInitialPropsRun, err }: ErrorProps) {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#1e1e1e',
-      color: '#ffffff',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '20px'
-    }}>
-      <h1 style={{
-        fontSize: '4rem',
-        margin: '0 0 1rem 0',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text'
-      }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#1e1e1e',
+        color: '#ffffff',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        padding: '20px',
+      }}
+    >
+      <h1
+        style={{
+          fontSize: '4rem',
+          margin: '0 0 1rem 0',
+          fontWeight: '700',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}
+      >
         {statusCode || 'Error'}
       </h1>
-      <h2 style={{
-        fontSize: '1.5rem',
-        margin: '0 0 2rem 0',
-        fontWeight: '400',
-        opacity: '0.8'
-      }}>
-        {statusCode
-          ? `An error ${statusCode} occurred on server`
-          : 'An error occurred on client'}
+      <h2
+        style={{
+          fontSize: '1.5rem',
+          margin: '0 0 2rem 0',
+          fontWeight: '400',
+          opacity: '0.8',
+        }}
+      >
+        {statusCode ? `An error ${statusCode} occurred on server` : 'An error occurred on client'}
       </h2>
-      <p style={{
-        fontSize: '1rem',
-        opacity: '0.6',
-        marginBottom: '2rem',
-        textAlign: 'center',
-        maxWidth: '500px',
-        lineHeight: '1.5'
-      }}>
+      <p
+        style={{
+          fontSize: '1rem',
+          opacity: '0.6',
+          marginBottom: '2rem',
+          textAlign: 'center',
+          maxWidth: '500px',
+          lineHeight: '1.5',
+        }}
+      >
         {statusCode === 404
-          ? "This page could not be found."
-          : "Something went wrong. Please try refreshing the page."}
+          ? 'This page could not be found.'
+          : 'Something went wrong. Please try refreshing the page.'}
       </p>
       <a
         href="/"
@@ -69,7 +75,7 @@ function Error({ statusCode, hasGetInitialPropsRun, err }: ErrorProps) {
           textDecoration: 'none',
           fontWeight: '500',
           transition: 'background-color 0.2s ease',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = '#764ba2';

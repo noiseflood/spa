@@ -34,11 +34,11 @@ export const SPAPlayer: React.FC<SPAPlayerProps> = ({
   onPause,
   onStop,
   onComplete,
-  onError
+  onError,
 }) => {
   const player = useSPAPlayer(src, {
     autoPlay,
-    onComplete
+    onComplete,
   });
 
   const [isDragging, setIsDragging] = useState(false);
@@ -62,22 +62,28 @@ export const SPAPlayer: React.FC<SPAPlayerProps> = ({
   }, [player, onStop]);
 
   // Handle file upload
-  const handleFileUpload = useCallback(async (file: File) => {
-    try {
-      await player.loadFile(file);
-    } catch (error) {
-      onError?.(error as Error);
-    }
-  }, [player, onError]);
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      try {
+        await player.loadFile(file);
+      } catch (error) {
+        onError?.(error as Error);
+      }
+    },
+    [player, onError]
+  );
 
   // Handle URL input
-  const handleURLLoad = useCallback(async (url: string) => {
-    try {
-      await player.load(url);
-    } catch (error) {
-      onError?.(error as Error);
-    }
-  }, [player, onError]);
+  const handleURLLoad = useCallback(
+    async (url: string) => {
+      try {
+        await player.load(url);
+      } catch (error) {
+        onError?.(error as Error);
+      }
+    },
+    [player, onError]
+  );
 
   // Format time display
   const formatTime = (seconds: number): string => {
@@ -125,10 +131,7 @@ export const SPAPlayer: React.FC<SPAPlayerProps> = ({
           />
 
           {/* Volume Control */}
-          <VolumeControl
-            volume={player.volume}
-            onVolumeChange={player.setVolume}
-          />
+          <VolumeControl volume={player.volume} onVolumeChange={player.setVolume} />
 
           {/* Additional Controls */}
           <div className="spa-player-extras">

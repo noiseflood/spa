@@ -24,17 +24,14 @@ export interface UseSPAPlayerOptions extends EngineOptions {
   preload?: boolean;
 }
 
-export function useSPAPlayer(
-  initialUrl?: string,
-  options: UseSPAPlayerOptions = {}
-) {
+export function useSPAPlayer(initialUrl?: string, options: UseSPAPlayerOptions = {}) {
   const {
     autoPlay = false,
     preload = true,
     tempo = 120,
     masterVolume = 0.8,
     loop = false,
-    onComplete
+    onComplete,
   } = options;
 
   // Audio context and loader
@@ -54,7 +51,7 @@ export function useSPAPlayer(
     duration: 0,
     volume: masterVolume,
     tempo,
-    loop
+    loop,
   });
 
   // Initialize engine when context is ready
@@ -65,14 +62,14 @@ export function useSPAPlayer(
         masterVolume,
         loop,
         onComplete: () => {
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
             isPlaying: false,
             isPaused: false,
-            currentTime: 0
+            currentTime: 0,
           }));
           onComplete?.();
-        }
+        },
       });
     }
 
@@ -88,7 +85,7 @@ export function useSPAPlayer(
   useEffect(() => {
     if (loader.document) {
       const duration = calculateDocumentDuration(loader.document);
-      setState(prev => ({ ...prev, duration }));
+      setState((prev) => ({ ...prev, duration }));
     }
   }, [loader.document]);
 
@@ -98,9 +95,9 @@ export function useSPAPlayer(
 
     if (state.isPlaying && webAudio.context) {
       const updateTime = () => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
-          currentTime: webAudio.currentTime
+          currentTime: webAudio.currentTime,
         }));
         animationFrame = requestAnimationFrame(updateTime);
       };
@@ -115,61 +112,64 @@ export function useSPAPlayer(
   }, [state.isPlaying, webAudio]);
 
   // Play function
-  const play = useCallback(async (document?: SPADocument) => {
-    // Use provided document or loaded one
-    const doc = document || loader.document;
-    if (!doc) {
-      console.error('No SPA document to play');
-      return;
-    }
+  const play = useCallback(
+    async (document?: SPADocument) => {
+      // Use provided document or loaded one
+      const doc = document || loader.document;
+      if (!doc) {
+        console.error('No SPA document to play');
+        return;
+      }
 
-    // Initialize context on first play (browser requirement)
-    if (!webAudio.context) {
-      await webAudio.initContext();
-    }
+      // Initialize context on first play (browser requirement)
+      if (!webAudio.context) {
+        await webAudio.initContext();
+      }
 
-    if (!engineRef.current && webAudio.context) {
-      engineRef.current = new SPAAudioEngine(webAudio.context, {
-        tempo: state.tempo,
-        masterVolume: state.volume,
-        loop: state.loop,
-        onComplete: () => {
-          setState(prev => ({
-            ...prev,
-            isPlaying: false,
-            isPaused: false,
-            currentTime: 0
-          }));
-          onComplete?.();
-        }
-      });
-    }
+      if (!engineRef.current && webAudio.context) {
+        engineRef.current = new SPAAudioEngine(webAudio.context, {
+          tempo: state.tempo,
+          masterVolume: state.volume,
+          loop: state.loop,
+          onComplete: () => {
+            setState((prev) => ({
+              ...prev,
+              isPlaying: false,
+              isPaused: false,
+              currentTime: 0,
+            }));
+            onComplete?.();
+          },
+        });
+      }
 
-    if (engineRef.current) {
-      await webAudio.resume();
+      if (engineRef.current) {
+        await webAudio.resume();
 
-      // Start from pause offset if paused, otherwise from beginning
-      const startOffset = state.isPaused ? pauseOffsetRef.current : 0;
-      await engineRef.current.play(doc, startOffset);
+        // Start from pause offset if paused, otherwise from beginning
+        const startOffset = state.isPaused ? pauseOffsetRef.current : 0;
+        await engineRef.current.play(doc, startOffset);
 
-      setState(prev => ({
-        ...prev,
-        isPlaying: true,
-        isPaused: false
-      }));
+        setState((prev) => ({
+          ...prev,
+          isPlaying: true,
+          isPaused: false,
+        }));
 
-      webAudio.setIsPlaying(true);
-    }
-  }, [loader.document, webAudio, state.tempo, state.volume, state.loop, state.isPaused, onComplete]);
+        webAudio.setIsPlaying(true);
+      }
+    },
+    [loader.document, webAudio, state.tempo, state.volume, state.loop, state.isPaused, onComplete]
+  );
 
   // Pause function
   const pause = useCallback(() => {
     if (engineRef.current && state.isPlaying) {
       pauseOffsetRef.current = engineRef.current.pause();
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isPlaying: false,
-        isPaused: true
+        isPaused: true,
       }));
       webAudio.setIsPlaying(false);
     }
@@ -180,11 +180,11 @@ export function useSPAPlayer(
     if (engineRef.current) {
       engineRef.current.stop();
       pauseOffsetRef.current = 0;
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isPlaying: false,
         isPaused: false,
-        currentTime: 0
+        currentTime: 0,
       }));
       webAudio.setIsPlaying(false);
     }
@@ -202,7 +202,7 @@ export function useSPAPlayer(
   // Set volume
   const setVolume = useCallback((volume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, volume));
-    setState(prev => ({ ...prev, volume: clampedVolume }));
+    setState((prev) => ({ ...prev, volume: clampedVolume }));
 
     if (engineRef.current) {
       engineRef.current.setVolume(clampedVolume);
@@ -212,7 +212,7 @@ export function useSPAPlayer(
   // Set tempo
   const setTempo = useCallback((bpm: number) => {
     const clampedTempo = Math.max(20, Math.min(999, bpm));
-    setState(prev => ({ ...prev, tempo: clampedTempo }));
+    setState((prev) => ({ ...prev, tempo: clampedTempo }));
 
     if (engineRef.current) {
       engineRef.current.setTempo(clampedTempo);
@@ -221,41 +221,53 @@ export function useSPAPlayer(
 
   // Set loop
   const setLoop = useCallback((shouldLoop: boolean) => {
-    setState(prev => ({ ...prev, loop: shouldLoop }));
+    setState((prev) => ({ ...prev, loop: shouldLoop }));
   }, []);
 
   // Load a new SPA file
-  const load = useCallback(async (url: string) => {
-    stop();
-    return loader.loadFromURL(url);
-  }, [stop, loader]);
+  const load = useCallback(
+    async (url: string) => {
+      stop();
+      return loader.loadFromURL(url);
+    },
+    [stop, loader]
+  );
 
   // Load from XML string
-  const loadXML = useCallback((xml: string) => {
-    stop();
-    return loader.loadFromXML(xml);
-  }, [stop, loader]);
+  const loadXML = useCallback(
+    (xml: string) => {
+      stop();
+      return loader.loadFromXML(xml);
+    },
+    [stop, loader]
+  );
 
   // Load from File
-  const loadFile = useCallback(async (file: File) => {
-    stop();
-    return loader.loadFromFile(file);
-  }, [stop, loader]);
+  const loadFile = useCallback(
+    async (file: File) => {
+      stop();
+      return loader.loadFromFile(file);
+    },
+    [stop, loader]
+  );
 
   // Seek to position
-  const seek = useCallback((position: number) => {
-    if (state.duration > 0) {
-      const clampedPosition = Math.max(0, Math.min(position, state.duration));
-      pauseOffsetRef.current = clampedPosition;
+  const seek = useCallback(
+    (position: number) => {
+      if (state.duration > 0) {
+        const clampedPosition = Math.max(0, Math.min(position, state.duration));
+        pauseOffsetRef.current = clampedPosition;
 
-      if (state.isPlaying && engineRef.current && loader.document) {
-        engineRef.current.stop();
-        engineRef.current.play(loader.document, clampedPosition);
+        if (state.isPlaying && engineRef.current && loader.document) {
+          engineRef.current.stop();
+          engineRef.current.play(loader.document, clampedPosition);
+        }
+
+        setState((prev) => ({ ...prev, currentTime: clampedPosition }));
       }
-
-      setState(prev => ({ ...prev, currentTime: clampedPosition }));
-    }
-  }, [state.duration, state.isPlaying, loader.document]);
+    },
+    [state.duration, state.isPlaying, loader.document]
+  );
 
   // Auto-play when document loads
   useEffect(() => {
@@ -290,7 +302,7 @@ export function useSPAPlayer(
 
     // Utility
     webAudio,
-    loader
+    loader,
   };
 }
 

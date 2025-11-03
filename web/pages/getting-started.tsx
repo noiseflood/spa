@@ -22,9 +22,7 @@ export default function GettingStarted() {
             >
               ← Back to Home
             </Link>
-            <h1 className="text-4xl font-bold text-green-bright mb-4">
-              Getting Started with SPA
-            </h1>
+            <h1 className="text-4xl font-bold text-green-bright mb-4">Getting Started with SPA</h1>
             <p className="text-lg text-white/60">
               Learn how to create and play procedural audio with SPA in just a few steps
             </p>
@@ -168,7 +166,9 @@ export default function GettingStarted() {
             <div className="bg-navy-dark rounded-lg p-6 border border-navy-light/20">
               {activeTab === 'web' && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4 text-green-bright">Using SPA in the Browser</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-green-bright">
+                    Using SPA in the Browser
+                  </h3>
                   <div className="bg-navy rounded p-4 font-mono text-sm text-green-bright overflow-x-auto">
                     <pre>{`<!-- Include the SPA library -->
 <script src="https://unpkg.com/@spa-audio/core"></script>
@@ -191,7 +191,9 @@ export default function GettingStarted() {
 
               {activeTab === 'react' && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4 text-green-bright">Using SPA in React</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-green-bright">
+                    Using SPA in React
+                  </h3>
                   <div className="space-y-4">
                     <div className="bg-navy rounded p-4 font-mono text-sm text-green-bright overflow-x-auto">
                       <pre>{`npm install @spa-audio/react`}</pre>
@@ -222,7 +224,9 @@ export default function GettingStarted() {
 
               {activeTab === 'node' && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4 text-green-bright">Using SPA in Node.js</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-green-bright">
+                    Using SPA in Node.js
+                  </h3>
                   <div className="space-y-4">
                     <div className="bg-navy rounded p-4 font-mono text-sm text-green-bright overflow-x-auto">
                       <pre>{`npm install @spa-audio/core`}</pre>
@@ -335,32 +339,36 @@ fs.writeFileSync('output.wav', wavBuffer);`}</pre>
             <h2 className="text-2xl font-semibold text-green-bright mb-4">7. AI Integration</h2>
             <div className="bg-navy-dark p-px rounded-lg">
               <div className="bg-navy-dark rounded-lg p-6 border border-navy-light/20">
-                <h3 className="text-lg font-semibold mb-4 text-green-bright">Why SPA is Perfect for AI</h3>
+                <h3 className="text-lg font-semibold mb-4 text-green-bright">
+                  Why SPA is Perfect for AI
+                </h3>
                 <ul className="space-y-3 text-white/60">
                   <li className="flex gap-3">
                     <span className="text-green-bright">✓</span>
                     <span>
-                      <strong className="text-white">Declarative:</strong> AI can understand and generate XML easily
+                      <strong className="text-white">Declarative:</strong> AI can understand and
+                      generate XML easily
                     </span>
                   </li>
                   <li className="flex gap-3">
                     <span className="text-green-bright">✓</span>
                     <span>
-                      <strong className="text-white">Parametric:</strong> Clear parameters that AI can reason about
+                      <strong className="text-white">Parametric:</strong> Clear parameters that AI
+                      can reason about
                     </span>
                   </li>
                   <li className="flex gap-3">
                     <span className="text-green-bright">✓</span>
                     <span>
-                      <strong className="text-white">Context-Aware:</strong> AI can generate appropriate sounds based on
-                      context
+                      <strong className="text-white">Context-Aware:</strong> AI can generate
+                      appropriate sounds based on context
                     </span>
                   </li>
                   <li className="flex gap-3">
                     <span className="text-green-bright">✓</span>
                     <span>
-                      <strong className="text-white">Learnable:</strong> Simple patterns that AI models can learn from
-                      examples
+                      <strong className="text-white">Learnable:</strong> Simple patterns that AI
+                      models can learn from examples
                     </span>
                   </li>
                 </ul>

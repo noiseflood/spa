@@ -15,7 +15,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   currentTime,
   duration,
   onSeek,
-  className = ''
+  className = '',
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
@@ -23,26 +23,35 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const calculateTime = useCallback((clientX: number): number => {
-    if (!progressRef.current) return 0;
+  const calculateTime = useCallback(
+    (clientX: number): number => {
+      if (!progressRef.current) return 0;
 
-    const rect = progressRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, x / rect.width));
-    return percentage * duration;
-  }, [duration]);
+      const rect = progressRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, x / rect.width));
+      return percentage * duration;
+    },
+    [duration]
+  );
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    const time = calculateTime(e.clientX);
-    onSeek(time);
-  }, [calculateTime, onSeek]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      const time = calculateTime(e.clientX);
+      onSeek(time);
+    },
+    [calculateTime, onSeek]
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const time = calculateTime(e.clientX);
-    setHoverTime(time);
-  }, [calculateTime]);
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const time = calculateTime(e.clientX);
+      setHoverTime(time);
+    },
+    [calculateTime]
+  );
 
   const handleMouseLeave = useCallback(() => {
     setHoverTime(null);
@@ -84,25 +93,19 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       onMouseLeave={handleMouseLeave}
     >
       <div className="spa-progress-track">
-        <div
-          className="spa-progress-fill"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="spa-progress-fill" style={{ width: `${progress}%` }} />
 
         {hoverTime !== null && (
           <div
             className="spa-progress-hover"
             style={{
               left: `${(hoverTime / duration) * 100}%`,
-              opacity: 0.5
+              opacity: 0.5,
             }}
           />
         )}
 
-        <div
-          className="spa-progress-handle"
-          style={{ left: `${progress}%` }}
-        />
+        <div className="spa-progress-handle" style={{ left: `${progress}%` }} />
       </div>
 
       {hoverTime !== null && (
@@ -110,7 +113,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           className="spa-progress-tooltip"
           style={{
             left: `${(hoverTime / duration) * 100}%`,
-            transform: 'translateX(-50%)'
+            transform: 'translateX(-50%)',
           }}
         >
           {formatTime(hoverTime)}

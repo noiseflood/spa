@@ -2,11 +2,7 @@
  * SPA Validator - Validates SPA documents against schema
  */
 
-import type {
-  ValidationResult,
-  ValidationError,
-  ValidationWarning
-} from '@spa-audio/types';
+import type { ValidationResult, ValidationError, ValidationWarning } from '@spa-audio/types';
 
 /**
  * Validate SPA XML string
@@ -29,18 +25,20 @@ export function validateSPA(xml: string): ValidationResult {
 
     // Add querySelector polyfill for xmldom
     if (!doc.querySelector && 'getElementsByTagName' in doc) {
-      (doc as any).querySelector = function(selector: string) {
+      (doc as any).querySelector = function (selector: string) {
         return this.getElementsByTagName(selector)[0] || null;
       };
     }
 
     // Check for parsing errors
-    const parserError = doc.querySelector ? doc.querySelector('parsererror') : (doc as any).getElementsByTagName('parsererror')[0];
+    const parserError = doc.querySelector
+      ? doc.querySelector('parsererror')
+      : (doc as any).getElementsByTagName('parsererror')[0];
     if (parserError) {
       errors.push({
         type: 'error',
         code: 'PARSE_ERROR',
-        message: parserError.textContent || 'XML parsing failed'
+        message: parserError.textContent || 'XML parsing failed',
       });
       return { valid: false, errors, warnings };
     }
@@ -52,7 +50,7 @@ export function validateSPA(xml: string): ValidationResult {
       errors.push({
         type: 'error',
         code: 'INVALID_ROOT',
-        message: 'Root element must be <spa>'
+        message: 'Root element must be <spa>',
       });
     }
 
@@ -62,7 +60,7 @@ export function validateSPA(xml: string): ValidationResult {
       errors.push({
         type: 'error',
         code: 'MISSING_VERSION',
-        message: 'Missing version attribute on <spa> element'
+        message: 'Missing version attribute on <spa> element',
       });
     } else {
       const version = root.getAttribute('version');
@@ -72,7 +70,7 @@ export function validateSPA(xml: string): ValidationResult {
           errors.push({
             type: 'error',
             code: 'UNSUPPORTED_VERSION',
-            message: `Unsupported SPA version: ${version}. This validator supports v1.x`
+            message: `Unsupported SPA version: ${version}. This validator supports v1.x`,
           });
         }
       }
@@ -80,30 +78,25 @@ export function validateSPA(xml: string): ValidationResult {
 
     // Validate children
     validateChildren(root, errors, warnings);
-
   } catch (error) {
     errors.push({
       type: 'error',
       code: 'VALIDATION_ERROR',
-      message: error instanceof Error ? error.message : 'Unknown validation error'
+      message: error instanceof Error ? error.message : 'Unknown validation error',
     });
   }
 
   return {
     valid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 }
 
 /**
  * Validate defs element
  */
-function validateDefs(
-  el: Element,
-  errors: ValidationError[],
-  warnings: ValidationWarning[]
-): void {
+function validateDefs(el: Element, errors: ValidationError[], warnings: ValidationWarning[]): void {
   void warnings; // Currently unused but kept for API consistency
   for (const child of Array.from(el.children)) {
     if (child.tagName === 'envelope') {
@@ -112,7 +105,7 @@ function validateDefs(
           type: 'error',
           code: 'MISSING_ID',
           message: 'Envelope in defs missing id attribute',
-          element: 'envelope'
+          element: 'envelope',
         });
       }
     }
@@ -122,11 +115,7 @@ function validateDefs(
 /**
  * Validate tone element
  */
-function validateTone(
-  el: Element,
-  errors: ValidationError[],
-  warnings: ValidationWarning[]
-): void {
+function validateTone(el: Element, errors: ValidationError[], warnings: ValidationWarning[]): void {
   // Required attributes
   if (!el.hasAttribute('wave')) {
     errors.push({
@@ -134,7 +123,7 @@ function validateTone(
       code: 'MISSING_ATTRIBUTE',
       message: 'Tone element missing required wave attribute',
       element: 'tone',
-      attribute: 'wave'
+      attribute: 'wave',
     });
   } else {
     const wave = el.getAttribute('wave');
@@ -145,7 +134,7 @@ function validateTone(
         code: 'INVALID_VALUE',
         message: `Invalid wave type: ${wave}`,
         element: 'tone',
-        attribute: 'wave'
+        attribute: 'wave',
       });
     }
   }
@@ -156,7 +145,7 @@ function validateTone(
       code: 'MISSING_ATTRIBUTE',
       message: 'Tone element missing required freq attribute',
       element: 'tone',
-      attribute: 'freq'
+      attribute: 'freq',
     });
   }
 
@@ -166,7 +155,7 @@ function validateTone(
       code: 'MISSING_ATTRIBUTE',
       message: 'Tone element missing required dur attribute',
       element: 'tone',
-      attribute: 'dur'
+      attribute: 'dur',
     });
   } else {
     const dur = parseFloat(el.getAttribute('dur')!);
@@ -176,7 +165,7 @@ function validateTone(
         code: 'INVALID_VALUE',
         message: 'Duration must be positive',
         element: 'tone',
-        attribute: 'dur'
+        attribute: 'dur',
       });
     }
   }
@@ -200,7 +189,7 @@ function validateNoise(
       code: 'MISSING_ATTRIBUTE',
       message: 'Noise element missing required color attribute',
       element: 'noise',
-      attribute: 'color'
+      attribute: 'color',
     });
   } else {
     const color = el.getAttribute('color');
@@ -211,7 +200,7 @@ function validateNoise(
         code: 'INVALID_VALUE',
         message: `Invalid noise color: ${color}`,
         element: 'noise',
-        attribute: 'color'
+        attribute: 'color',
       });
     }
   }
@@ -222,7 +211,7 @@ function validateNoise(
       code: 'MISSING_ATTRIBUTE',
       message: 'Noise element missing required dur attribute',
       element: 'noise',
-      attribute: 'dur'
+      attribute: 'dur',
     });
   }
 
@@ -239,7 +228,7 @@ function validateGroup(
   warnings: ValidationWarning[]
 ): void {
   const children = Array.from(el.children).filter(
-    child => child.tagName === 'tone' || child.tagName === 'noise' || child.tagName === 'group'
+    (child) => child.tagName === 'tone' || child.tagName === 'noise' || child.tagName === 'group'
   );
 
   if (children.length === 0) {
@@ -247,7 +236,7 @@ function validateGroup(
       type: 'warning',
       code: 'EMPTY_GROUP',
       message: 'Group element contains no sound elements',
-      element: 'group'
+      element: 'group',
     });
   }
 
@@ -264,7 +253,7 @@ function validateSequence(
   warnings: ValidationWarning[]
 ): void {
   const children = Array.from(el.children).filter(
-    child => child.tagName === 'tone' || child.tagName === 'noise' || child.tagName === 'group'
+    (child) => child.tagName === 'tone' || child.tagName === 'noise' || child.tagName === 'group'
   );
 
   if (children.length === 0) {
@@ -272,7 +261,7 @@ function validateSequence(
       type: 'warning',
       code: 'EMPTY_SEQUENCE',
       message: 'Sequence element contains no sound elements',
-      element: 'sequence'
+      element: 'sequence',
     });
   }
 
@@ -284,7 +273,7 @@ function validateSequence(
         code: 'MISSING_ATTRIBUTE',
         message: `Child element in sequence missing required 'at' attribute`,
         element: child.tagName,
-        attribute: 'at'
+        attribute: 'at',
       });
     } else {
       const at = parseFloat(child.getAttribute('at')!);
@@ -294,7 +283,7 @@ function validateSequence(
           code: 'INVALID_VALUE',
           message: `Invalid 'at' value: must be a non-negative number`,
           element: child.tagName,
-          attribute: 'at'
+          attribute: 'at',
         });
       }
     }
@@ -331,7 +320,7 @@ function validateChildren(
         type: 'warning',
         code: 'UNKNOWN_ELEMENT',
         message: `Unknown element: ${child.tagName}`,
-        element: child.tagName
+        element: child.tagName,
       });
     }
   }

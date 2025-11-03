@@ -12,7 +12,7 @@ import type {
   SequenceElement,
   RenderOptions,
   ADSREnvelope,
-  AutomationCurve
+  AutomationCurve,
 } from '@spa-audio/types';
 
 import { parseSPA } from './parser';
@@ -30,19 +30,14 @@ export async function renderSPA(
   xml: string | SPADocument,
   options: RenderOptions = {}
 ): Promise<AudioBuffer> {
-  const {
-    sampleRate = 48000,
-    channels = 2,
-    normalize = true,
-    masterVolume = 1.0
-  } = options;
+  const { sampleRate = 48000, channels = 2, normalize = true, masterVolume = 1.0 } = options;
 
   // Parse if string
   const doc = typeof xml === 'string' ? parseSPA(xml) : xml;
 
   // Check if any root sounds have 'at' timing
-  const hasRootTiming = doc.sounds.some(sound => 
-    'at' in sound && (sound as any).at !== undefined
+  const hasRootTiming = doc.sounds.some(
+    (sound) => 'at' in sound && (sound as any).at !== undefined
   );
 
   if (hasRootTiming) {
@@ -73,9 +68,7 @@ export async function renderSPA(
   }
 
   // Original behavior for sounds without timing
-  const renderedSounds = doc.sounds.map(sound =>
-    renderSound(sound, doc.defs, sampleRate)
-  );
+  const renderedSounds = doc.sounds.map((sound) => renderSound(sound, doc.defs, sampleRate));
 
   // Find max length (avoid spread operator for large arrays)
   let maxLength = 0;
@@ -169,12 +162,7 @@ function renderTone(
     buffer = generateWaveform(tone.wave, tone.freq, tone.dur, sampleRate);
   } else if (isAutomationCurve(tone.freq)) {
     // Generate with frequency automation
-    buffer = generateWaveformWithAutomation(
-      tone.wave,
-      tone.freq,
-      tone.dur,
-      sampleRate
-    );
+    buffer = generateWaveformWithAutomation(tone.wave, tone.freq, tone.dur, sampleRate);
   } else {
     // Default to 440 Hz if frequency is not provided
     buffer = generateWaveform(tone.wave, 440, tone.dur, sampleRate);
@@ -201,9 +189,8 @@ function renderTone(
 
   // Apply filter if present
   if (tone.filter) {
-    const filterConfig = typeof tone.filter === 'string'
-      ? defs?.filters?.[tone.filter.slice(1)]
-      : tone.filter;
+    const filterConfig =
+      typeof tone.filter === 'string' ? defs?.filters?.[tone.filter.slice(1)] : tone.filter;
     if (filterConfig) {
       buffer = applyFilter(buffer, filterConfig, sampleRate);
     }
@@ -246,9 +233,8 @@ function renderNoise(
 
   // Apply filter if present
   if (noise.filter) {
-    const filterConfig = typeof noise.filter === 'string'
-      ? defs?.filters?.[noise.filter.slice(1)]
-      : noise.filter;
+    const filterConfig =
+      typeof noise.filter === 'string' ? defs?.filters?.[noise.filter.slice(1)] : noise.filter;
     if (filterConfig) {
       buffer = applyFilter(buffer, filterConfig, sampleRate);
     }
@@ -268,9 +254,7 @@ function renderGroup(
   defs: SPADefinitions | undefined,
   sampleRate: number
 ): Float32Array {
-  const renderedSounds = group.sounds.map(sound =>
-    renderSound(sound, defs, sampleRate)
-  );
+  const renderedSounds = group.sounds.map((sound) => renderSound(sound, defs, sampleRate));
 
   // Find max length (avoid spread operator for large arrays)
   let maxLength = 0;
@@ -348,7 +332,7 @@ function applyReferencedEffects(
   }
 
   // Split effect references by comma for effect chains
-  const effectIds = effectRef.split(',').map(id => id.trim());
+  const effectIds = effectRef.split(',').map((id) => id.trim());
   let result = buffer;
 
   for (const effectId of effectIds) {
@@ -427,12 +411,13 @@ function generateWaveformWithAutomation(
         freq = freqCurve.start * Math.pow(freqCurve.end / freqCurve.start, progress);
         break;
       case 'log':
-        freq = freqCurve.start + (freqCurve.end - freqCurve.start) * Math.log1p(progress * 9) / Math.log(10);
+        freq =
+          freqCurve.start +
+          ((freqCurve.end - freqCurve.start) * Math.log1p(progress * 9)) / Math.log(10);
         break;
       case 'smooth':
-        const smoothProgress = progress < 0.5
-          ? 2 * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        const smoothProgress =
+          progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
         freq = freqCurve.start + (freqCurve.end - freqCurve.start) * smoothProgress;
         break;
       default: // linear
@@ -491,7 +476,12 @@ function applyRepeat(
   sampleRate: number
 ): Float32Array {
   // Check if repeat is configured properly
-  if (!element.repeat || element.repeat <= 1 || !element.repeatInterval || element.repeatInterval <= 0) {
+  if (
+    !element.repeat ||
+    element.repeat <= 1 ||
+    !element.repeatInterval ||
+    element.repeatInterval <= 0
+  ) {
     return buffer;
   }
 
@@ -502,7 +492,8 @@ function applyRepeat(
   const pitchShift = (element as ToneElement).repeatPitchShift || 0;
 
   // Calculate total length
-  const totalLength = delaySamples + buffer.length + (repeatCount - 1) * (buffer.length + intervalSamples);
+  const totalLength =
+    delaySamples + buffer.length + (repeatCount - 1) * (buffer.length + intervalSamples);
 
   // Safety check: prevent extremely large buffers
   if (totalLength > sampleRate * 60 || totalLength < 0 || !isFinite(totalLength)) {
@@ -554,11 +545,7 @@ function isAutomationCurve(value: any): value is AutomationCurve {
 /**
  * Create AudioBuffer (handles both browser and Node.js)
  */
-function createAudioBuffer(
-  channels: number,
-  length: number,
-  sampleRate: number
-): AudioBuffer {
+function createAudioBuffer(channels: number, length: number, sampleRate: number): AudioBuffer {
   if (typeof window !== 'undefined' && window.AudioContext) {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     return ctx.createBuffer(channels, length, sampleRate);
@@ -576,7 +563,7 @@ function createAudioBuffer(
     },
     copyFromChannel: (_destination: Float32Array, _channel: number) => {
       // No-op in Node.js
-    }
+    },
   } as AudioBuffer;
 }
 

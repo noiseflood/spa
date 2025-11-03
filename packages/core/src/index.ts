@@ -23,7 +23,7 @@ export type {
   RenderResult,
   ParseOptions,
   ParseResult,
-  ValidationResult
+  ValidationResult,
 } from '@spa-audio/types';
 
 /**
@@ -48,10 +48,7 @@ class SPAPlayer {
     return this.audioContext;
   }
 
-  async play(
-    xml: string,
-    options?: import('@spa-audio/types').RenderOptions
-  ): Promise<void> {
+  async play(xml: string, options?: import('@spa-audio/types').RenderOptions): Promise<void> {
     // Throttle: prevent same sound from playing too rapidly
     const now = Date.now();
     const lastPlay = this.lastPlayTime.get(xml) || 0;
@@ -132,7 +129,7 @@ class SPAPlayer {
    * Stop all currently playing sounds
    */
   stopAll(): void {
-    this.activeSources.forEach(source => {
+    this.activeSources.forEach((source) => {
       try {
         source.stop();
       } catch (e) {
@@ -207,7 +204,7 @@ export const SPA = {
   play: playSPA,
   validate,
   stopAll: stopAllSounds,
-  clearCache: clearSoundCache
+  clearCache: clearSoundCache,
 } as const;
 
 // Export SPA namespace as named export only (no default export to avoid rollup warnings)

@@ -141,19 +141,19 @@ export interface EffectElement {
  * Repeat configuration for looping sounds
  */
 export interface RepeatConfig {
-  count: number;  // Number of repetitions
-  interval: number;             // Time between repetitions in seconds
-  delay?: number;               // Initial delay before first repetition
-  decay?: number;               // Volume reduction per repeat (0-1)
-  pitchShift?: number;          // Semitone shift per repeat
+  count: number; // Number of repetitions
+  interval: number; // Time between repetitions in seconds
+  delay?: number; // Initial delay before first repetition
+  decay?: number; // Volume reduction per repeat (0-1)
+  pitchShift?: number; // Semitone shift per repeat
 }
 
 /**
  * ADSR Envelope configuration
  */
 export interface ADSREnvelope {
-  attack: number;  // Time in seconds to reach peak
-  decay: number;   // Time in seconds to fall to sustain
+  attack: number; // Time in seconds to reach peak
+  decay: number; // Time in seconds to fall to sustain
   sustain: number; // Level to hold (0.0-1.0)
   release: number; // Time in seconds to fade to silence
 }
@@ -179,8 +179,8 @@ export interface ComplexAutomation {
  * Single keyframe in complex automation
  */
 export interface AutomationKeyframe {
-  at: number;       // Time in seconds
-  value: number;    // Parameter value
+  at: number; // Time in seconds
+  value: number; // Parameter value
   curve?: CurveType; // Interpolation to next keyframe
 }
 
@@ -262,13 +262,13 @@ export type ReverbPreset = 'room' | 'hall' | 'cathedral' | 'cave' | 'plate' | 's
  * Options for rendering SPA to audio
  */
 export interface RenderOptions {
-  sampleRate?: number;     // Default: 48000
-  channels?: number;        // Default: 2 (stereo)
-  bitDepth?: number;        // Default: 16
-  format?: AudioFormat;     // Default: 'float32'
-  normalize?: boolean;      // Default: true
-  masterVolume?: number;    // Default: 1.0
-  offline?: boolean;        // Use offline context for faster rendering
+  sampleRate?: number; // Default: 48000
+  channels?: number; // Default: 2 (stereo)
+  bitDepth?: number; // Default: 16
+  format?: AudioFormat; // Default: 'float32'
+  normalize?: boolean; // Default: true
+  masterVolume?: number; // Default: 1.0
+  offline?: boolean; // Use offline context for faster rendering
 }
 
 /**
@@ -294,10 +294,10 @@ export interface RenderResult {
  * Options for parsing SPA XML
  */
 export interface ParseOptions {
-  validate?: boolean;        // Validate against schema
+  validate?: boolean; // Validate against schema
   resolveReferences?: boolean; // Resolve def references
-  strict?: boolean;          // Strict parsing mode
-  allowComments?: boolean;   // Allow XML comments
+  strict?: boolean; // Strict parsing mode
+  allowComments?: boolean; // Allow XML comments
 }
 
 /**
@@ -412,7 +412,7 @@ export const DEFAULT_ENVELOPE: ADSREnvelope = {
   attack: 0,
   decay: 0,
   sustain: 1,
-  release: 0
+  release: 0,
 };
 
 export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
@@ -422,12 +422,12 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   format: 'float32',
   normalize: true,
   masterVolume: 1.0,
-  offline: false
+  offline: false,
 };
 
 export const DEFAULT_PARSE_OPTIONS: ParseOptions = {
   validate: true,
   resolveReferences: true,
   strict: false,
-  allowComments: true
+  allowComments: true,
 };

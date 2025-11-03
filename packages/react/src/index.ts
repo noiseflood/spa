@@ -19,49 +19,25 @@ export { FileUploader } from './components/FileUploader';
 export { SPAAudioEngine } from './engine/SPAAudioEngine';
 
 // Types
-export type {
-  WebAudioState,
-  UseWebAudioOptions
-} from './hooks/useWebAudio';
+export type { WebAudioState, UseWebAudioOptions } from './hooks/useWebAudio';
 
-export type {
-  SPALoaderState,
-  UseSPALoaderOptions
-} from './hooks/useSPALoader';
+export type { SPALoaderState, UseSPALoaderOptions } from './hooks/useSPALoader';
 
-export type {
-  PlayerState,
-  UseSPAPlayerOptions
-} from './hooks/useSPAPlayer';
+export type { PlayerState, UseSPAPlayerOptions } from './hooks/useSPAPlayer';
 
-export type {
-  EngineOptions,
-  ScheduledSound
-} from './engine/SPAAudioEngine';
+export type { EngineOptions, ScheduledSound } from './engine/SPAAudioEngine';
 
-export type {
-  SPAPlayerProps
-} from './components/SPAPlayer';
+export type { SPAPlayerProps } from './components/SPAPlayer';
 
-export type {
-  SPAButtonProps
-} from './components/SPAButton';
+export type { SPAButtonProps } from './components/SPAButton';
 
-export type {
-  TransportControlsProps
-} from './components/TransportControls';
+export type { TransportControlsProps } from './components/TransportControls';
 
-export type {
-  VolumeControlProps
-} from './components/VolumeControl';
+export type { VolumeControlProps } from './components/VolumeControl';
 
-export type {
-  ProgressBarProps
-} from './components/ProgressBar';
+export type { ProgressBarProps } from './components/ProgressBar';
 
-export type {
-  FileUploaderProps
-} from './components/FileUploader';
+export type { FileUploaderProps } from './components/FileUploader';
 
 // Re-export core functionality
 export { parseSPA } from '@spa-audio/core';
@@ -78,5 +54,5 @@ export type {
   FilterConfig,
   WaveformType,
   NoiseColor,
-  FilterType
+  FilterType,
 } from '@spa-audio/types';
