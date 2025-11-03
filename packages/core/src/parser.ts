@@ -341,10 +341,6 @@ function parseSequence(
   };
 
   // Parse optional attributes
-  if (el.hasAttribute('loop')) {
-    sequence.loop = el.getAttribute('loop') === 'true';
-  }
-
   if (el.hasAttribute('tempo')) {
     sequence.tempo = parseFloat(el.getAttribute('tempo')!);
   }
@@ -516,7 +512,5 @@ function parseFilter(el: Element): FilterConfig | undefined {
     type: filterType,
     cutoff,
     resonance: parseNumericOrAutomation(el, 'resonance'),
-    gain: el.hasAttribute('gain') ? parseFloat(el.getAttribute('gain')!) : undefined,
-    detune: el.hasAttribute('detune') ? parseFloat(el.getAttribute('detune')!) : undefined,
   };
 }

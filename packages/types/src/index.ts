@@ -103,7 +103,6 @@ export interface SequenceElement {
   type: 'sequence';
   id?: string;
   elements: TimedSound[];
-  loop?: boolean;
   tempo?: number; // BPM for beat-based timing
   effect?: string; // Effect ID(s) to apply, comma-separated for chains
 }
@@ -207,8 +206,6 @@ export interface FilterConfig {
   type: FilterType;
   cutoff: number | AutomationCurve;
   resonance?: number | AutomationCurve;
-  gain?: number; // For peaking/shelf filters
-  detune?: number; // Frequency detune in cents
 }
 
 // ============================================================================
@@ -218,7 +215,7 @@ export interface FilterConfig {
 /**
  * Available waveform types for oscillators
  */
-export type WaveformType = 'sine' | 'square' | 'triangle' | 'saw' | 'pulse' | 'custom';
+export type WaveformType = 'sine' | 'square' | 'triangle' | 'saw' | 'pulse';
 
 /**
  * Available noise colors
@@ -228,16 +225,7 @@ export type NoiseColor = 'white' | 'pink' | 'brown' | 'blue' | 'violet' | 'grey'
 /**
  * Available filter types
  */
-export type FilterType =
-  | 'lowpass'
-  | 'highpass'
-  | 'bandpass'
-  | 'bandstop'
-  | 'notch'
-  | 'allpass'
-  | 'peaking'
-  | 'lowshelf'
-  | 'highshelf';
+export type FilterType = 'lowpass' | 'highpass' | 'bandpass';
 
 /**
  * Automation curve interpolation types
@@ -247,7 +235,7 @@ export type CurveType = 'linear' | 'exp' | 'log' | 'smooth' | 'step' | 'ease-in'
 /**
  * Available effect types
  */
-export type EffectType = 'reverb' | 'delay' | 'chorus' | 'distortion';
+export type EffectType = 'reverb' | 'delay';
 
 /**
  * Available reverb presets

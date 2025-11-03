@@ -175,7 +175,6 @@ function applyTimeVaryingFilter(
         type: filter.type,
         cutoff: currentCutoff,
         resonance: currentResonance,
-        gain: filter.gain,
       };
 
       const coeffs = calculateBiquadCoefficients(currentFilter, sampleRate);

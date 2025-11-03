@@ -104,7 +104,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["reverb", "delay", "chorus", "distortion"],
+          "enum": ["reverb", "delay"],
           "description": "Effect type"
         },
         "preset": {
@@ -202,19 +202,10 @@
           ]
         },
         "dur": {
-          "oneOf": [
-            {
-              "type": "number",
-              "exclusiveMinimum": 0,
-              "maximum": 60,
-              "description": "Duration in seconds"
-            },
-            {
-              "type": "string",
-              "pattern": "^\\d+(\\.\\d+)?(ms|s)$",
-              "description": "Duration with unit (e.g., '500ms', '1.5s')"
-            }
-          ]
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "description": "Duration in seconds"
         },
         "amp": {
           "oneOf": [
@@ -363,23 +354,14 @@
       "properties": {
         "color": {
           "type": "string",
-          "enum": ["white", "pink", "brown"],
+          "enum": ["white", "pink", "brown", "blue", "violet", "grey"],
           "description": "Noise color/type"
         },
         "dur": {
-          "oneOf": [
-            {
-              "type": "number",
-              "exclusiveMinimum": 0,
-              "maximum": 60,
-              "description": "Duration in seconds"
-            },
-            {
-              "type": "string",
-              "pattern": "^\\d+(\\.\\d+)?(ms|s)$",
-              "description": "Duration with unit"
-            }
-          ]
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "description": "Duration in seconds"
         },
         "amp": {
           "oneOf": [
@@ -607,11 +589,6 @@
             ]
           }
         },
-        "loop": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether to loop the entire sequence"
-        },
         "tempo": {
           "type": "number",
           "minimum": 20,
@@ -628,7 +605,7 @@
     },
     "curveType": {
       "type": "string",
-      "enum": ["linear", "exp", "log", "smooth"],
+      "enum": ["linear", "exp", "log", "smooth", "step", "ease-in", "ease-out"],
       "default": "linear",
       "description": "Interpolation curve type"
     },
@@ -644,7 +621,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["reverb", "delay", "chorus", "distortion"],
+          "enum": ["reverb", "delay"],
           "description": "Effect type"
         },
         "preset": {

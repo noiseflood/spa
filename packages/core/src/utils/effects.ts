@@ -265,12 +265,6 @@ export function applyEffect(
       return applyReverb(buffer, effect, sampleRate);
     case 'delay':
       return applyDelay(buffer, effect, sampleRate);
-    case 'chorus':
-      // TODO: Implement chorus effect
-      return buffer;
-    case 'distortion':
-      // TODO: Implement distortion effect
-      return buffer;
     default:
       return buffer;
   }

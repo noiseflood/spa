@@ -402,14 +402,6 @@ export class SPAAudioEngine {
       filterNode.Q.value = filter.resonance;
     }
 
-    if (filter.gain !== undefined) {
-      filterNode.gain.value = filter.gain;
-    }
-
-    if (filter.detune !== undefined) {
-      filterNode.detune.value = filter.detune;
-    }
-
     return filterNode;
   }
 
