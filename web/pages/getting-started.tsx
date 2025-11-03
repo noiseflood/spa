@@ -34,8 +34,7 @@ export default function GettingStarted() {
             <div className="bg-navy-dark rounded-lg p-6 border border-navy-light/20">
               <p className="mb-4">
                 SPA (Synthetic Parametric Audio) is an XML-based format for defining procedural
-                sound effects. Think of it as "SVG for audio" - declarative, Synthetic, and perfect
-                for AI generation.
+                sound effects.
               </p>
               <div className="bg-navy rounded p-4 font-mono text-sm text-green-bright">
                 <pre>{`<spa xmlns="https://spa.audio/ns" version="1.0">
@@ -304,32 +303,17 @@ fs.writeFileSync('output.wav', wavBuffer);`}</pre>
           <section className="mb-12">
             <h2 className="text-2xl font-semibold text-green-bright mb-4">6. Next Steps</h2>
             <div className="bg-navy-dark rounded-lg p-6 border border-navy-light/20">
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2 text-green-bright">Try the Editor</h3>
-                  <p className="text-white/60 mb-4">
-                    Experiment with creating sounds visually in our interactive editor
-                  </p>
-                  <Link
-                    href="/editor"
-                    className="inline-block px-4 py-2 bg-navy text-green-bright border-2 border-green-bright rounded hover:bg-green-bright hover:text-navy-dark transition-colors"
-                  >
-                    Open Editor →
-                  </Link>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-2 text-green-bright">Explore Examples</h3>
-                  <p className="text-white/60 mb-4">
-                    Browse our collection of pre-made sound effects and patterns
-                  </p>
-                  <Link
-                    href="/examples"
-                    className="inline-block px-4 py-2 bg-navy border-2 border-navy-light text-white rounded hover:bg-navy-light hover:text-white transition-colors"
-                  >
-                    View Examples →
-                  </Link>
-                </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2 text-green-bright">Try the Editor</h3>
+                <p className="text-white/60 mb-4">
+                  Experiment with creating sounds in the interactive editor
+                </p>
+                <Link
+                  href="/editor"
+                  className="inline-block px-4 py-2 bg-navy text-green-bright border-2 border-green-bright rounded hover:bg-green-bright hover:text-navy-dark transition-colors"
+                >
+                  Open Editor
+                </Link>
               </div>
             </div>
           </section>
@@ -340,36 +324,24 @@ fs.writeFileSync('output.wav', wavBuffer);`}</pre>
             <div className="bg-navy-dark p-px rounded-lg">
               <div className="bg-navy-dark rounded-lg p-6 border border-navy-light/20">
                 <h3 className="text-lg font-semibold mb-4 text-green-bright">
-                  Why SPA is Perfect for AI
+                  Using SPA with AI
                 </h3>
-                <ul className="space-y-3 text-white/60">
-                  <li className="flex gap-3">
-                    <span className="text-green-bright">✓</span>
-                    <span>
-                      <strong className="text-white">Declarative:</strong> AI can understand and
-                      generate XML easily
-                    </span>
+                <ul className="space-y-3 text-white/60 list-disc list-inside">
+                  <li>
+                    <strong className="text-white">Declarative:</strong> AI can understand and
+                    generate XML easily
                   </li>
-                  <li className="flex gap-3">
-                    <span className="text-green-bright">✓</span>
-                    <span>
-                      <strong className="text-white">Parametric:</strong> Clear parameters that AI
-                      can reason about
-                    </span>
+                  <li>
+                    <strong className="text-white">Parametric:</strong> Clear parameters that AI
+                    can reason about
                   </li>
-                  <li className="flex gap-3">
-                    <span className="text-green-bright">✓</span>
-                    <span>
-                      <strong className="text-white">Context-Aware:</strong> AI can generate
-                      appropriate sounds based on context
-                    </span>
+                  <li>
+                    <strong className="text-white">Context-Aware:</strong> AI can generate
+                    appropriate sounds based on context
                   </li>
-                  <li className="flex gap-3">
-                    <span className="text-green-bright">✓</span>
-                    <span>
-                      <strong className="text-white">Learnable:</strong> Simple patterns that AI
-                      models can learn from examples
-                    </span>
+                  <li>
+                    <strong className="text-white">Learnable:</strong> Simple patterns that AI
+                    models can learn from examples
                   </li>
                 </ul>
 

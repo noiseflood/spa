@@ -62,14 +62,14 @@ export default function Home() {
     // Show words one by one
     const wordTimers = [
       setTimeout(() => setVisibleWords(1), 0), // "Unmute" immediately
-      setTimeout(() => setVisibleWords(2), 1000), // "the" after 1 second
-      setTimeout(() => setVisibleWords(3), 2000), // "internet" after 2 seconds
+      setTimeout(() => setVisibleWords(2), 300), // "the" after 0.3 seconds
+      setTimeout(() => setVisibleWords(3), 600), // "internet" after 0.6 seconds
     ];
 
-    // Transition to homepage after 3 seconds
+    // Transition to homepage after 1.2 seconds
     const transitionTimer = setTimeout(() => {
       setShowIntro(false);
-    }, 3000);
+    }, 1200);
 
     return () => {
       wordTimers.forEach((timer) => clearTimeout(timer));
@@ -159,13 +159,13 @@ export default function Home() {
           <title>SPA - Unmute the Internet</title>
           <meta
             name="description"
-            content="The SVG of Sound Effects - Empowering AI to generate procedural audio"
+            content="Procedural audio for the web - XML-based format for defining sound effects"
           />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
         </Head>
 
-        <div className="min-h-screen bg-[#16152F] flex items-center justify-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-[0.2em] text-[#8ED670] font-[Verdana,sans-serif] text-right">
+        <div className="min-h-screen bg-navy flex items-center justify-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-[0.2em] text-green-bright font-[Verdana,sans-serif] text-right">
             <span
               className={`block transition-opacity duration-500 ${
                 visibleWords >= 1 ? 'opacity-100' : 'opacity-0'
@@ -200,7 +200,7 @@ export default function Home() {
         <title>SPA - Synthetic Parametric Audio</title>
         <meta
           name="description"
-          content="The SVG of Sound Effects - Empowering AI to generate procedural audio"
+          content="Procedural audio for the web - XML-based format for defining sound effects"
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
@@ -217,7 +217,7 @@ export default function Home() {
               className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95 focus:outline-none"
               title="Click to play sound"
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-green-bright animate-glow tracking-tighter select-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-green-bright tracking-tighter select-none">
                 &lt;spa name=&quot;{displayedName}
                 <span className="animate-pulse">
                   {displayedName.length < (currentPreset?.name.length || 0) ? '|' : ''}
@@ -226,29 +226,23 @@ export default function Home() {
               </h1>
             </div>
             <div className="h-full">
-              <p className="text-2xl text-white/60 font-light mb-8">The SVG of Sound Effects</p>
+              <p className="text-2xl text-white/60 font-light mb-8">The SVG of audio</p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/editor"
                   onMouseEnter={() => playSound('ui-feedback/hover')}
                   onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-navy-dark text-green-bright border-2 border-green-bright font-semibold text-lg rounded-lg shadow-lg hover:bg-green-bright hover:text-navy-dark hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-navy-dark text-green-bright border-2 border-green-bright font-semibold text-lg rounded-lg shadow-lg hover:bg-green-bright hover:text-navy-dark hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-                  </svg>
                   Create a Sound
                 </Link>
                 <Link
                   href="/getting-started"
                   onMouseEnter={() => playSound('ui-feedback/hover')}
                   onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-navy-dark border-2 border-navy-light text-white font-semibold text-lg rounded-lg hover:bg-navy-light hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-navy-dark border-2 border-navy-light text-white font-semibold text-lg rounded-lg hover:bg-navy-light hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                  </svg>
                   Get Started
                 </Link>
               </div>
@@ -261,10 +255,9 @@ export default function Home() {
               onMouseEnter={() => playSound('ui-feedback/hover')}
               className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
             >
-              <div className="text-4xl mb-4">🎵</div>
               <h3 className="text-xl font-semibold text-green-bright mb-2">Declarative Audio</h3>
               <p className="text-white/60">
-                Define sounds with simple XML tags. No complex audio programming required.
+                Define sounds with XML tags. No complex audio programming required.
               </p>
             </div>
 
@@ -272,7 +265,6 @@ export default function Home() {
               onMouseEnter={() => playSound('ui-feedback/hover')}
               className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
             >
-              <div className="text-4xl mb-4">🤖</div>
               <h3 className="text-xl font-semibold text-green-bright mb-2">AI-Friendly</h3>
               <p className="text-white/60">
                 Designed for AI to read, write, and understand. Generate sounds with natural
@@ -284,7 +276,6 @@ export default function Home() {
               onMouseEnter={() => playSound('ui-feedback/hover')}
               className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
             >
-              <div className="text-4xl mb-4">⚡</div>
               <h3 className="text-xl font-semibold text-green-bright mb-2">Web-Native</h3>
               <p className="text-white/60">
                 Runs directly in browsers using Web Audio API. No plugins or downloads needed.
@@ -294,7 +285,7 @@ export default function Home() {
 
           {/* Example Section */}
           <section className="py-16 text-center">
-            <h2 className="text-3xl font-bold text-green-bright mb-8">Simple as XML</h2>
+            <h2 className="text-3xl font-bold text-green-bright mb-8">Example</h2>
             <div className="max-w-2xl mx-auto bg-navy-dark rounded-xl p-8 border border-navy-light/20">
               <pre className="text-green-bright font-mono text-sm sm:text-base text-left overflow-x-auto">
                 <code>{`<spa xmlns="https://spa.audio/ns" version="1.0">
@@ -303,7 +294,7 @@ export default function Home() {
               </pre>
             </div>
             <p className="text-white/60 mt-4">
-              Create a 440Hz sine wave (A note) that plays for half a second
+              A 440Hz sine wave (A note) that plays for half a second
             </p>
           </section>
 
@@ -355,20 +346,13 @@ export default function Home() {
               >
                 GitHub
               </a>
-              <Link
-                href="/docs"
+              <a
+                href="https://www.npmjs.com/org/spa-audio"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
                 className="text-white/60 hover:text-green-bright transition-colors"
               >
-                Documentation
-              </Link>
-              <Link
-                href="/examples"
-                onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="text-white/60 hover:text-green-bright transition-colors"
-              >
-                Examples
-              </Link>
+                npm
+              </a>
             </div>
           </footer>
         </div>
