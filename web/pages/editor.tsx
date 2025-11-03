@@ -37,6 +37,14 @@ interface EditorGroup {
   type: 'group';
   children: EditorNode[];
   effect?: string; // Reference to effect IDs
+  at?: number; // Time in seconds when this element starts (for use in sequences)
+  amp?: number; // Amplitude/volume (0-1)
+  pan?: number; // Stereo panning (-1 left, 0 center, 1 right)
+  repeat?: number;
+  repeatInterval?: number;
+  repeatDelay?: number;
+  repeatDecay?: number;
+  repeatPitchShift?: number;
 }
 
 interface EditorSequence {
@@ -44,6 +52,7 @@ interface EditorSequence {
   type: 'sequence';
   children: EditorNode[];
   effect?: string; // Reference to effect IDs
+  tempo?: number;
 }
 
 export default function Editor() {
@@ -117,15 +126,17 @@ export default function Editor() {
   const hasInitializedExpandedNodes = useRef(false);
 
   // Effects state
-  const [effects, setEffects] = useState<Array<{
-    id: string;
-    type: 'reverb' | 'delay';
-    preset?: string;
-    mix?: number;
-    decay?: number;
-    delayTime?: number;
-    feedback?: number;
-  }>>([]);
+  const [effects, setEffects] = useState<
+    Array<{
+      id: string;
+      type: 'reverb' | 'delay';
+      preset?: string;
+      mix?: number;
+      decay?: number;
+      delayTime?: number;
+      feedback?: number;
+    }>
+  >([]);
 
   // Initialize preset categories on mount
   useEffect(() => {
@@ -385,6 +396,50 @@ export default function Editor() {
     setRootNodes(updateNodes(rootNodes));
   };
 
+  const updateGroupNode = (id: number, updates: Partial<EditorGroup>) => {
+    const updateNodes = (nodes: EditorNode[]): EditorNode[] => {
+      return nodes.map((node) => {
+        if (node.id === id && node.type === 'group') {
+          return {
+            ...node,
+            ...updates,
+          };
+        }
+        if (node.type === 'group' || node.type === 'sequence') {
+          return {
+            ...node,
+            children: updateNodes(node.children),
+          };
+        }
+        return node;
+      });
+    };
+
+    setRootNodes(updateNodes(rootNodes));
+  };
+
+  const updateSequenceNode = (id: number, updates: Partial<EditorSequence>) => {
+    const updateNodes = (nodes: EditorNode[]): EditorNode[] => {
+      return nodes.map((node) => {
+        if (node.id === id && node.type === 'sequence') {
+          return {
+            ...node,
+            ...updates,
+          };
+        }
+        if (node.type === 'group' || node.type === 'sequence') {
+          return {
+            ...node,
+            children: updateNodes(node.children),
+          };
+        }
+        return node;
+      });
+    };
+
+    setRootNodes(updateNodes(rootNodes));
+  };
+
   const toggleNodeExpansion = (id: number) => {
     setExpandedNodes((prev) => {
       const newSet = new Set(prev);
@@ -401,17 +456,27 @@ export default function Editor() {
     if (node.type === 'layer') {
       return soundToXML(node.sound, node.effect);
     } else if (node.type === 'group') {
+      let xml = `${indent}<group`;
+      // Add all group attributes
+      if (node.at !== undefined && node.at !== 0) xml += ` at="${node.at}"`;
+      if (node.amp !== undefined && node.amp !== 1) xml += ` amp="${node.amp}"`;
+      if (node.pan !== undefined && node.pan !== 0) xml += ` pan="${node.pan}"`;
+      if (node.repeat !== undefined && node.repeat > 1) xml += ` repeat="${node.repeat}"`;
+      if (node.repeatInterval !== undefined && node.repeatInterval > 0)
+        xml += ` repeat.interval="${node.repeatInterval}"`;
+      if (node.repeatDelay !== undefined && node.repeatDelay > 0)
+        xml += ` repeat.delay="${node.repeatDelay}"`;
+      if (node.repeatDecay !== undefined && node.repeatDecay > 0)
+        xml += ` repeat.decay="${node.repeatDecay}"`;
+      if (node.repeatPitchShift !== undefined && node.repeatPitchShift !== 0)
+        xml += ` repeat.pitchShift="${node.repeatPitchShift}"`;
+      if (node.effect) xml += ` effect="${node.effect}"`;
+
       if (node.children.length === 0) {
-        let xml = `${indent}<group`;
-        if (node.effect) xml += ` effect="${node.effect}"`;
         xml += '/>';
         return xml;
       }
-      let xml = `${indent}<group`;
-      if (node.effect) {
-        console.log('Adding effect to group XML:', node.effect);
-        xml += ` effect="${node.effect}"`;
-      }
+
       xml += '>\n';
       for (const child of node.children) {
         xml += `${indent}  ${nodeToXML(child, indent + '  ')}\n`;
@@ -419,14 +484,16 @@ export default function Editor() {
       xml += `${indent}</group>`;
       return xml;
     } else if (node.type === 'sequence') {
+      let xml = `${indent}<sequence`;
+      // Add sequence attributes
+      if (node.tempo !== undefined && node.tempo !== 120) xml += ` tempo="${node.tempo}"`;
+      if (node.effect) xml += ` effect="${node.effect}"`;
+
       if (node.children.length === 0) {
-        let xml = `${indent}<sequence`;
-        if (node.effect) xml += ` effect="${node.effect}"`;
         xml += '/>';
         return xml;
       }
-      let xml = `${indent}<sequence`;
-      if (node.effect) xml += ` effect="${node.effect}"`;
+
       xml += '>\n';
       for (const child of node.children) {
         xml += `${indent}  ${nodeToXML(child, indent + '  ')}\n`;
@@ -633,12 +700,14 @@ export default function Editor() {
 
     try {
       // Use codeEditorContent if in code view and it has content, otherwise use xmlOutput
-      const xmlToPlay = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+      const xmlToPlay =
+        activeEditorTab === 'code' && codeEditorContent ? codeEditorContent : xmlOutput;
       currentPlaybackRef.current = playSPA(xmlToPlay);
       await currentPlaybackRef.current;
     } catch (error) {
       console.error('Error playing sound:', error);
-      const xmlToPlay = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+      const xmlToPlay =
+        activeEditorTab === 'code' && codeEditorContent ? codeEditorContent : xmlOutput;
       console.error('XML that caused error:', xmlToPlay);
     } finally {
       setIsPlaying(false);
@@ -1016,6 +1085,25 @@ export default function Editor() {
     return layers;
   };
 
+  const isNodeInSequence = (nodeId: number): boolean => {
+    const checkInSequence = (nodes: EditorNode[], targetId: number): boolean => {
+      for (const node of nodes) {
+        if (node.type === 'sequence') {
+          // Check if the target node is a child of this sequence
+          const found = node.children.some((child) => child.id === targetId);
+          if (found) return true;
+          // Check recursively in children
+          if (checkInSequence(node.children, targetId)) return true;
+        } else if (node.type === 'group') {
+          // Continue searching in group's children
+          if (checkInSequence(node.children, targetId)) return true;
+        }
+      }
+      return false;
+    };
+    return checkInSequence(rootNodes, nodeId);
+  };
+
   const currentNode = currentNodeId !== null ? findNodeById(rootNodes, currentNodeId) : null;
   const currentLayer = currentNode?.type === 'layer' ? currentNode : null;
   const allLayers = getAllLayers(rootNodes);
@@ -1330,7 +1418,9 @@ export default function Editor() {
             onLoadPreset={loadPreset}
             playSoundEffect={playSoundEffect}
             onEditorUpdate={handleAIEditorUpdate}
-            currentSPA={(activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput}
+            currentSPA={
+              activeEditorTab === 'code' && codeEditorContent ? codeEditorContent : xmlOutput
+            }
             mobileTab={mobileTab}
           />
         </div>
@@ -1476,12 +1566,15 @@ export default function Editor() {
                       <button
                         onClick={() => {
                           const effectId = `effect${effects.length + 1}`;
-                          setEffects([...effects, {
-                            id: effectId,
-                            type: 'reverb',
-                            preset: 'hall',
-                            mix: 0.5
-                          }]);
+                          setEffects([
+                            ...effects,
+                            {
+                              id: effectId,
+                              type: 'reverb',
+                              preset: 'hall',
+                              mix: 0.5,
+                            },
+                          ]);
                         }}
                         className="text-xs px-2 py-1 bg-navy-light hover:bg-navy-light/80 rounded transition-colors"
                       >
@@ -1493,16 +1586,21 @@ export default function Editor() {
                     ) : (
                       <div className="space-y-2">
                         {effects.map((effect) => (
-                          <div key={effect.id} className="flex items-center justify-between text-xs bg-navy-light/10 p-2 rounded">
+                          <div
+                            key={effect.id}
+                            className="flex items-center justify-between text-xs bg-navy-light/10 p-2 rounded"
+                          >
                             <div className="flex items-center gap-2">
                               <span className="text-green">#{effect.id}</span>
                               <span className="text-gray-400">
-                                {effect.type === 'reverb' ? `Reverb (${effect.preset || 'hall'})` : `Delay (${effect.delayTime || 0.5}s)`}
+                                {effect.type === 'reverb'
+                                  ? `Reverb (${effect.preset || 'hall'})`
+                                  : `Delay (${effect.delayTime || 0.5}s)`}
                               </span>
                             </div>
                             <button
                               onClick={() => {
-                                setEffects(effects.filter(e => e.id !== effect.id));
+                                setEffects(effects.filter((e) => e.id !== effect.id));
                               }}
                               className="text-red-400 hover:text-red-300 transition-colors"
                             >
@@ -1589,7 +1687,10 @@ export default function Editor() {
                     </button>
                     <button
                       onClick={() => {
-                        const xmlToExport = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+                        const xmlToExport =
+                          activeEditorTab === 'code' && codeEditorContent
+                            ? codeEditorContent
+                            : xmlOutput;
                         const blob = new Blob([xmlToExport], { type: 'text/xml' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
@@ -1604,7 +1705,10 @@ export default function Editor() {
                     </button>
                     <button
                       onClick={() => {
-                        const xmlToCopy = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+                        const xmlToCopy =
+                          activeEditorTab === 'code' && codeEditorContent
+                            ? codeEditorContent
+                            : xmlOutput;
                         navigator.clipboard.writeText(xmlToCopy);
                       }}
                       className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors whitespace-nowrap"
@@ -1629,25 +1733,29 @@ export default function Editor() {
                           <ToneParameters
                             layer={currentLayer}
                             updateLayerSound={updateLayerSound}
+                            effects={effects}
                           />
                         ) : (
                           <NoiseParameters
                             layer={currentLayer}
                             updateLayerSound={updateLayerSound}
+                            effects={effects}
                           />
                         )}
                       </div>
-                    ) : currentNode ? (
-                      <div className="text-center mt-8">
-                        <p className="text-gray-400 mb-2">
-                          Selected: {currentNode.type === 'group' ? 'Group' : 'Sequence'}
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                          {currentNode.type === 'group'
-                            ? 'Groups play all their children simultaneously'
-                            : 'Sequences play their children in order with timing'}
-                        </p>
-                      </div>
+                    ) : currentNode && currentNode.type === 'group' ? (
+                      <GroupParameters
+                        group={currentNode as EditorGroup}
+                        updateGroupNode={updateGroupNode}
+                        isInSequence={isNodeInSequence(currentNode.id)}
+                        effects={effects}
+                      />
+                    ) : currentNode && currentNode.type === 'sequence' ? (
+                      <SequenceParameters
+                        sequence={currentNode as EditorSequence}
+                        updateSequenceNode={updateSequenceNode}
+                        effects={effects}
+                      />
                     ) : (
                       <p className="text-gray-500 text-center mt-8">Select a layer to edit</p>
                     )}
@@ -1838,6 +1946,189 @@ export default function Editor() {
   );
 }
 
+// Group Parameters Component
+function GroupParameters({
+  group,
+  updateGroupNode,
+  isInSequence,
+  effects,
+}: {
+  group: EditorGroup;
+  updateGroupNode: (id: number, updates: Partial<EditorGroup>) => void;
+  isInSequence: boolean;
+  effects: Array<{ id: string; type: string }>;
+}) {
+  return (
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <div>
+          <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-2">
+            Group Container
+          </h3>
+          <p className="text-gray-500 text-sm">Groups play all their children simultaneously</p>
+        </div>
+
+        {/* Basic Parameters */}
+        <div className="flex flex-wrap gap-6 pb-6 border-b border-navy-light/20">
+          {isInSequence && (
+            <Knob
+              label="Start"
+              value={group.at || 0}
+              onChange={(v) => updateGroupNode(group.id, { at: v })}
+              min={0}
+              max={10}
+              displayValue={`${(group.at || 0).toFixed(2)}s`}
+            />
+          )}
+          <Knob
+            label="Amp"
+            value={group.amp || 1}
+            onChange={(v) => updateGroupNode(group.id, { amp: v })}
+            min={0}
+            max={1}
+          />
+          <Knob
+            label="Pan"
+            value={group.pan || 0}
+            onChange={(v) => updateGroupNode(group.id, { pan: v })}
+            min={-1}
+            max={1}
+            displayValue={`${Math.round((group.pan || 0) * 100)}%`}
+          />
+        </div>
+
+        {/* Repeat Settings */}
+        <div>
+          <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
+            Repeat
+          </h3>
+          <div className="flex flex-wrap gap-3 sm:gap-4">
+            <Knob
+              label="Count"
+              value={group.repeat || 1}
+              onChange={(v) => updateGroupNode(group.id, { repeat: Math.round(v) })}
+              min={1}
+              max={20}
+              displayValue={`${Math.round(group.repeat || 1)}`}
+            />
+            <Knob
+              label="Interval"
+              value={group.repeatInterval || 0}
+              onChange={(v) => updateGroupNode(group.id, { repeatInterval: v })}
+              min={0}
+              max={2}
+              displayValue={`${(group.repeatInterval || 0).toFixed(2)}s`}
+            />
+            <Knob
+              label="Delay"
+              value={group.repeatDelay || 0}
+              onChange={(v) => updateGroupNode(group.id, { repeatDelay: v })}
+              min={0}
+              max={2}
+              displayValue={`${(group.repeatDelay || 0).toFixed(2)}s`}
+            />
+            <Knob
+              label="Decay"
+              value={group.repeatDecay || 0}
+              onChange={(v) => updateGroupNode(group.id, { repeatDecay: v })}
+              min={0}
+              max={1}
+            />
+            <Knob
+              label="Pitch"
+              value={group.repeatPitchShift || 0}
+              onChange={(v) => updateGroupNode(group.id, { repeatPitchShift: v })}
+              min={-12}
+              max={12}
+              displayValue={`${(group.repeatPitchShift || 0).toFixed(1)}`}
+            />
+          </div>
+        </div>
+
+        {/* Effect Selection */}
+        {effects.length > 0 && (
+          <div>
+            <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
+              Effects
+            </h3>
+            <select
+              value={group.effect || ''}
+              onChange={(e) => updateGroupNode(group.id, { effect: e.target.value || undefined })}
+              className="bg-navy-light/20 border border-navy-light/30 text-white px-3 py-2 rounded text-sm"
+            >
+              <option value="">None</option>
+              {effects.map((effect) => (
+                <option key={effect.id} value={effect.id}>
+                  {effect.id} ({effect.type})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Sequence Parameters Component
+function SequenceParameters({
+  sequence,
+  updateSequenceNode,
+  effects,
+}: {
+  sequence: EditorSequence;
+  updateSequenceNode: (id: number, updates: Partial<EditorSequence>) => void;
+  effects: Array<{ id: string; type: string }>;
+}) {
+  return (
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <div>
+          <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-2">
+            Sequence Container
+          </h3>
+          <p className="text-gray-500 text-sm">
+            Sequences play their children in order with timing
+          </p>
+        </div>
+
+        {/* Effect Selection */}
+        {effects.length > 0 && (
+          <div>
+            <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
+              Effects
+            </h3>
+            <select
+              value={sequence.effect || ''}
+              onChange={(e) =>
+                updateSequenceNode(sequence.id, { effect: e.target.value || undefined })
+              }
+              className="bg-navy-light/20 border border-navy-light/30 text-white px-3 py-2 rounded text-sm"
+            >
+              <option value="">None</option>
+              {effects.map((effect) => (
+                <option key={effect.id} value={effect.id}>
+                  {effect.id} ({effect.type})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Note about child timing */}
+        <div className="bg-navy-light/10 border border-navy-light/20 rounded p-3">
+          <p className="text-xs text-gray-400">
+            <strong>Tip:</strong> Children in a sequence can use the &quot;at&quot; parameter to
+            control their start time. Groups within sequences will show a &quot;Start&quot; control.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Knob Component
 function Knob({
   label,
@@ -2005,9 +2296,11 @@ function Slider({
 function ToneParameters({
   layer,
   updateLayerSound,
+  effects,
 }: {
   layer: EditorLayer;
   updateLayerSound: (id: number, updates: Partial<ToneElement | NoiseElement>) => void;
+  effects: Array<{ id: string; type: string }>;
 }) {
   const tone = layer.sound as ToneElement;
 
@@ -2379,6 +2672,29 @@ function ToneParameters({
             />
           </div>
         </div>
+
+        {/* Effect Selection */}
+        {effects.length > 0 && (
+          <div>
+            <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
+              Effects
+            </h3>
+            <select
+              value={layer.effect || ''}
+              onChange={(e) =>
+                updateLayerSound(layer.id, { effect: e.target.value || undefined } as any)
+              }
+              className="bg-navy-light/20 border border-navy-light/30 text-white px-3 py-2 rounded text-sm"
+            >
+              <option value="">None</option>
+              {effects.map((effect) => (
+                <option key={effect.id} value={effect.id}>
+                  {effect.id} ({effect.type})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2388,9 +2704,11 @@ function ToneParameters({
 function NoiseParameters({
   layer,
   updateLayerSound,
+  effects,
 }: {
   layer: EditorLayer;
   updateLayerSound: (id: number, updates: Partial<ToneElement | NoiseElement>) => void;
+  effects: Array<{ id: string; type: string }>;
 }) {
   const noise = layer.sound as NoiseElement;
 
@@ -2626,6 +2944,29 @@ function NoiseParameters({
             />
           </div>
         </div>
+
+        {/* Effect Selection */}
+        {effects.length > 0 && (
+          <div>
+            <h3 className="text-navy-light font-bold text-xs uppercase tracking-widest mb-3">
+              Effects
+            </h3>
+            <select
+              value={layer.effect || ''}
+              onChange={(e) =>
+                updateLayerSound(layer.id, { effect: e.target.value || undefined } as any)
+              }
+              className="bg-navy-light/20 border border-navy-light/30 text-white px-3 py-2 rounded text-sm"
+            >
+              <option value="">None</option>
+              {effects.map((effect) => (
+                <option key={effect.id} value={effect.id}>
+                  {effect.id} ({effect.type})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );

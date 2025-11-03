@@ -128,24 +128,30 @@ function parseDefinitions(root: Element): SPADefinitions | undefined {
   const envelopes: Record<string, ADSREnvelope> = {};
   const effects: Record<string, EffectElement> = {};
 
-  // Parse envelopes
-  defsEl.querySelectorAll?.('envelope')?.forEach(el => {
-    const id = el.getAttribute('id');
-    if (!id) throw new Error('Envelope in defs missing id attribute');
+  // Parse envelopes (check if querySelectorAll exists)
+  if (defsEl.querySelectorAll) {
+    const envelopeElements = defsEl.querySelectorAll('envelope');
+    for (let i = 0; i < envelopeElements.length; i++) {
+      const el = envelopeElements[i];
+      const id = el.getAttribute('id');
+      if (!id) throw new Error('Envelope in defs missing id attribute');
 
-    envelopes[id] = {
-      attack: parseFloat(el.getAttribute('attack') || '0'),
-      decay: parseFloat(el.getAttribute('decay') || '0'),
-      sustain: parseFloat(el.getAttribute('sustain') || '1'),
-      release: parseFloat(el.getAttribute('release') || '0')
-    };
-  });
+      envelopes[id] = {
+        attack: parseFloat(el.getAttribute('attack') || '0'),
+        decay: parseFloat(el.getAttribute('decay') || '0'),
+        sustain: parseFloat(el.getAttribute('sustain') || '1'),
+        release: parseFloat(el.getAttribute('release') || '0')
+      };
+    }
 
-  // Parse effects
-  defsEl.querySelectorAll?.('effect')?.forEach(el => {
-    const effect = parseEffectDefinition(el);
-    effects[effect.id] = effect;
-  });
+    // Parse effects
+    const effectElements = defsEl.querySelectorAll('effect');
+    for (let i = 0; i < effectElements.length; i++) {
+      const el = effectElements[i];
+      const effect = parseEffectDefinition(el);
+      effects[effect.id] = effect;
+    }
+  }
 
   return { envelopes, effects };
 }
