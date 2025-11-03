@@ -398,18 +398,19 @@ export default function CodeEditor({
     if (error) return;
 
     try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(code, 'text/xml');
-      const serializer = new XMLSerializer();
-      let formatted = serializer.serializeToString(xmlDoc);
-
-      // Properly format XML with correct indentation
+      // Custom XML formatter that preserves all attributes
       const lines: string[] = [];
       let depth = 0;
 
-      // Split on tag boundaries
-      formatted = formatted.replace(/></g, '>\n<');
-      const tokens = formatted.split('\n');
+      // First, normalize the spacing by removing extra whitespace
+      let normalized = code.replace(/\s+/g, ' ').trim();
+
+      // Add newlines after > (except when followed by </)
+      normalized = normalized.replace(/>(?!<\/)/g, '>\n');
+      // Add newlines before < (except when preceded by >)
+      normalized = normalized.replace(/(?<!>)</g, '\n<');
+
+      const tokens = normalized.split('\n').filter(t => t.trim());
 
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i].trim();
@@ -453,6 +454,9 @@ export default function CodeEditor({
           lines.push('  '.repeat(depth) + token);
           continue;
         }
+
+        // Text content (shouldn't happen in SPA, but just in case)
+        lines.push('  '.repeat(depth) + token);
       }
 
       const structuredFormatted = lines.join('\n');

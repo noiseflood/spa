@@ -96,6 +96,7 @@ export default function Editor() {
   const [isPlaying, setIsPlaying] = useState(false);
   const { playSound: playSoundEffect } = useSound();
   const [xmlOutput, setXmlOutput] = useState('');
+  const [codeEditorContent, setCodeEditorContent] = useState(''); // Separate state for code editor
   const [showImportModal, setShowImportModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState<number | null>(null);
@@ -631,16 +632,19 @@ export default function Editor() {
     setIsPlaying(true);
 
     try {
-      currentPlaybackRef.current = playSPA(xmlOutput);
+      // Use codeEditorContent if in code view and it has content, otherwise use xmlOutput
+      const xmlToPlay = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+      currentPlaybackRef.current = playSPA(xmlToPlay);
       await currentPlaybackRef.current;
     } catch (error) {
       console.error('Error playing sound:', error);
-      console.error('XML that caused error:', xmlOutput);
+      const xmlToPlay = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+      console.error('XML that caused error:', xmlToPlay);
     } finally {
       setIsPlaying(false);
       currentPlaybackRef.current = null;
     }
-  }, [xmlOutput, isPlaying]);
+  }, [xmlOutput, codeEditorContent, activeEditorTab, isPlaying]);
 
   const stopSound = () => {
     stopAllSounds();
@@ -889,101 +893,9 @@ export default function Editor() {
   };
 
   const handleCodeChange = (newCode: string) => {
-    // This will be called when valid code is entered in the CodeEditor
-    try {
-      const doc = parseSPA(newCode);
-      console.log('Parsed document:', doc);
-      console.log('First sound:', doc.sounds[0]);
-      if (doc.sounds[0] && 'effect' in doc.sounds[0]) {
-        console.log('Has effect?', (doc.sounds[0] as any).effect);
-      }
-
-      const newNodes: EditorNode[] = [];
-      let nodeId = 0;
-
-      // Import effects from the document
-      if (doc.defs?.effects) {
-        const importedEffects = Object.entries(doc.defs.effects).map(([id, effect]) => ({
-          id,
-          type: effect.effectType as 'reverb' | 'delay',
-          ...(effect.preset && { preset: effect.preset }),
-          ...(effect.mix !== undefined && { mix: effect.mix }),
-          ...(effect.decay !== undefined && { decay: effect.decay }),
-          ...(effect.delayTime !== undefined && { delayTime: effect.delayTime }),
-          ...(effect.feedback !== undefined && { feedback: effect.feedback }),
-        }));
-        setEffects(importedEffects);
-      } else {
-        setEffects([]);
-      }
-
-      const processSoundToNode = (sound: SPASound): EditorNode => {
-        if (sound.type === 'group') {
-          const group = sound as GroupElement;
-          const groupNode: EditorGroup = {
-            id: nodeId++,
-            type: 'group',
-            children: [],
-            ...(group.effect && { effect: group.effect }),
-          };
-          if (group.sounds) {
-            groupNode.children = group.sounds.map((s) => processSoundToNode(s));
-          }
-          setExpandedNodes((prev) => new Set(Array.from(prev).concat(groupNode.id)));
-          return groupNode;
-        } else if (sound.type === 'sequence') {
-          const sequence = sound as SequenceElement;
-          const sequenceNode: EditorSequence = {
-            id: nodeId++,
-            type: 'sequence',
-            children: [],
-            ...(sequence.effect && { effect: sequence.effect }),
-          };
-          if (sequence.elements) {
-            sequenceNode.children = sequence.elements.map(
-              (timedSound: { sound: SPASound; at: number }) => {
-                const soundWithTiming = { ...timedSound.sound, at: timedSound.at };
-                return processSoundToNode(soundWithTiming);
-              }
-            );
-          }
-          setExpandedNodes((prev) => new Set(Array.from(prev).concat(sequenceNode.id)));
-          return sequenceNode;
-        } else {
-          const tone = sound as ToneElement | NoiseElement;
-          return {
-            id: nodeId++,
-            type: 'layer',
-            sound: normalizeSound(sound),
-            ...(tone.effect && { effect: tone.effect }),
-          };
-        }
-      };
-
-      for (const sound of doc.sounds) {
-        newNodes.push(processSoundToNode(sound));
-      }
-
-      if (newNodes.length > 0) {
-        if (isPlaying) {
-          stopSound();
-        }
-        setRootNodes(newNodes);
-        nodeIdCounterRef.current = nodeId;
-        // Find and select the first tone/noise layer
-        const firstLayer = newNodes.find((n) => n.type === 'layer');
-        setCurrentNodeId(firstLayer ? firstLayer.id : newNodes[0].id);
-      } else {
-        // If empty, set default node
-        setRootNodes(getInitialNodes());
-        setCurrentNodeId(0);
-      }
-
-      setHasCodeError(false);
-    } catch (error) {
-      console.error('Failed to parse code:', error);
-      // Don't update nodes if parse fails - CodeEditor handles the error display
-    }
+    // Just update the code editor content, don't parse or regenerate
+    // This prevents the automatic overwriting of manual edits
+    setCodeEditorContent(newCode);
   };
 
   /**
@@ -1418,7 +1330,7 @@ export default function Editor() {
             onLoadPreset={loadPreset}
             playSoundEffect={playSoundEffect}
             onEditorUpdate={handleAIEditorUpdate}
-            currentSPA={xmlOutput}
+            currentSPA={(activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput}
             mobileTab={mobileTab}
           />
         </div>
@@ -1653,6 +1565,8 @@ export default function Editor() {
                     </button>
                     <button
                       onClick={() => {
+                        // When switching to code tab, initialize code editor content with current XML
+                        setCodeEditorContent(xmlOutput);
                         setActiveEditorTab('code');
                       }}
                       className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
@@ -1675,7 +1589,8 @@ export default function Editor() {
                     </button>
                     <button
                       onClick={() => {
-                        const blob = new Blob([xmlOutput], { type: 'text/xml' });
+                        const xmlToExport = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+                        const blob = new Blob([xmlToExport], { type: 'text/xml' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
@@ -1689,7 +1604,8 @@ export default function Editor() {
                     </button>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(xmlOutput);
+                        const xmlToCopy = (activeEditorTab === 'code' && codeEditorContent) ? codeEditorContent : xmlOutput;
+                        navigator.clipboard.writeText(xmlToCopy);
                       }}
                       className="px-3 py-1.5 text-xs bg-navy border border-navy-light/30 hover:bg-navy-light/10 rounded transition-colors whitespace-nowrap"
                     >
@@ -1739,7 +1655,7 @@ export default function Editor() {
                 ) : (
                   /* Code View */
                   <CodeEditor
-                    value={xmlOutput}
+                    value={codeEditorContent || xmlOutput}
                     onChange={handleCodeChange}
                     onValidChange={handleCodeValidChange}
                     className="flex-1"
