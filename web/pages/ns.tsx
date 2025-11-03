@@ -40,7 +40,7 @@ export default function Namespace() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-3">Schema</h2>
           <p>
-            <a href="/schema/spa-v1.1.schema.json" className="text-blue-600 hover:underline">
+            <a href="/schema/spa-v1.schema.json" className="text-blue-600 hover:underline">
               JSON Schema Definition (v1.1) →
             </a>
           </p>
