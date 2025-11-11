@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { playSPA } from '@spa-audio/core';
 import { useSound } from '../contexts/SoundContext';
 import MuteButton from '../components/MuteButton';
@@ -26,9 +26,13 @@ export default function Home() {
   const [visibleWords, setVisibleWords] = useState(0);
   const [presets, setPresets] = useState<{ path: string; name: string }[]>([]);
   const [currentPreset, setCurrentPreset] = useState<{ path: string; name: string } | null>(null);
-  const [displayedName, setDisplayedName] = useState('');
+  const [rawContent, setRawContent] = useState<{ name: string; lines: string[] } | null>(null);
+  const [fullCode, setFullCode] = useState<string[]>([]);
+  const [displayedCode, setDisplayedCode] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [maxLineLength, setMaxLineLength] = useState(60);
+  const codeContainerRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSound();
 
   // Check if intro should be shown based on cookie
@@ -91,7 +95,9 @@ export default function Home() {
         }));
         setPresets(presetObjects);
         if (presetObjects.length > 0) {
-          setCurrentPreset(presetObjects[0]);
+          // Select a random preset to start
+          const randomIndex = Math.floor(Math.random() * presetObjects.length);
+          setCurrentPreset(presetObjects[randomIndex]);
         }
       } catch (error) {
         console.error('Error loading presets:', error);
@@ -100,18 +106,163 @@ export default function Home() {
     loadPresets();
   }, [showIntro]);
 
-  // Typing animation
+  // Load SPA content when preset changes
   useEffect(() => {
     if (!currentPreset) return;
 
+    async function loadSpaContent() {
+      if (!currentPreset) return;
+
+      try {
+        const response = await fetch(`/presets/${currentPreset.path}.spa`);
+        const content = await response.text();
+
+        // Parse content to extract inner lines (skip opening <spa> and closing </spa>)
+        const lines = content.split('\n');
+        const innerLines = [];
+        let insideSpa = false;
+
+        for (const line of lines) {
+          if (line.includes('<spa')) {
+            insideSpa = true;
+            continue;
+          }
+          if (line.includes('</spa>')) {
+            break;
+          }
+          if (insideSpa) {
+            const trimmed = line.trim();
+            // Skip empty lines and HTML comments
+            if (trimmed && !trimmed.startsWith('<!--')) {
+              // Keep original line with indentation intact
+              innerLines.push(line);
+            }
+          }
+        }
+
+        // Analyze structure and pick lines to show
+        const hasGroup = innerLines.some((line) => line.includes('<group'));
+        const totalLines = innerLines.length;
+
+        // Take up to 4 lines to show actual content (leaving room for ellipsis and closing tags)
+        const maxContentLines = 4;
+        const displayLines = innerLines.slice(0, maxContentLines);
+
+        // Add ellipsis line if there's more content
+        const needsEllipsis = totalLines > maxContentLines;
+        if (needsEllipsis) {
+          // Get the indentation from first line for proper alignment
+          const firstLineIndent = innerLines[0]?.match(/^\s*/)?.[0] || '  ';
+          displayLines.push(firstLineIndent + '...');
+        }
+
+        // Close group tag if we have an opening group
+        if (hasGroup && !displayLines.some((line) => line.includes('</group>'))) {
+          displayLines.push('  </group>');
+        }
+
+        setRawContent({
+          name: currentPreset.name,
+          lines: displayLines,
+        });
+      } catch (error) {
+        console.error('Error loading SPA content:', error);
+      }
+    }
+
+    loadSpaContent();
+  }, [currentPreset]);
+
+  // Calculate max line length based on viewport width
+  useEffect(() => {
+    const calculateMaxLength = () => {
+      // Use viewport width for more reliable calculation
+      const viewportWidth = window.innerWidth;
+
+      // Very aggressive truncation for clean, centered look
+      // Mobile: ~25 chars, Tablet: ~30 chars, Desktop: ~35 chars
+      if (viewportWidth < 640) {
+        setMaxLineLength(25);
+      } else if (viewportWidth < 1024) {
+        setMaxLineLength(30);
+      } else {
+        setMaxLineLength(35);
+      }
+    };
+
+    calculateMaxLength();
+
+    const handleResize = () => calculateMaxLength();
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Rebuild code with truncation when rawContent or maxLineLength changes
+  useEffect(() => {
+    if (!rawContent) return;
+
+    const linesToShow = rawContent.lines.map((line) => {
+      // Don't truncate lines that are just ellipsis or closing tags
+      const trimmed = line.trim();
+      if (trimmed === '...' || trimmed.startsWith('</')) {
+        return line;
+      }
+
+      // Smart truncation - try to cut after first or second attribute
+      const leadingSpaces = line.match(/^\s*/)?.[0] || '';
+      const content = line.substring(leadingSpaces.length);
+
+      // For element lines, truncate after tag name + first attribute
+      if (content.startsWith('<') && !content.startsWith('</')) {
+        // Try to find a good cut point after an attribute
+        const tagMatch = content.match(/^<\w+\s+\w+="[^"]*"/);
+        if (tagMatch && tagMatch[0].length <= maxLineLength - leadingSpaces.length - 3) {
+          // If we can fit tag + first attribute, check for second
+          const secondAttrMatch = content.match(/^<\w+\s+\w+="[^"]*"\s+\w+="[^"]*"/);
+          if (
+            secondAttrMatch &&
+            secondAttrMatch[0].length <= maxLineLength - leadingSpaces.length - 3
+          ) {
+            return leadingSpaces + secondAttrMatch[0] + '...';
+          }
+          return leadingSpaces + tagMatch[0] + '...';
+        }
+        // Otherwise just truncate normally
+      }
+
+      if (line.length > maxLineLength) {
+        // Account for '...' (3 chars) in the max length
+        const maxContentLength = maxLineLength - leadingSpaces.length - 3;
+
+        if (content.length > maxContentLength && maxContentLength > 0) {
+          return leadingSpaces + content.substring(0, maxContentLength) + '...';
+        }
+      }
+      return line;
+    });
+
+    // Build full code string with proper indentation
+    const fullCodeLines = [`<spa name="${rawContent.name}">`, ...linesToShow, '</spa>'];
+
+    setFullCode(fullCodeLines);
+    setDisplayedCode(''); // Reset for typing animation
+  }, [rawContent, maxLineLength]);
+
+  // Typing animation for full code
+  useEffect(() => {
+    if (fullCode.length === 0) return;
+
+    const fullText = fullCode.join('\n');
+
     let timeout: NodeJS.Timeout;
-    if (displayedName.length < currentPreset.name.length) {
+    if (displayedCode.length < fullText.length) {
       timeout = setTimeout(() => {
-        setDisplayedName(currentPreset.name.slice(0, displayedName.length + 1));
-      }, 50);
+        setDisplayedCode(fullText.slice(0, displayedCode.length + 1));
+      }, 20); // Faster typing for more code
     }
     return () => clearTimeout(timeout);
-  }, [displayedName, currentPreset]);
+  }, [displayedCode, fullCode]);
 
   const handleClick = async () => {
     if (isPlaying || isTyping || !currentPreset) return;
@@ -136,7 +287,7 @@ export default function Home() {
     // Start deleting animation
     setIsTyping(true);
     const deleteInterval = setInterval(() => {
-      setDisplayedName((prev) => {
+      setDisplayedCode((prev) => {
         if (prev.length === 0) {
           clearInterval(deleteInterval);
 
@@ -148,7 +299,7 @@ export default function Home() {
         }
         return prev.slice(0, -1);
       });
-    }, 30);
+    }, 10); // Fast deletion
   };
 
   // Show intro animation
@@ -209,151 +360,142 @@ export default function Home() {
 
       <div className="min-h-screen bg-navy text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Hero Section */}
-          <header className="font-mono flex flex-col text-center items-center justify-between h-[70vh]">
-            <div className="h-full" />
+          {/* Hero Section - Interactive Demo */}
+          <header className="font-mono flex flex-col text-center items-center justify-center min-h-[80vh] py-12">
+            <h1 className="text-4xl font-bold text-green-bright mb-6">SVG for sound</h1>
             <div
               onClick={handleClick}
-              className="cursor-pointer transition-transform h-full flex flex-grow items-center justify-center hover:scale-105 active:scale-95 focus:outline-none"
+              className="cursor-pointer transition-transform hover:scale-105 active:scale-95 focus:outline-none mb-12 w-full px-4 flex justify-center"
               title="Click to play sound"
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-green-bright tracking-tighter select-none">
-                &lt;spa name=&quot;{displayedName}
-                <span className="animate-pulse">
-                  {displayedName.length < (currentPreset?.name.length || 0) ? '|' : ''}
-                </span>
-                &quot; ... /&gt;
-              </h1>
-            </div>
-            <div className="h-full">
-              <p className="text-2xl text-white/60 font-light mb-8">The SVG of audio</p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/editor"
-                  onMouseEnter={() => playSound('ui-feedback/hover')}
-                  onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center px-8 py-4 bg-navy-dark text-green-bright border-2 border-green-bright font-semibold text-lg rounded-lg shadow-lg hover:bg-green-bright hover:text-navy-dark hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  Create a Sound
-                </Link>
-                <Link
-                  href="/getting-started"
-                  onMouseEnter={() => playSound('ui-feedback/hover')}
-                  onClick={() => playSound('ui-feedback/button-click')}
-                  className="inline-flex items-center justify-center px-8 py-4 bg-navy-dark border-2 border-navy-light text-white font-semibold text-lg rounded-lg hover:bg-navy-light hover:text-white transform hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  Get Started
-                </Link>
+              <div
+                ref={codeContainerRef}
+                className="inline-block h-[160px] sm:h-[180px] lg:h-[260px]"
+              >
+                <pre className="text-sm sm:text-base lg:text-lg font-mono text-green-bright select-none whitespace-pre text-left">
+                  {displayedCode}
+                  <span className="animate-pulse">
+                    {displayedCode.length < fullCode.join('\n').length && displayedCode.length > 0
+                      ? '|'
+                      : ''}
+                  </span>
+                </pre>
               </div>
             </div>
+
+            <p className="text-xl text-white/70 mb-12 max-w-2xl">
+              Generate sound effects with code, designed for AI and the web.
+            </p>
+
+            <Link
+              href="/editor"
+              onMouseEnter={() => playSound('ui-feedback/hover')}
+              onClick={() => playSound('ui-feedback/button-click')}
+              className="inline-flex items-center justify-center px-8 py-4 bg-green-bright text-navy-dark font-semibold text-lg rounded hover:opacity-90 transition-all duration-200"
+            >
+              Try the Editor
+            </Link>
           </header>
 
-          {/* Features Section */}
-          <section className="grid md:grid-cols-3 gap-8 py-16">
-            <div
-              onMouseEnter={() => playSound('ui-feedback/hover')}
-              className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
-            >
-              <h3 className="text-xl font-semibold text-green-bright mb-2">Declarative Audio</h3>
-              <p className="text-white/60">
-                Define sounds with XML tags. No complex audio programming required.
-              </p>
-            </div>
+          {/* What & How Section - Asymmetric Layout */}
+          <section className="py-16 border-t border-navy-light/20">
+            <div className="grid lg:grid-cols-2 gap-12 items-start">
+              {/* Left: What it is */}
+              <div className="min-w-0">
+                <h2 className="text-3xl font-bold text-green-bright mb-6">What is SPA?</h2>
+                <div className="space-y-4 text-white/70 text-lg">
+                  <p>
+                    SPA (Synthetic Parametric Audio) lets you define sound effects with XML tags
+                    instead of audio files. Think tones, noise, envelopes, and filters.
+                  </p>
+                  <p>Built on Web Audio API. Runs anywhere JavaScript runs.</p>
+                </div>
 
-            <div
-              onMouseEnter={() => playSound('ui-feedback/hover')}
-              className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
-            >
-              <h3 className="text-xl font-semibold text-green-bright mb-2">AI-Friendly</h3>
-              <p className="text-white/60">
-                Designed for AI to read, write, and understand. Generate sounds with natural
-                language.
-              </p>
-            </div>
+                <div className="mt-8 p-4 bg-navy-dark rounded border-l-4 border-green-bright">
+                  <code className="text-green-bright text-sm">npm install @spa-audio/core</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('npm install @spa-audio/core');
+                      playSound('ui-feedback/button-click');
+                    }}
+                    className="ml-4 text-white/60 hover:text-green-bright text-sm"
+                  >
+                    copy
+                  </button>
+                </div>
 
-            <div
-              onMouseEnter={() => playSound('ui-feedback/hover')}
-              className="bg-navy-dark p-8 rounded-xl border border-navy-light/20 hover:border-green-bright/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
-            >
-              <h3 className="text-xl font-semibold text-green-bright mb-2">Web-Native</h3>
-              <p className="text-white/60">
-                Runs directly in browsers using Web Audio API. No plugins or downloads needed.
-              </p>
-            </div>
-          </section>
-
-          {/* Example Section */}
-          <section className="py-16 text-center">
-            <h2 className="text-3xl font-bold text-green-bright mb-8">Example</h2>
-            <div className="max-w-2xl mx-auto bg-navy-dark rounded-xl p-8 border border-navy-light/20">
-              <pre className="text-green-bright font-mono text-sm sm:text-base text-left overflow-x-auto">
-                <code>{`<spa xmlns="https://spa.audio/ns" version="1.0">
-  <tone wave="sine" freq="440" dur="0.5" />
-</spa>`}</code>
-              </pre>
-            </div>
-            <p className="text-white/60 mt-4">
-              A 440Hz sine wave (A note) that plays for half a second
-            </p>
-          </section>
-
-          {/* Use Cases */}
-          <section className="py-16">
-            <h2 className="text-3xl font-bold text-center text-green-bright mb-12">Perfect For</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div
-                onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
-              >
-                <strong className="text-green-bright block mb-2">UI Sound Effects</strong>
-                <p className="text-white/60 text-sm">Button clicks, notifications, transitions</p>
+                <div className="mt-4 p-4 bg-navy-dark rounded border-l-4 border-green-bright">
+                  <code className="text-green-bright text-sm">npm install @spa-audio/react</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('npm install @spa-audio/react');
+                      playSound('ui-feedback/button-click');
+                    }}
+                    className="ml-4 text-white/60 hover:text-green-bright text-sm"
+                  >
+                    copy
+                  </button>
+                </div>
               </div>
-              <div
-                onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
-              >
-                <strong className="text-green-bright block mb-2">Game Audio</strong>
-                <p className="text-white/60 text-sm">Procedural sound effects, dynamic music</p>
-              </div>
-              <div
-                onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
-              >
-                <strong className="text-green-bright block mb-2">AI Applications</strong>
-                <p className="text-white/60 text-sm">Generate context-aware audio on the fly</p>
-              </div>
-              <div
-                onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="bg-navy-dark p-6 rounded-lg border-l-4 border-green-bright hover:bg-navy-light/10 transition-colors cursor-pointer"
-              >
-                <strong className="text-green-bright block mb-2">Education</strong>
-                <p className="text-white/60 text-sm">Teach audio synthesis concepts visually</p>
+
+              {/* Right: Code Example */}
+              <div className="min-w-0">
+                <h2 className="text-3xl font-bold text-green-bright mb-6">Example</h2>
+                <div className="bg-navy-dark p-6 rounded border border-navy-light/20 overflow-x-auto min-w-0">
+                  <pre className="text-green-bright font-mono text-sm">
+                    <code>{`<spa xmlns="https://spa.audio/ns" version="1.0">
+  <group>
+    <tone wave="sine" freq="800" dur="0.05"
+          envelope="0,0.02,0,0.03" />
+    <noise color="white" dur="0.02" amp="0.3" />
+  </group>
+</spa>
+`}</code>
+                  </pre>
+                </div>
+
+                <div className="mt-8 bg-navy-dark p-6 rounded border border-navy-light/20 overflow-x-auto min-w-0">
+                  <pre className="text-green-bright font-mono text-sm">
+                    <code>{`import { playSPA } from '@spa-audio/core';
+
+const xml = \`<spa>...</spa>\`;
+await playSPA(xml);`}</code>
+                  </pre>
+                </div>
               </div>
             </div>
           </section>
 
-          {/* Footer */}
-          <footer className="py-12 mt-16 border-t border-navy-light/20 text-center">
-            <p className="text-white/60 mb-4">
-              SPA - Synthetic Parametric Audio | Open Source | MIT License
-            </p>
-            <div className="flex gap-8 justify-center">
+          {/* Links Section */}
+          <section className="py-16 border-t border-navy-light/20">
+            <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
+              <Link
+                href="/getting-started"
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                className="text-white/60 hover:text-green-bright transition-colors text-lg"
+              >
+                Docs
+              </Link>
               <a
                 href="https://github.com/noiseflood/spa"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="text-white/60 hover:text-green-bright transition-colors"
+                className="text-white/60 hover:text-green-bright transition-colors text-lg"
               >
                 GitHub
               </a>
               <a
                 href="https://www.npmjs.com/org/spa-audio"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
-                className="text-white/60 hover:text-green-bright transition-colors"
+                className="text-white/60 hover:text-green-bright transition-colors text-lg"
               >
                 npm
               </a>
             </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="py-8 text-center">
+            <p className="text-white/40 text-sm">MIT License</p>
           </footer>
         </div>
       </div>
