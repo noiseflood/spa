@@ -387,14 +387,24 @@ export default function Home() {
               Generate sound effects with code, designed for AI and the web.
             </p>
 
-            <Link
-              href="/editor"
-              onMouseEnter={() => playSound('ui-feedback/hover')}
-              onClick={() => playSound('ui-feedback/button-click')}
-              className="inline-flex items-center justify-center px-8 py-4 bg-green-bright text-navy-dark font-semibold text-lg rounded hover:opacity-90 transition-all duration-200"
-            >
-              Try the Editor
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link
+                href="/editor"
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                onClick={() => playSound('ui-feedback/button-click')}
+                className="inline-flex items-center justify-center px-8 py-4 bg-green-bright text-navy-dark font-semibold text-lg rounded hover:opacity-90 transition-all duration-200"
+              >
+                Try the Editor
+              </Link>
+              <Link
+                href="/getting-started"
+                onMouseEnter={() => playSound('ui-feedback/hover')}
+                onClick={() => playSound('ui-feedback/button-click')}
+                className="inline-flex items-center justify-center px-8 py-4 bg-transparent text-green-bright border-2 border-green-bright font-semibold text-lg rounded hover:bg-green-bright hover:text-navy-dark transition-all duration-200"
+              >
+                Getting Started
+              </Link>
+            </div>
           </header>
 
           {/* What & How Section - Asymmetric Layout */}
@@ -470,7 +480,7 @@ await playSPA(xml);`}</code>
           <section className="py-16 border-t border-navy-light/20">
             <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
               <Link
-                href="/getting-started"
+                href="/docs"
                 onMouseEnter={() => playSound('ui-feedback/hover')}
                 className="text-white/60 hover:text-green-bright transition-colors text-lg"
               >
