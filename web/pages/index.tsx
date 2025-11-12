@@ -362,7 +362,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section - Interactive Demo */}
           <header className="font-mono flex flex-col text-center items-center justify-center min-h-[80vh] py-12">
-            <h1 className="text-4xl font-bold text-green-bright mb-6">The SVG of sound</h1>
+            <h1 className="text-4xl lg:text-6xl text-green-bright mb-12">The SVG of sound</h1>
             <div
               onClick={handleClick}
               className="cursor-pointer transition-transform hover:scale-105 active:scale-95 focus:outline-none mb-12 w-full px-4 flex justify-center"
